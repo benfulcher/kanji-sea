@@ -93,10 +93,14 @@ footer a{color:var(--mist)}
 .back,.navb,.chip{padding:10px 16px;border-radius:999px;background:rgba(6,25,42,.5);font-weight:700}
 .navb{width:48px;height:48px;padding:0;font-size:26px;line-height:48px}
 .nav{display:flex;gap:8px;align-items:center}
+.sizes{display:flex;gap:2px;padding:4px;border-radius:999px;background:rgba(6,25,42,.5)}
+.sizes button{width:40px;height:40px;border-radius:50%;display:grid;place-items:center}
+.sizes button i{display:block;border:2.5px solid currentColor;border-radius:4px}
+.sizes button[aria-pressed="true"]{background:var(--sun);color:#3b2600}
 
 /* ---------- practice ---------- */
 .practice{display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;justify-content:center}
-.boardwrap{flex:0 1 auto;width:min(100%,62vh,560px);max-width:100%;touch-action:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.boardwrap{flex:0 1 auto;width:calc(min(100%,62vh,560px)*var(--bs,1));max-width:100%;touch-action:none;-webkit-user-select:none;-webkit-touch-callout:none}
 #board{display:block;width:100%;height:auto;aspect-ratio:1;max-width:100%;border-radius:22px;background:var(--paper);
   touch-action:none;box-shadow:0 8px 0 rgba(0,0,0,.25)}
 #board .grid{stroke:var(--redline);stroke-width:.5;stroke-dasharray:2 2;fill:none}
@@ -251,7 +255,14 @@ ruby rt{font-family:var(--f-ui);font-size:.5em;font-weight:700;color:var(--sun)}
     <div class="wrap">
       <div class="bar">
         <button class="back" id="backHome1">← もどる</button>
-        <div class="nav lesson-only"><button class="navb" id="prevK" aria-label="まえの かんじ">‹</button><button class="navb" id="nextK" aria-label="つぎの かんじ">›</button></div>
+        <div class="nav">
+          <div class="sizes" id="sizes" role="group" aria-label="かく ところの おおきさ">
+            <button data-i="0" aria-label="おおきい"><i style="width:20px;height:20px"></i></button>
+            <button data-i="1" aria-label="ふつう"><i style="width:15px;height:15px"></i></button>
+            <button data-i="2" aria-label="ちいさい"><i style="width:10px;height:10px"></i></button>
+          </div>
+          <div class="nav lesson-only"><button class="navb" id="prevK" aria-label="まえの かんじ">‹</button><button class="navb" id="nextK" aria-label="つぎの かんじ">›</button></div>
+        </div>
       </div>
       <div class="practice">
         <div class="boardwrap" id="boardwrap">
@@ -930,6 +941,15 @@ $('qHome').onclick=renderHome; $('backHome2').onclick=renderHome;
 $('mascot').innerHTML=art('octopus'); $('coachArt').innerHTML=art('octopus'); $('deco').innerHTML=art('kmush');
 const soundLabel=()=>{$('soundBtn').textContent=SFX.on?'おと ON':'おと OFF';$('soundBtn').setAttribute('aria-pressed',SFX.on)};
 $('soundBtn').onclick=()=>{SFX.toggle();soundLabel()}; soundLabel();
+// Writing board size (large, medium, small), remembered on this device like the sound setting.
+const SIZES=[1,.78,.6];
+function setSize(i){
+  $('boardwrap').style.setProperty('--bs',SIZES[i]);
+  for(const b of $('sizes').children)b.setAttribute('aria-pressed',+b.dataset.i===i);
+  try{localStorage.setItem('kanjiSea.boardSize',i)}catch(e){}
+}
+$('sizes').addEventListener('click',e=>{const b=e.target.closest('button');if(b)setSize(+b.dataset.i)});
+{let i=0;try{i=+localStorage.getItem('kanjiSea.boardSize')||0}catch(e){} setSize(SIZES[i]?i:0)}
 for(const ev of ['pointerdown','touchend','click'])document.addEventListener(ev,()=>SFX.unlock(),{capture:true});
 document.addEventListener('click',e=>{const b=e.target.closest('button');if(b&&!b.classList.contains('opt')&&b.id!=='soundBtn')SFX.pop()},true);
 $('ctaRay').innerHTML=art('ray'); $('ctaOcto').innerHTML=art('octopus'); $('qRay').innerHTML=raySVG('#9cc0cf');
