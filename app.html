@@ -117,6 +117,13 @@ footer a{color:var(--mist)}
 #board .spark{stroke:#fff;stroke-width:4;fill:none;stroke-linecap:round;filter:drop-shadow(0 0 2px #8ad8ff)}
 #board .star{fill:#fff;stroke:var(--cinna);stroke-width:.7;transform-box:fill-box;transform-origin:center;opacity:0;animation:twinkle .9s ease-out forwards}
 @keyframes twinkle{0%{transform:scale(0) rotate(0);opacity:1}55%{transform:scale(1.4) rotate(80deg);opacity:1}100%{transform:scale(.5) rotate(140deg);opacity:0}}
+/* A メンダコ flies across the screen when every stroke of a kanji is perfect. */
+.flyer{position:fixed;left:0;top:28vh;width:150px;z-index:25;pointer-events:none}
+.flyer .ear{transform-box:fill-box;animation:flapL .22s ease-in-out infinite alternate}
+.flyer .ear.l{transform-origin:right center}
+.flyer .ear.r{transform-origin:left center;animation-name:flapR}
+@keyframes flapL{from{transform:rotate(18deg)}to{transform:rotate(-22deg)}}
+@keyframes flapR{from{transform:rotate(-18deg)}to{transform:rotate(22deg)}}
 @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.45)}}
 @keyframes popb{from{transform:scale(.3);opacity:1}to{transform:scale(2.4);opacity:0}}
 
@@ -371,11 +378,12 @@ const CRE = {
   kjelly2:{n:'ピンクの クラゲ',svg:'jelly',c:'#ffb3d9'}, kwhale:{n:'クジラ',svg:'whale',c:'#6aa6e8',s:'#4f8bd0'},
   ksnake:{n:'ウミヘビ',svg:'snake',c:'#8fd3ee',s:'#34557e'}, kcroc:{n:'ワニ',svg:'croc',c:'#76c47a',s:'#5aa95f'},
   kclown:{n:'クマノミ',svg:'clown',c:'#ff8c3a'},
+  dumbo:{n:'メンダコ',svg:'dumbo',c:'#ffb3a4',s:'#ff8577'},
   kmush:{n:'キノコ',svg:'mush',c:'#ff5f57',floor:1,still:1}, kmush2:{n:'キノコサンゴ',svg:'mush',c:'#ff9ecf',floor:1,still:1},
   kmush3:{n:'あおい キノコ',svg:'mush',c:'#7aa8ff',floor:1,still:1},
 };
 const FRIEND = ['octopus','kcrab','ray',
-  'kclown','kpuffer','kturtle','kjelly','shrimp','octopus2','squid','iguana','ray3','kmush',
+  'kclown','kpuffer','kturtle','kjelly','dumbo','octopus2','squid','iguana','ray3','kmush',
   'kwhale','dolphin','seal','ksnake','kcroc','kmush2','ray2','otter','turtle',
   'shark','octopus3','lobster','kjelly2','kturtle2','ray',
   'croc','snake','kpuffer2','kmush3','octopus'];
@@ -423,6 +431,7 @@ const SFX=(()=>{
     whale:go(()=>{tone({f0:170,f1:420,dur:1.1,vol:.18,vib:5});tone({f0:420,f1:230,t:1,dur:1.3,vol:.15,vib:4});hiss({dur:2.2,f0:250,f1:600,q:.6,vol:.06})}),
     swoosh:go(()=>{hiss({dur:.7,f0:300,f1:1400,q:1.5,vol:.14});bubbles(3,.4)}),
     swooshUp:go(()=>hiss({dur:.6,f0:700,f1:2800,q:1.5,vol:.12})),
+    fly:go(()=>{hiss({dur:1.4,f0:350,f1:2200,q:1.2,vol:.1});[784,988,1175,1568].forEach((f,j)=>tone({type:'triangle',f0:f,f1:f*1.06,t:.35+j*.12,dur:.25,vol:.1}));bubbles(5,1,.08)}),
     kira:go(i=>{tone({type:'triangle',f0:PENTA[i%PENTA.length],dur:.3,vol:.14});
       [1568,2093,2637,3136,2637,3136].forEach((f,j)=>tone({f0:f,t:.12+j*.07,dur:.3,vol:.07}));hiss({t:.1,dur:.7,f0:3000,f1:8000,q:2,vol:.05})}),
     right:go(()=>{tone({type:'triangle',f0:784,dur:.15,vol:.15});tone({type:'triangle',f0:1175,t:.1,dur:.3,vol:.15});bubbles(4,.15)}),
@@ -442,6 +451,8 @@ const KAWAII={
   snake:({c,s})=>svg(`<path d="M90 72Q78 54 66 66T42 66T22 58" stroke="${c}" stroke-width="13" fill="none" stroke-linecap="round"/><path d="M90 72Q78 54 66 66T42 66T22 58" stroke="${s}" stroke-width="13" fill="none" stroke-dasharray="5 9"/><path d="M4 57l-4-2.5M4 57l-4 3" stroke="#ff5d7a" stroke-width="1.8" stroke-linecap="round"/><ellipse cx="18" cy="52" rx="15" ry="12" fill="${c}"/>${kface(12,24,50,3.4)}`),
   croc:({c,s})=>svg(`<path d="M72 58Q90 58 98 44Q95 68 72 70Z" fill="${c}"/><ellipse cx="44" cy="74" rx="7" ry="5" fill="${s}"/><ellipse cx="68" cy="74" rx="7" ry="5" fill="${s}"/><ellipse cx="56" cy="60" rx="26" ry="15" fill="${c}"/><ellipse cx="56" cy="67" rx="18" ry="6" fill="#dff2bf"/><g fill="${s}"><circle cx="52" cy="46" r="3"/><circle cx="62" cy="45" r="3"/><circle cx="72" cy="47" r="3"/></g><rect x="4" y="50" width="40" height="18" rx="9" fill="${c}"/><path d="M10 67l2 3 2-3zM18 67l2 3 2-3zM26 67l2 3 2-3z" fill="#fff"/><circle cx="9" cy="55" r="1.3" fill="#2f5e33"/><circle cx="14" cy="55" r="1.3" fill="#2f5e33"/><circle cx="30" cy="46" r="8" fill="${c}"/><circle cx="44" cy="46" r="8" fill="${c}"/>${kface(30,44,46,3.6)}`),
   mush:({c})=>svg(`<path d="M36 58Q34 84 40 90H60Q66 84 64 58Z" fill="#fff4e0"/><path d="M10 60Q10 18 50 18Q90 18 90 60Q50 68 10 60Z" fill="${c}"/><g fill="#fff"><circle cx="30" cy="40" r="6"/><circle cx="52" cy="29" r="5"/><circle cx="72" cy="42" r="6.5"/><circle cx="45" cy="51" r="3.5"/></g>${kface(43,57,73,3.6)}`),
+  // Dumbo octopus (メンダコ): a bell-shaped body with ear fins and a scalloped skirt.
+  dumbo:({c,s})=>svg(`<g class="ear l"><ellipse cx="17" cy="30" rx="13" ry="7.5" transform="rotate(-38 17 30)" fill="${s}"/></g><g class="ear r"><ellipse cx="83" cy="30" rx="13" ry="7.5" transform="rotate(38 83 30)" fill="${s}"/></g><path d="M50 12C72 12 79 30 79 50C79 62 85 72 90 80Q82 87 74 81Q67 91 58 85Q50 93 42 85Q33 91 26 81Q18 87 10 80C15 72 21 62 21 50C21 30 28 12 50 12Z" fill="${c}"/><g stroke="${s}" stroke-width="2.4" fill="none" stroke-linecap="round" opacity=".55"><path d="M36 66Q33 75 26 81"/><path d="M46 69Q45 78 42 85"/><path d="M54 69Q55 78 58 85"/><path d="M64 66Q67 75 74 81"/></g><path d="M33 26q6-8 15-9" stroke="#fff" stroke-width="3.5" fill="none" stroke-linecap="round" opacity=".6"/>${kface(41,59,44,4.4)}`),
   clown:({c})=>svg(`<path d="M74 50L94 36Q90 50 94 64Z" fill="${c}"/><path d="M42 32Q54 18 66 32Z" fill="${c}"/><ellipse cx="46" cy="50" rx="30" ry="20" fill="${c}"/><g fill="#fff" stroke="#22122f" stroke-width="1.6"><ellipse cx="37" cy="50" rx="4.5" ry="19"/><ellipse cx="60" cy="50" rx="4" ry="15"/></g>${kface(19,28,46,3.3)}`),
 };
 function octoSVG(c){return `<svg viewBox="0 0 100 100" aria-hidden="true"><g fill="none" stroke="${c}" stroke-width="10" stroke-linecap="round"><path d="M30 56Q20 76 10 78"/><path d="M40 60Q34 82 26 92"/><path d="M50 62Q53 84 46 94"/><path d="M60 60Q66 82 74 92"/><path d="M70 56Q80 76 90 78"/></g><ellipse cx="50" cy="38" rx="31" ry="29" fill="${c}"/><circle cx="36" cy="21" r="4" fill="#fff" opacity=".35"/><circle cx="62" cy="17" r="3" fill="#fff" opacity=".35"/><ellipse cx="40" cy="40" rx="7" ry="8" fill="#fff"/><ellipse cx="60" cy="40" rx="7" ry="8" fill="#fff"/><circle cx="41" cy="42" r="3.6" fill="#22122f"/><circle cx="61" cy="42" r="3.6" fill="#22122f"/><circle cx="30" cy="52" r="4.5" fill="#ff5d8f" opacity=".45"/><circle cx="70" cy="52" r="4.5" fill="#ff5d8f" opacity=".45"/><path d="M45 54Q50 59 55 54" stroke="#22122f" stroke-width="2.4" fill="none" stroke-linecap="round"/></svg>`}
@@ -474,7 +485,7 @@ const HOUR=3600e3;
 const SRS_INT=[0,4,8,23,47,167,335,719,2879].map(h=>h*HOUR); // wait after reaching each stage
 const LEVELS=[
   {id:'kmush',n:'キノコ',g:'まだ'},
-  {id:'shrimp',n:'エビ',g:'みならい 1'}, {id:'kcrab',n:'カニ',g:'みならい 2'},
+  {id:'dumbo',n:'メンダコ',g:'みならい 1'}, {id:'kcrab',n:'カニ',g:'みならい 2'},
   {id:'kpuffer',n:'フグ',g:'みならい 3'}, {id:'kclown',n:'クマノミ',g:'みならい 4'},
   {id:'kturtle',n:'ウミガメ',g:'じょうず 1'}, {id:'octopus',n:'タコ',g:'じょうず 2'},
   {id:'ray',n:'エイ',g:'めいじん'}, {id:'kcroc',n:'ワニ',g:'たつじん'}, {id:'kwhale',n:'クジラ',g:'でんせつ'},
@@ -504,7 +515,7 @@ function renderLadder(){
 let R=null;
 // A session serves every due kanji first (WaniKani style), then keeps going as free practice until she taps おわる.
 // Practice picks at random, weighted towards low levels: each level up makes a kanji 0.6x as likely,
-// so エビ comes up about 8x as often as ウミガメ. The same kanji can come twice in a row.
+// so メンダコ comes up about 8x as often as ウミガメ. The same kanji can come twice in a row.
 // A practice miss makes that kanji 3x as likely for the rest of the session (up to 9x); writing it again eases that off.
 // Practice never changes levels, so it can't upset the review timings.
 function practicePick(){
@@ -570,7 +581,7 @@ $('revEnd').onclick=()=>{if(R)endReview()};
 $('revHint').onclick=()=>{$('revPic').textContent=INFO[cur.k].pic};
 $('revSpeak').onclick=()=>say(R.reading);
 $('revGiveUp').onclick=()=>{
-  if(cur.reveal)return; cur.hinted=true; cur.reveal=true;
+  if(cur.reveal)return; cur.hinted=true; cur.reveal=true; cur.allPerfect=false;
   board.classList.remove('memory'); markNext(); SFX.bloop(); coach('うすい せんを なぞって おぼえよう',true);
 };
 
@@ -680,7 +691,7 @@ function openKanji(k,mode){
   setMode(mode||(p.t?'write':'watch'));
 }
 function resetBoard(mode){
-  cur.mode=mode; cur.idx=0; cur.miss=0; cur.totalMiss=0; cur.hinted=false; cur.reveal=false; cur.run++;
+  cur.mode=mode; cur.allPerfect=true; cur.idx=0; cur.miss=0; cur.totalMiss=0; cur.hinted=false; cur.reveal=false; cur.run++;
   board.classList.toggle('memory',mode!=='trace'); board.classList.remove('done-glow');
   gGhost.innerHTML=''; gInk.innerHTML=''; gHint.innerHTML=''; live.setAttribute('d','');
   cur.targets=STROKES[cur.k].map(d=>sampleEl(addPath(gGhost,d,'ghost')));
@@ -765,6 +776,14 @@ const WOW=['かんぺき！✨','ピカピカ！✨','キラキラ！✨'];
 // A near-perfect stroke sits right on the guide at the right size; tracing over the guide makes that easier, so it asks for more.
 const perfect=f=>{const tr=cur.mode==='trace';return f.off<(tr?3.5:5)&&f.shape<(tr?3:3.5)&&f.ratio>.75&&f.ratio<1.35};
 // Replay a perfect stroke: a white spark races along it twice, and stars twinkle in its wake.
+function flyDumbo(){
+  if(reduce)return;
+  const f=document.createElement('div'); f.className='flyer'; f.innerHTML=art('dumbo'); document.body.appendChild(f);
+  SFX.fly();
+  f.animate(['translate(-30vw,12vh) rotate(14deg)','translate(15vw,-6vh) rotate(-10deg)','translate(50vw,9vh) rotate(10deg)',
+    'translate(85vw,-7vh) rotate(-10deg)','translate(125vw,3vh) rotate(8deg)'].map(transform=>({transform})),
+    {duration:2800,easing:'ease-in-out'}).onfinish=()=>f.remove();
+}
 function sparkle(d){
   if(reduce)return;
   const s=addPath(gInk,d,'spark'), L=s.getTotalLength(), seg=Math.min(14,L*.5);
@@ -792,7 +811,7 @@ function judge(pts){
     if(great)addPath(gInk,d,'halo',reduce?0:220);
     addPath(gInk,d,great?'ink perfect':'ink',reduce?0:220);
     splash(t.pts[N-1]);
-    if(great){SFX.kira(cur.idx);sparkle(d)}else SFX.stroke(cur.idx);
+    if(great){SFX.kira(cur.idx);sparkle(d)}else{SFX.stroke(cur.idx);cur.allPerfect=false}
     cur.idx++; cur.miss=0;
     if(cur.idx>=T.length){finish();return}
     coach(pick(great?WOW:PRAISE)+` つぎは ${cur.idx+1}かくめ`);
@@ -800,7 +819,7 @@ function judge(pts){
     return;
   }
   live.classList.add('bad'); setTimeout(()=>{if(!drawing)live.setAttribute('d','')},460);
-  cur.miss++; cur.totalMiss++; SFX.bloop();
+  cur.miss++; cur.totalMiss++; cur.allPerfect=false; SFX.bloop();
   if(fits(u,t,true)) coach(`むきが はんたいだよ。${cur.idx+1}かくめは ●の ほうから かこう`,true);
   else if(T.some((tt,j)=>j>cur.idx&&fits(u,tt,false))) coach(`かく じゅんばんが ちがうよ。いまは ${cur.idx+1}かくめ`,true);
   else coach(cur.miss>=2?'タコが ヒントを みせるね':'おしい！ もういちど',true);
@@ -810,6 +829,7 @@ function judge(pts){
 async function finish(){
   const k=cur.k, p=prog(k), mode=cur.mode;
   board.classList.add('done-glow'); gHint.innerHTML='';
+  if(cur.allPerfect)setTimeout(flyDumbo,500);
   if(mode==='review'){reviewDone();return}
   SFX.chime(); if(SFX.on)setTimeout(()=>say(kana(INFO[k].r[0])),700);
   if(mode==='trace'){
