@@ -1,0 +1,821 @@
+<title>Kanji Sea</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Klee+One:wght@600&family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
+<style>
+/* Layout: one-screen app. Home = a living aquarium band over book-ordered "reefs" of kanji tiles;
+   practice = a 田-grid writing board beside an octopus coach; game = a stingray carrying kanji. */
+:root{
+  --abyss:#06192a; --sea:#0d3655; --lagoon:#17607e; --foam:#ecf8f5; --mist:#a7cbd2;
+  --coral:#ff8266; --kelp:#62d6a2; --sun:#ffd36e; --paper:#fbf6ea; --redline:#e8a297;
+  --ink:#2b1846; --ghost:#d3dde0; --sand:#e9cf98; --sand-deep:#c9a768;
+  --f-ui:"Zen Maru Gothic","Hiragino Maru Gothic ProN","Hiragino Sans",system-ui,sans-serif;
+  --f-kanji:"Klee One","Hiragino Mincho ProN","Yu Mincho",serif;
+  color-scheme:dark;
+}
+html{box-sizing:border-box;height:100%}
+*,*::before,*::after{box-sizing:inherit}
+body{height:100%;margin:0;background:var(--abyss);color:var(--foam);font-family:var(--f-ui);font-size:17px;
+  overflow:hidden;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none;touch-action:manipulation}
+button:focus-visible{outline:3px solid var(--sun);outline-offset:3px}
+#app{position:relative;height:100%;background:linear-gradient(180deg,var(--lagoon) 0%,var(--sea) 38%,var(--abyss) 100%)}
+.screen{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-block:14px 40px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+
+/* ---------- home ---------- */
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+h1{margin:0;font-weight:900;font-size:clamp(28px,5vw,42px);letter-spacing:.06em;text-wrap:balance}
+h1 small{display:block;font-size:13px;font-weight:700;letter-spacing:.14em;color:var(--mist);text-transform:uppercase}
+.pill{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;background:rgba(6,25,42,.45);
+  font-weight:700;font-variant-numeric:tabular-nums}
+.tank{position:relative;height:clamp(200px,34vh,320px);border-radius:28px;overflow:hidden;
+  background:linear-gradient(180deg,#2a8fae 0%,#16658a 55%,#0f4b6c 100%);box-shadow:inset 0 0 0 3px rgba(236,248,245,.18)}
+.tank .rays{position:absolute;inset:0;background:
+  linear-gradient(105deg,transparent 20%,rgba(255,255,255,.08) 24%,transparent 30%),
+  linear-gradient(100deg,transparent 52%,rgba(255,255,255,.06) 56%,transparent 63%),
+  linear-gradient(110deg,transparent 72%,rgba(255,255,255,.07) 75%,transparent 80%)}
+.tank .sand{position:absolute;left:-5%;right:-5%;bottom:-30px;height:70px;border-radius:50% 50% 0 0/40px 40px 0 0;
+  background:radial-gradient(circle at 20% 30%,var(--sand-deep) 2px,transparent 3px) 0 0/26px 18px,var(--sand)}
+.weed{position:absolute;bottom:20px;width:14px;border-radius:14px 14px 4px 4px;background:var(--kelp);opacity:.85;
+  transform-origin:bottom center;animation:sway 5s ease-in-out infinite alternate}
+@keyframes sway{from{transform:rotate(-6deg)}to{transform:rotate(7deg)}}
+.swimmer{position:absolute;left:var(--a);animation:swim var(--dur) ease-in-out infinite;animation-delay:var(--delay)}
+.swimmer .bob{animation:bob 3.2s ease-in-out infinite alternate}
+.swimmer .face{animation:face var(--dur) step-end infinite;animation-delay:var(--delay)}
+.swimmer.still,.swimmer.still .face{animation:none}
+.swimmer.still .bob{transform-origin:bottom center;animation:wobble 2.6s ease-in-out infinite alternate}
+.tank .deco{position:absolute;left:14%;bottom:12px;width:44px}
+@keyframes wobble{from{transform:rotate(-4deg)}to{transform:rotate(4deg)}}
+@keyframes swim{0%,100%{left:var(--a)}50%{left:var(--b)}}
+@keyframes face{0%{transform:scaleX(-1)}50%{transform:scaleX(1)}}
+@keyframes bob{from{transform:translateY(-5px)}to{transform:translateY(5px)}}
+.emo{display:block;line-height:1}
+.art svg{display:block;width:100%;height:auto}
+.tank-empty{position:absolute;left:50%;top:38%;transform:translate(-50%,-50%);width:min(80%,420px);text-align:center;
+  font-weight:700;font-size:18px;line-height:1.6;color:var(--foam);text-wrap:balance}
+.tank .mascot{position:absolute;right:4%;bottom:18px;width:84px}
+
+.play{display:flex;gap:12px;flex-wrap:wrap}
+.cta{display:inline-flex;align-items:center;gap:10px;padding:14px 22px;border-radius:999px;font-weight:900;font-size:20px;
+  background:var(--sun);color:#3b2600;box-shadow:0 6px 0 #c99a2e}
+.cta:active{transform:translateY(4px);box-shadow:0 2px 0 #c99a2e}
+.cta .ico{width:40px}
+
+.reef{display:flex;flex-direction:column;gap:12px;padding:16px;border-radius:24px;background:rgba(6,25,42,.42)}
+.reef-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.reef h2{margin:0;font-size:22px;font-weight:900;letter-spacing:.04em}
+.reef .book{margin:2px 0 0;font-size:13px;color:var(--mist);font-weight:500}
+.reef .book b{font-variant-numeric:tabular-nums;color:var(--sun);font-weight:700}
+.reward{width:64px;flex:none;text-align:center;font-size:11px;color:var(--mist);font-weight:700}
+.reward .art{filter:grayscale(1) brightness(.55);opacity:.7}
+.reward.got .art{filter:none;opacity:1}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:10px}
+.tile{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px 8px;border-radius:18px;
+  background:var(--paper);color:var(--ink);box-shadow:0 4px 0 rgba(0,0,0,.25)}
+.tile:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.25)}
+.tile .kj{font-family:var(--f-kanji);font-weight:600;font-size:46px;line-height:1.1}
+.stars{display:flex;gap:4px}
+.stars i{width:12px;height:12px;border-radius:50%;background:#dccfb3}
+.stars i.on{background:var(--coral)}
+.stars i.on.w{background:#2d9bc4}
+.stars i.on.r{background:#e6a817}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--mist);font-weight:700}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:12px;height:12px;border-radius:50%;display:inline-block}
+footer{font-size:12px;color:var(--mist);line-height:1.6}
+footer a{color:var(--mist)}
+
+/* ---------- shared bar ---------- */
+.bar{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.back,.navb,.chip{padding:10px 16px;border-radius:999px;background:rgba(6,25,42,.5);font-weight:700}
+.navb{width:48px;height:48px;padding:0;font-size:26px;line-height:48px}
+.nav{display:flex;gap:8px;align-items:center}
+
+/* ---------- practice ---------- */
+.practice{display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;justify-content:center}
+.boardwrap{flex:0 1 auto;width:min(100%,62vh,560px);max-width:100%}
+#board{display:block;width:100%;height:auto;aspect-ratio:1;max-width:100%;border-radius:22px;background:var(--paper);
+  touch-action:none;box-shadow:0 8px 0 rgba(0,0,0,.25)}
+#board .grid{stroke:var(--redline);stroke-width:.5;stroke-dasharray:2 2;fill:none}
+#board .ghost{stroke:var(--ghost);stroke-width:6.5;fill:none;stroke-linecap:round;stroke-linejoin:round}
+#board.memory .ghost{stroke-opacity:0}
+#board .ink{stroke:var(--ink);stroke-width:6;fill:none;stroke-linecap:round;stroke-linejoin:round}
+#board .live{stroke:#5b3a8c;stroke-width:6;fill:none;stroke-linecap:round;stroke-linejoin:round;opacity:.85}
+#board .live.bad{stroke:var(--coral);transition:opacity .45s;opacity:0}
+#board .hint{stroke:var(--coral);stroke-width:6;fill:none;stroke-linecap:round;stroke-linejoin:round;opacity:.7}
+#board .start{fill:var(--kelp);stroke:#fff;stroke-width:1}
+#board .start.pulse{animation:pulse 1.1s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+#board .num{font-family:var(--f-ui);font-weight:900;font-size:6px;fill:#d0573c;paint-order:stroke;stroke:#fff;stroke-width:1.6px}
+#board .pop{fill:none;stroke:#5fc3e4;stroke-width:1.2;transform-box:fill-box;transform-origin:center;animation:popb .7s ease-out forwards}
+#board.done-glow .ink{stroke:#1f7a9c;transition:stroke .5s}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.45)}}
+@keyframes popb{from{transform:scale(.3);opacity:1}to{transform:scale(2.4);opacity:0}}
+
+.panel{flex:1 1 300px;min-width:0;max-width:460px;display:flex;flex-direction:column;gap:14px}
+.card{display:flex;gap:14px;align-items:center;padding:14px 16px;border-radius:22px;background:rgba(6,25,42,.45)}
+.bigk{font-family:var(--f-kanji);font-weight:600;font-size:72px;line-height:1;color:var(--paper)}
+.reads{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:22px;font-weight:700}
+.reads .w{font-family:var(--f-kanji);font-weight:600}
+.reads .w.minor{font-size:17px;color:var(--mist)}
+ruby rt{font-family:var(--f-ui);font-size:.5em;font-weight:700;color:var(--sun)}
+.pic{font-size:30px;letter-spacing:2px;line-height:1.3;word-break:break-all}
+.meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-weight:700;color:var(--mist)}
+.meta b{color:var(--foam);font-variant-numeric:tabular-nums}
+.speak{padding:8px 14px;border-radius:999px;background:var(--lagoon);font-weight:700;color:var(--foam)}
+.modes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.modes button{padding:14px 6px;border-radius:18px;background:rgba(6,25,42,.5);font-weight:900;font-size:20px;display:flex;flex-direction:column;align-items:center;gap:2px}
+.modes button small{font-size:11px;font-weight:700;color:var(--mist)}
+.modes button[aria-pressed="true"]{background:var(--sun);color:#3b2600}
+.modes button[aria-pressed="true"] small{color:#6b5214}
+.coach{display:flex;gap:10px;align-items:flex-end}
+.coach .art{width:76px;flex:none}
+.bubble{position:relative;flex:1;min-width:0;padding:12px 16px;border-radius:20px 20px 20px 6px;background:var(--foam);color:var(--ink);
+  font-weight:700;font-size:19px;line-height:1.5;min-height:52px}
+.bubble.wiggle{animation:wig .4s}
+@keyframes wig{25%{transform:rotate(-2deg)}75%{transform:rotate(2deg)}}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.chip{font-size:15px}
+
+/* ---------- quiz ---------- */
+.qwrap{max-width:820px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+.dots{display:flex;gap:8px}
+.dots i{width:16px;height:16px;border-radius:50%;background:rgba(236,248,245,.25)}
+.dots i.ok{background:var(--kelp)}.dots i.miss{background:var(--coral)}.dots i.now{box-shadow:0 0 0 3px var(--sun)}
+.qstage{position:relative;height:clamp(220px,36vh,320px)}
+.carrier{position:absolute;left:50%;top:50%;width:min(340px,80%);transform:translate(-50%,-50%)}
+.carrier .art{width:100%}
+.qcard{position:absolute;left:50%;top:38%;transform:translate(-50%,-50%);padding:8px 18px;border-radius:18px;background:var(--paper);
+  color:var(--ink);font-family:var(--f-kanji);font-weight:600;font-size:clamp(48px,9vw,72px);line-height:1.15;white-space:nowrap;box-shadow:0 6px 0 rgba(0,0,0,.25)}
+.carrier.in{animation:glide 1s cubic-bezier(.2,.8,.3,1)}
+.carrier.out{animation:flyoff .9s ease-in forwards}
+@keyframes glide{from{transform:translate(-160%,-30%) rotate(-12deg)}to{transform:translate(-50%,-50%)}}
+@keyframes flyoff{30%{transform:translate(-50%,-62%) rotate(6deg)}to{transform:translate(120%,-140%) rotate(18deg)}}
+.qhint{position:absolute;left:0;right:0;bottom:0;text-align:center;font-size:30px;min-height:36px}
+.opts{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.opt{aspect-ratio:1;max-width:100%;border-radius:50%;font-weight:900;font-size:clamp(22px,4.4vw,34px);color:var(--ink);
+  background:radial-gradient(circle at 32% 28%,#fff 0 14%,#d9f3f7 15% 55%,#9fd8e6 100%);box-shadow:inset 0 -6px 0 rgba(23,96,126,.25)}
+.opt.no{animation:shake .45s;opacity:.35}
+.opt.yes{background:radial-gradient(circle at 32% 28%,#fff 0 14%,#c9f5df 15% 55%,var(--kelp) 100%)}
+@keyframes shake{20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+.qmsg{text-align:center;font-weight:900;font-size:22px;min-height:34px}
+.result{display:flex;flex-direction:column;align-items:center;gap:16px;text-align:center;padding:20px}
+.result .score{font-size:56px;font-weight:900;font-variant-numeric:tabular-nums;color:var(--sun)}
+
+/* ---------- celebration ---------- */
+.overlay{position:fixed;inset:0;z-index:20;display:grid;place-items:center;background:rgba(3,14,24,.72);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.cele{width:min(420px,100%);display:flex;flex-direction:column;align-items:center;gap:10px;padding:24px;border-radius:30px;
+  background:linear-gradient(180deg,#2a8fae,#0f4b6c);text-align:center;box-shadow:0 0 0 4px var(--sun)}
+.cele .art{width:150px;animation:bob 1.4s ease-in-out infinite alternate}
+.cele .emo{font-size:120px}
+.cele h2{margin:0;font-size:28px;font-weight:900}
+.cele p{margin:0;font-size:18px;font-weight:700;color:var(--foam)}
+
+/* ---------- SRS ---------- */
+.tile{position:relative}
+.tile .lvl{position:absolute;top:4px;right:4px;width:24px}
+.tile .lvl .emo{font-size:20px}
+.ladder{display:grid;grid-template-columns:repeat(auto-fill,minmax(76px,1fr));gap:8px}
+.rung{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px;border-radius:16px;background:rgba(6,25,42,.42);font-weight:700;text-align:center}
+.rung .art{width:40px;height:40px;display:grid;place-items:center}.rung .emo{font-size:32px}
+.rung b{font-size:20px;font-variant-numeric:tabular-nums}
+.rung small{font-size:11px;color:var(--mist)}
+.cta[disabled]{background:rgba(6,25,42,.5);color:var(--mist);box-shadow:none;cursor:default}
+.badge{min-width:34px;padding:2px 10px;border-radius:999px;background:var(--coral);color:#fff;font-variant-numeric:tabular-nums;text-align:center}
+#practice.reviewing .lesson-only{display:none}
+#practice:not(.reviewing) .review-only{display:none}
+.prompt{display:flex;align-items:flex-end;gap:6px;font-weight:900;font-size:44px;line-height:1}
+.pbox{display:flex;flex-direction:column;align-items:center;gap:6px}
+.pfuri{font-size:22px;font-weight:700;color:var(--sun);letter-spacing:.12em}
+.pbox i{display:block;width:64px;height:64px;border:3px dashed var(--mist);border-radius:10px}
+.lvlnow{display:flex;align-items:center;gap:10px;font-weight:700;color:var(--mist)}
+.lvlnow .art{width:44px}.lvlnow .emo{font-size:36px}
+.lvlnow .arrow{font-size:24px;color:var(--sun)}
+
+@media (prefers-reduced-motion: reduce){
+  .swimmer,.swimmer .bob,.swimmer .face,.weed,.cele .art,.carrier.in,.carrier.out,#board .start.pulse{animation:none!important}
+}
+</style>
+
+<div id="app">
+  <!-- HOME -->
+  <section class="screen" id="home">
+    <div class="wrap">
+      <div class="top">
+        <h1><small>1ねん かんじ</small>かんじの うみ</h1>
+        <div class="row"><button class="pill" id="soundBtn" aria-pressed="true"></button><span class="pill" id="friendCount"></span></div>
+      </div>
+      <div class="tank" id="tank" aria-label="すいそう">
+        <div class="rays"></div>
+        <div id="weeds"></div>
+        <div class="sand"></div>
+        <div class="deco art" id="deco"></div>
+        <div id="swimmers"></div>
+        <div class="mascot art" id="mascot"></div>
+        <p class="tank-empty" id="tankEmpty" hidden>かんじを みないで かけたら、<br>うみの なかまが ふえるよ！</p>
+      </div>
+      <div class="play">
+        <button class="cta" id="playReview"><span class="ico art" id="ctaOcto"></span>ふくしゅう <span class="badge" id="revCount"></span></button>
+        <button class="cta" id="playQuiz"><span class="ico art" id="ctaRay"></span>よめるかな？ ゲーム</button>
+      </div>
+      <p class="pill" id="revWhen" style="margin:0;align-self:flex-start"></p>
+      <div class="ladder" id="ladder" aria-label="かんじの レベル"></div>
+      <div class="legend">
+        <span><i style="background:var(--coral)"></i>なぞれた</span>
+        <span><i style="background:#2d9bc4"></i>みないで かけた</span>
+        <span><i style="background:#e6a817"></i>よめた</span>
+      </div>
+      <div id="reefs" class="wrap" style="gap:16px"></div>
+      <footer>Stroke data from <a href="https://kanjivg.tagaini.net" target="_blank" rel="noopener">KanjiVG</a> by Ulrich Apel (CC BY-SA 3.0). Kanji order follows くりかえし かんじドリル 1年 上.</footer>
+    </div>
+  </section>
+
+  <!-- PRACTICE -->
+  <section class="screen" id="practice" hidden>
+    <div class="wrap">
+      <div class="bar">
+        <button class="back" id="backHome1">← もどる</button>
+        <div class="nav lesson-only"><button class="navb" id="prevK" aria-label="まえの かんじ">‹</button><button class="navb" id="nextK" aria-label="つぎの かんじ">›</button></div>
+      </div>
+      <div class="practice">
+        <div class="boardwrap">
+          <svg id="board" viewBox="0 0 109 109" aria-label="かく ところ">
+            <rect x="0" y="0" width="109" height="109" fill="none"/>
+            <path class="grid" d="M54.5 3V106M3 54.5H106"/>
+            <g id="gGhost"></g><g id="gInk"></g><g id="gHint"></g>
+            <path id="live" class="live" d=""/>
+          </svg>
+        </div>
+        <aside class="panel">
+          <div class="card review-only" style="flex-direction:column;align-items:flex-start">
+            <div class="meta"><span>のこり <b id="revLeft"></b></span></div>
+            <div class="prompt" id="revPrompt"></div>
+            <div class="lvlnow" id="revLevel"></div>
+            <div class="pic" id="revPic"></div>
+          </div>
+          <div class="row review-only">
+            <button class="chip" id="revHint">え の ヒント</button>
+            <button class="chip" id="revSpeak">こえで きく</button>
+            <button class="chip" id="revGiveUp">わからない</button>
+            <button class="cta" id="revNext" hidden>つぎへ</button>
+          </div>
+          <div class="card lesson-only">
+            <div class="bigk" id="bigK"></div>
+            <div style="display:flex;flex-direction:column;gap:8px;min-width:0">
+              <div class="reads" id="reads"></div>
+              <div class="pic" id="pic"></div>
+            </div>
+          </div>
+          <div class="meta lesson-only"><span><b id="strokeN"></b> かく</span><button class="speak" id="speak">こえで きく</button></div>
+          <div class="modes lesson-only" id="modes">
+            <button data-mode="watch" aria-pressed="false">みる<small>おてほん</small></button>
+            <button data-mode="trace" aria-pressed="false">なぞる<small>うすい せん</small></button>
+            <button data-mode="write" aria-pressed="false">かく<small>みないで</small></button>
+          </div>
+          <div class="coach"><div class="art" id="coachArt"></div><div class="bubble" id="coachMsg"></div></div>
+          <div class="row lesson-only"><button class="chip" id="redo">もういちど</button></div>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- QUIZ -->
+  <section class="screen" id="quiz" hidden>
+    <div class="qwrap">
+      <div class="bar">
+        <button class="back" id="backHome2">← もどる</button>
+        <div class="dots" id="qDots"></div>
+      </div>
+      <div id="qPlay" class="qwrap" style="gap:16px">
+        <div class="qstage">
+          <div class="carrier" id="carrier"><div class="art" id="qRay"></div><div class="qcard" id="qCard"></div></div>
+          <div class="qhint" id="qHint"></div>
+        </div>
+        <div class="qmsg" id="qMsg">なんて よむかな？</div>
+        <div class="opts" id="qOpts"></div>
+      </div>
+      <div class="result" id="qResult" hidden>
+        <div class="art" style="width:160px" id="qResArt"></div>
+        <div class="score" id="qScore"></div>
+        <p id="qResText" style="margin:0;font-weight:700;font-size:20px"></p>
+        <div class="row" style="justify-content:center">
+          <button class="cta" id="qAgain">もういちど</button>
+          <button class="back" id="qHome">もどる</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="overlay" id="cele" hidden>
+    <div class="cele" role="dialog" aria-modal="true" aria-labelledby="celeTitle">
+      <div class="art" id="celeArt"></div>
+      <h2 id="celeTitle"></h2>
+      <p id="celeText"></p>
+      <button class="cta" id="celeBtn">やったー！</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const STROKES = /*__STROKES__*/null;
+
+// Book order (光文書院 くりかえし かんじドリル 1年 上). Lesson numbers are the drill's own.
+const SECTIONS = [
+  {zone:'しおだまり', book:'やくそく・うみの かくれんぼ', lessons:'5〜8', kanji:'木大小'},
+  {zone:'さんごしょう', book:'かずと かんじ', lessons:'9〜14', kanji:'一二三四五六七八九十'},
+  {zone:'くじらの うみ', book:'くじらぐも', lessons:'15〜20', kanji:'子空先生男女手天青'},
+  {zone:'ふかい うみ', book:'しらせたいな、見せたいな', lessons:'21〜26', kanji:'文字正見学校'},
+  {zone:'こんぶの もり', book:'つぎの ページ', lessons:'', kanji:'山水雨上下'},
+];
+// Readings as printed in the book. "|" splits kanji reading from okurigana; "*" = not used in the game.
+const fish = n => '🐠'.repeat(n);
+const INFO = {
+  '木':{r:['き'],pic:'🌳'}, '大':{r:['おお|きい','*おお','*おお|いに'],pic:'🐋'}, '小':{r:['ちい|さい'],pic:'🐟'},
+  '一':{r:['いち','ひと|つ','*ひと'],pic:fish(1)}, '二':{r:['に','ふた|つ','*ふた'],pic:fish(2)},
+  '三':{r:['さん','みっ|つ','*み'],pic:fish(3)}, '四':{r:['し','よん','よっ|つ','*よ'],pic:fish(4)},
+  '五':{r:['ご','いつ|つ','*いつ'],pic:fish(5)}, '六':{r:['ろく','むっ|つ','*む'],pic:fish(6)},
+  '七':{r:['しち','なな','なな|つ'],pic:fish(7)}, '八':{r:['はち','やっ|つ','*や'],pic:fish(8)},
+  '九':{r:['きゅう','く','ここの|つ'],pic:fish(9)}, '十':{r:['じゅう','とお','*じっ'],pic:fish(10)},
+  '子':{r:['こ'],pic:'👶'}, '空':{r:['そら'],pic:'☁️'}, '先':{r:['せん'],pic:'👆'}, '生':{r:['せい'],pic:'🌱'},
+  '男':{r:['おとこ'],pic:'👦'}, '女':{r:['おんな'],pic:'👧'}, '手':{r:['て'],pic:'✋'}, '天':{r:['てん'],pic:'🌤️'},
+  '青':{r:['あお|い','あお'],pic:'🔵'}, '文':{r:['ぶん'],pic:'📝'}, '字':{r:['じ'],pic:'🔤'},
+  '正':{r:['ただ|しい','ただ|す'],pic:'⭕'}, '見':{r:['み|せる','み|る','み|える'],pic:'👀'},
+  '学':{r:['がく'],pic:'🎒'}, '校':{r:['こう'],pic:'🏫'},
+  '山':{r:['やま'],pic:'⛰️'}, '水':{r:['みず'],pic:'💧'}, '雨':{r:['あめ'],pic:'☔'}, '上':{r:['うえ'],pic:'⬆️'}, '下':{r:['した'],pic:'⬇️'},
+};
+const ORDER = SECTIONS.flatMap(s => [...s.kanji]);
+
+// Sea friends: one joins the tank for each kanji written from memory.
+const CRE = {
+  octopus:{n:'タコ',svg:'octo',c:'#ff8266'}, octopus2:{n:'ピンクの タコ',svg:'octo',c:'#ff9ecf'}, octopus3:{n:'むらさきの タコ',svg:'octo',c:'#b48cff'},
+  ray:{n:'エイ',svg:'ray',c:'#9cc0cf'}, ray2:{n:'マダラトビエイ',svg:'ray',c:'#3f5f8a',spots:1}, ray3:{n:'あおい エイ',svg:'ray',c:'#5aa9e6'},
+  manta:{n:'マンタ',svg:'ray',c:'#26344f',big:1},
+  turtle:{n:'ウミガメ',e:'🐢'}, croc:{n:'ワニ',e:'🐊'}, iguana:{n:'ウミイグアナ',e:'🦎'}, snake:{n:'ウミヘビ',e:'🐍'},
+  crab:{n:'カニ',e:'🦀',floor:1}, puffer:{n:'フグ',e:'🐡'}, clown:{n:'クマノミ',e:'🐠'}, jelly:{n:'クラゲ',e:'🪼'},
+  squid:{n:'イカ',e:'🦑'}, shrimp:{n:'エビ',e:'🦐'}, lobster:{n:'イセエビ',e:'🦞',floor:1}, dolphin:{n:'イルカ',e:'🐬'},
+  whale:{n:'クジラ',e:'🐳'}, shark:{n:'サメ',e:'🦈'}, seal:{n:'アザラシ',e:'🦭'}, otter:{n:'ラッコ',e:'🦦'},
+  shell:{n:'ヤドカリ',e:'🐚',floor:1}, fish:{n:'サカナ',e:'🐟'},
+  kturtle:{n:'ウミガメ',svg:'turtle',c:'#5fb87a',s:'#b9e6a6'}, kturtle2:{n:'ピンクの カメ',svg:'turtle',c:'#ff9ec4',s:'#ffe0b5'},
+  kcrab:{n:'カニ',svg:'crab',c:'#ff6b5e',floor:1}, kpuffer:{n:'フグ',svg:'puffer',c:'#ffd36e',s:'#f2ae3d'},
+  kpuffer2:{n:'みずいろの フグ',svg:'puffer',c:'#a5e6f2',s:'#5fbfd6'}, kjelly:{n:'クラゲ',svg:'jelly',c:'#c9a7ff'},
+  kjelly2:{n:'ピンクの クラゲ',svg:'jelly',c:'#ffb3d9'}, kwhale:{n:'クジラ',svg:'whale',c:'#6aa6e8',s:'#4f8bd0'},
+  ksnake:{n:'ウミヘビ',svg:'snake',c:'#8fd3ee',s:'#34557e'}, kcroc:{n:'ワニ',svg:'croc',c:'#76c47a',s:'#5aa95f'},
+  kclown:{n:'クマノミ',svg:'clown',c:'#ff8c3a'},
+  kmush:{n:'キノコ',svg:'mush',c:'#ff5f57',floor:1,still:1}, kmush2:{n:'キノコサンゴ',svg:'mush',c:'#ff9ecf',floor:1,still:1},
+  kmush3:{n:'あおい キノコ',svg:'mush',c:'#7aa8ff',floor:1,still:1},
+};
+const FRIEND = ['octopus','kcrab','ray',
+  'kclown','kpuffer','kturtle','kjelly','shrimp','octopus2','squid','iguana','ray3','kmush',
+  'kwhale','dolphin','seal','ksnake','kcroc','kmush2','ray2','otter','turtle',
+  'shark','octopus3','lobster','kjelly2','kturtle2','ray',
+  'croc','snake','kpuffer2','kmush3','octopus'];
+
+// ---------- sea sounds (synthesised with Web Audio; start after the first tap) ----------
+const SFX=(()=>{
+  let ctx=null,master=null,noise=null,on=true;
+  try{on=localStorage.getItem('kanjiSea.sound')!=='off'}catch(e){}
+  function init(){
+    if(ctx){if(ctx.state!=='running')ctx.resume();return ctx}
+    const AC=window.AudioContext||window.webkitAudioContext; if(!AC)return null;
+    try{if(navigator.audioSession)navigator.audioSession.type='playback'}catch(e){}
+    ctx=new AC(); master=ctx.createGain(); master.gain.value=.7; master.connect(ctx.destination);
+    noise=ctx.createBuffer(1,ctx.sampleRate,ctx.sampleRate); const d=noise.getChannelData(0);
+    for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+    const s=ctx.createBufferSource(); s.buffer=ctx.createBuffer(1,1,22050); s.connect(ctx.destination); s.start(0);
+    return ctx;
+  }
+  function tone({type='sine',f0,f1=f0,t=0,dur=.15,vol=.2,vib=0}){
+    const now=ctx.currentTime+t, o=ctx.createOscillator(), g=ctx.createGain();
+    o.type=type; o.frequency.setValueAtTime(f0,now); o.frequency.exponentialRampToValueAtTime(f1,now+dur);
+    if(vib){const l=ctx.createOscillator(),lg=ctx.createGain();l.frequency.value=vib;lg.gain.value=f0*.04;l.connect(lg).connect(o.frequency);l.start(now);l.stop(now+dur+.05)}
+    g.gain.setValueAtTime(.0001,now); g.gain.exponentialRampToValueAtTime(vol,now+.012); g.gain.exponentialRampToValueAtTime(.0001,now+dur);
+    o.connect(g).connect(master); o.start(now); o.stop(now+dur+.05);
+  }
+  function hiss({t=0,dur=.4,f0=400,f1=1600,q=1.2,vol=.15}){
+    const now=ctx.currentTime+t, s=ctx.createBufferSource(), bp=ctx.createBiquadFilter(), g=ctx.createGain();
+    s.buffer=noise; bp.type='bandpass'; bp.Q.value=q; bp.frequency.setValueAtTime(f0,now); bp.frequency.exponentialRampToValueAtTime(f1,now+dur);
+    g.gain.setValueAtTime(.0001,now); g.gain.exponentialRampToValueAtTime(vol,now+dur*.3); g.gain.exponentialRampToValueAtTime(.0001,now+dur);
+    s.connect(bp).connect(g).connect(master); s.start(now); s.stop(now+dur+.05);
+  }
+  const bubbles=(n,t=0,gap=.07,vol=.12)=>{for(let j=0;j<n;j++){const p=450+Math.random()*500;tone({f0:p,f1:p*2.5,t:t+j*gap,dur:.1,vol})}};
+  const go=fn=>(...a)=>{if(!on||!init())return;try{fn(...a)}catch(e){}};
+  const PENTA=[523,587,659,784,880,1047,1175,1319,1568,1760];
+  return {
+    unlock(){if(on)init()},
+    get on(){return on},
+    toggle(){on=!on;try{localStorage.setItem('kanjiSea.sound',on?'on':'off')}catch(e){}if(on){init();bubbles(3)}return on},
+    pop:go(()=>tone({f0:700,f1:1700,dur:.08,vol:.13})),
+    penDown:go(()=>tone({f0:650,f1:1100,dur:.06,vol:.05})),
+    stroke:go(i=>{tone({type:'triangle',f0:PENTA[i%PENTA.length],dur:.3,vol:.16});bubbles(3,.05,.06,.1);hiss({dur:.3,f0:1400,f1:500,q:.9,vol:.05})}),
+    bloop:go(()=>{tone({f0:320,f1:130,dur:.34,vol:.2,vib:9});tone({f0:200,f1:100,t:.1,dur:.26,vol:.1})}),
+    chime:go(()=>{[523,659,784,1047].forEach((f,j)=>tone({type:'triangle',f0:f,t:j*.1,dur:.4,vol:.15}));bubbles(5,.45)}),
+    fanfare:go(()=>{[523,659,784,1047,784,1047,1319].forEach((f,j)=>tone({type:'triangle',f0:f,t:j*.11,dur:j===6?.8:.25,vol:.15}));bubbles(8,.85,.06)}),
+    whale:go(()=>{tone({f0:170,f1:420,dur:1.1,vol:.18,vib:5});tone({f0:420,f1:230,t:1,dur:1.3,vol:.15,vib:4});hiss({dur:2.2,f0:250,f1:600,q:.6,vol:.06})}),
+    swoosh:go(()=>{hiss({dur:.7,f0:300,f1:1400,q:1.5,vol:.14});bubbles(3,.4)}),
+    swooshUp:go(()=>hiss({dur:.6,f0:700,f1:2800,q:1.5,vol:.12})),
+    right:go(()=>{tone({type:'triangle',f0:784,dur:.15,vol:.15});tone({type:'triangle',f0:1175,t:.1,dur:.3,vol:.15});bubbles(4,.15)}),
+  };
+})();
+
+// Kawaii set: big shiny eyes, blush and an ω mouth. Side-view creatures face left like the emoji.
+function kface(x1,x2,y,r=4){const mx=(x1+x2)/2,my=y+r+2.2;return `<circle cx="${x1}" cy="${y}" r="${r}" fill="#22122f"/><circle cx="${x2}" cy="${y}" r="${r}" fill="#22122f"/><circle cx="${x1-r*.32}" cy="${y-r*.38}" r="${r*.42}" fill="#fff"/><circle cx="${x2-r*.32}" cy="${y-r*.38}" r="${r*.42}" fill="#fff"/><circle cx="${x1+r*.35}" cy="${y+r*.4}" r="${r*.18}" fill="#fff"/><circle cx="${x2+r*.35}" cy="${y+r*.4}" r="${r*.18}" fill="#fff"/><ellipse cx="${x1-r*.9}" cy="${y+r*1.5}" rx="${r*.9}" ry="${r*.55}" fill="#ff6f9a" opacity=".55"/><ellipse cx="${x2+r*.9}" cy="${y+r*1.5}" rx="${r*.9}" ry="${r*.55}" fill="#ff6f9a" opacity=".55"/><path d="M${mx-2.6} ${my}q1.3 1.8 2.6 0q1.3 1.8 2.6 0" stroke="#22122f" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`}
+const svg=b=>`<svg viewBox="0 0 100 100" aria-hidden="true">${b}</svg>`;
+const KAWAII={
+  turtle:({c,s})=>svg(`<ellipse cx="34" cy="78" rx="9" ry="5" fill="${s}"/><ellipse cx="74" cy="78" rx="9" ry="5" fill="${s}"/><path d="M88 66l9 4-9 4z" fill="${s}"/><path d="M28 68Q28 30 59 30Q90 30 90 68Z" fill="${c}"/><g fill="#fff" opacity=".3"><circle cx="59" cy="45" r="8"/><circle cx="43" cy="56" r="6"/><circle cx="75" cy="56" r="6"/></g><rect x="24" y="64" width="70" height="9" rx="4.5" fill="#f6e3a1"/><circle cx="22" cy="54" r="15" fill="${s}"/>${kface(16,28,52,3.4)}`),
+  crab:({c})=>svg(`<g stroke="${c}" stroke-width="5" stroke-linecap="round" fill="none"><path d="M30 58L20 44"/><path d="M70 58L80 44"/><path d="M26 68l-12 6"/><path d="M28 75l-10 10"/><path d="M74 68l12 6"/><path d="M72 75l10 10"/><path d="M42 46V34"/><path d="M58 46V34"/></g><circle cx="18" cy="36" r="11" fill="${c}"/><circle cx="82" cy="36" r="11" fill="${c}"/><path d="M9 30l9 6M91 30l-9 6" stroke="#c9433a" stroke-width="2.5" stroke-linecap="round"/><ellipse cx="50" cy="64" rx="30" ry="20" fill="${c}"/><circle cx="42" cy="30" r="7.5" fill="#fff"/><circle cx="58" cy="30" r="7.5" fill="#fff"/><circle cx="42" cy="31" r="4" fill="#22122f"/><circle cx="58" cy="31" r="4" fill="#22122f"/><circle cx="40.6" cy="29.4" r="1.6" fill="#fff"/><circle cx="56.6" cy="29.4" r="1.6" fill="#fff"/><ellipse cx="34" cy="66" rx="4.5" ry="2.8" fill="#ff9ab8" opacity=".8"/><ellipse cx="66" cy="66" rx="4.5" ry="2.8" fill="#ff9ab8" opacity=".8"/><path d="M47.4 63q1.3 1.8 2.6 0q1.3 1.8 2.6 0" stroke="#22122f" stroke-width="1.5" fill="none" stroke-linecap="round"/>`),
+  puffer:({c,s})=>{let sp='';for(let a=0;a<360;a+=30){const r=Math.PI*a/180,x=50+30*Math.cos(r),y=52+30*Math.sin(r),x2=50+38*Math.cos(r),y2=52+38*Math.sin(r),px=-Math.sin(r)*4,py=Math.cos(r)*4;sp+=`M${(x+px).toFixed(1)} ${(y+py).toFixed(1)}L${x2.toFixed(1)} ${y2.toFixed(1)}L${(x-px).toFixed(1)} ${(y-py).toFixed(1)}Z`}
+    return svg(`<path d="M76 52L96 38Q91 52 96 66Z" fill="${s}"/><path d="${sp}" fill="${s}"/><circle cx="50" cy="52" r="30" fill="${c}"/><ellipse cx="46" cy="66" rx="20" ry="11" fill="#fff" opacity=".45"/><ellipse cx="62" cy="58" rx="8" ry="4" fill="${s}" transform="rotate(-25 62 58)"/>${kface(32,48,46,4.2)}`)},
+  jelly:({c})=>svg(`<g stroke="${c}" stroke-width="4" fill="none" stroke-linecap="round" opacity=".85"><path d="M30 58q-5 9 0 17t0 17"/><path d="M43 60q5 9 0 17t0 15"/><path d="M57 60q-5 9 0 17t0 15"/><path d="M70 58q5 9 0 17t0 17"/></g><path d="M18 56Q18 18 50 18Q82 18 82 56Q74 61 66 56Q58 61 50 56Q42 61 34 56Q26 61 18 56Z" fill="${c}"/><path d="M28 36q6-10 16-13" stroke="#fff" stroke-width="3.5" fill="none" stroke-linecap="round" opacity=".6"/>${kface(40,60,42,4)}`),
+  whale:({c,s})=>svg(`<path d="M34 27v-9" stroke="#bfe6ff" stroke-width="3" stroke-linecap="round"/><g fill="#bfe6ff"><circle cx="34" cy="13" r="4"/><circle cx="26" cy="9" r="3"/><circle cx="42" cy="9" r="3"/></g><path d="M8 58Q8 28 44 28Q74 28 82 52Q90 42 96 34Q100 52 92 62Q84 76 48 76Q8 76 8 58Z" fill="${c}"/><path d="M12 63Q32 74 62 70Q42 82 20 73Z" fill="#fff" opacity=".5"/><ellipse cx="48" cy="64" rx="9" ry="5" fill="${s}" transform="rotate(25 48 64)"/>${kface(22,36,50,4)}`),
+  snake:({c,s})=>svg(`<path d="M90 72Q78 54 66 66T42 66T22 58" stroke="${c}" stroke-width="13" fill="none" stroke-linecap="round"/><path d="M90 72Q78 54 66 66T42 66T22 58" stroke="${s}" stroke-width="13" fill="none" stroke-dasharray="5 9"/><path d="M4 57l-4-2.5M4 57l-4 3" stroke="#ff5d7a" stroke-width="1.8" stroke-linecap="round"/><ellipse cx="18" cy="52" rx="15" ry="12" fill="${c}"/>${kface(12,24,50,3.4)}`),
+  croc:({c,s})=>svg(`<path d="M72 58Q90 58 98 44Q95 68 72 70Z" fill="${c}"/><ellipse cx="44" cy="74" rx="7" ry="5" fill="${s}"/><ellipse cx="68" cy="74" rx="7" ry="5" fill="${s}"/><ellipse cx="56" cy="60" rx="26" ry="15" fill="${c}"/><ellipse cx="56" cy="67" rx="18" ry="6" fill="#dff2bf"/><g fill="${s}"><circle cx="52" cy="46" r="3"/><circle cx="62" cy="45" r="3"/><circle cx="72" cy="47" r="3"/></g><rect x="4" y="50" width="40" height="18" rx="9" fill="${c}"/><path d="M10 67l2 3 2-3zM18 67l2 3 2-3zM26 67l2 3 2-3z" fill="#fff"/><circle cx="9" cy="55" r="1.3" fill="#2f5e33"/><circle cx="14" cy="55" r="1.3" fill="#2f5e33"/><circle cx="30" cy="46" r="8" fill="${c}"/><circle cx="44" cy="46" r="8" fill="${c}"/>${kface(30,44,46,3.6)}`),
+  mush:({c})=>svg(`<path d="M36 58Q34 84 40 90H60Q66 84 64 58Z" fill="#fff4e0"/><path d="M10 60Q10 18 50 18Q90 18 90 60Q50 68 10 60Z" fill="${c}"/><g fill="#fff"><circle cx="30" cy="40" r="6"/><circle cx="52" cy="29" r="5"/><circle cx="72" cy="42" r="6.5"/><circle cx="45" cy="51" r="3.5"/></g>${kface(43,57,73,3.6)}`),
+  clown:({c})=>svg(`<path d="M74 50L94 36Q90 50 94 64Z" fill="${c}"/><path d="M42 32Q54 18 66 32Z" fill="${c}"/><ellipse cx="46" cy="50" rx="30" ry="20" fill="${c}"/><g fill="#fff" stroke="#22122f" stroke-width="1.6"><ellipse cx="37" cy="50" rx="4.5" ry="19"/><ellipse cx="60" cy="50" rx="4" ry="15"/></g>${kface(19,28,46,3.3)}`),
+};
+function octoSVG(c){return `<svg viewBox="0 0 100 100" aria-hidden="true"><g fill="none" stroke="${c}" stroke-width="10" stroke-linecap="round"><path d="M30 56Q20 76 10 78"/><path d="M40 60Q34 82 26 92"/><path d="M50 62Q53 84 46 94"/><path d="M60 60Q66 82 74 92"/><path d="M70 56Q80 76 90 78"/></g><ellipse cx="50" cy="38" rx="31" ry="29" fill="${c}"/><circle cx="36" cy="21" r="4" fill="#fff" opacity=".35"/><circle cx="62" cy="17" r="3" fill="#fff" opacity=".35"/><ellipse cx="40" cy="40" rx="7" ry="8" fill="#fff"/><ellipse cx="60" cy="40" rx="7" ry="8" fill="#fff"/><circle cx="41" cy="42" r="3.6" fill="#22122f"/><circle cx="61" cy="42" r="3.6" fill="#22122f"/><circle cx="30" cy="52" r="4.5" fill="#ff5d8f" opacity=".45"/><circle cx="70" cy="52" r="4.5" fill="#ff5d8f" opacity=".45"/><path d="M45 54Q50 59 55 54" stroke="#22122f" stroke-width="2.4" fill="none" stroke-linecap="round"/></svg>`}
+function raySVG(c,spots){return `<svg viewBox="0 0 120 100" aria-hidden="true"><path d="M60 66Q63 84 80 96" stroke="${c}" stroke-width="3.5" fill="none" stroke-linecap="round"/><path d="M60 12C76 14 104 36 116 50C100 56 80 62 60 70C40 62 20 56 4 50C16 36 44 14 60 12Z" fill="${c}"/>${spots?'<g fill="#fff" opacity=".6"><circle cx="38" cy="38" r="2.6"/><circle cx="82" cy="38" r="2.6"/><circle cx="26" cy="46" r="2"/><circle cx="94" cy="46" r="2"/><circle cx="60" cy="26" r="2.4"/></g>':''}<ellipse cx="60" cy="47" rx="19" ry="13" fill="#fff" opacity=".3"/><ellipse cx="53" cy="43" rx="2.6" ry="3.4" fill="#22122f"/><ellipse cx="67" cy="43" rx="2.6" ry="3.4" fill="#22122f"/><path d="M53 52Q60 58 67 52" stroke="#22122f" stroke-width="2.2" fill="none" stroke-linecap="round"/><circle cx="46" cy="50" r="3" fill="#ff5d8f" opacity=".35"/><circle cx="74" cy="50" r="3" fill="#ff5d8f" opacity=".35"/></svg>`}
+function art(id){const c=CRE[id]; if(c.svg==='octo') return octoSVG(c.c); if(c.svg==='ray') return raySVG(c.c,c.spots); if(c.svg) return KAWAII[c.svg](c); return `<span class="emo">${c.e}</span>`}
+
+// ---------- progress (saved on this device) ----------
+const KEY='kanjiSea.v1';
+let P={k:{},sec:{}};
+try{const s=JSON.parse(localStorage.getItem(KEY)); if(s&&s.k) P=s;}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(P))}catch(e){}};
+const prog=k=>P.k[k]||(P.k[k]={t:0,w:0,r:0});
+
+// ---------- helpers ----------
+const $=id=>document.getElementById(id);
+const NS='http://www.w3.org/2000/svg';
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const kana=r=>r.replace('*','').replace('|','');
+function word(k,r){r=r.replace('*',''); const [y,oku='']=r.split('|'); return `<ruby>${k}<rt>${y}</rt></ruby>${oku}`}
+function wordPlain(k,r){const oku=r.replace('*','').split('|')[1]||''; return k+oku}
+function say(text){try{const u=new SpeechSynthesisUtterance(text);u.lang='ja-JP';u.rate=.8;speechSynthesis.cancel();speechSynthesis.speak(u)}catch(e){}}
+function seeded(s){let h=0;for(const ch of s)h=(h*31+ch.codePointAt(0))>>>0;return()=>{h=(h*1103515245+12345)>>>0;return(h>>>8)/16777216}}
+function show(id){for(const s of ['home','practice','quiz'])$(s).hidden=s!==id; $(id).scrollTop=0}
+
+// ---------- SRS: WaniKani-style stages, but every review is writing from memory ----------
+const HOUR=3600e3;
+const SRS_INT=[0,4,8,23,47,167,335,719,2879].map(h=>h*HOUR); // wait after reaching each stage
+const LEVELS=[
+  {id:'kmush',n:'キノコ',g:'まだ'},
+  {id:'shrimp',n:'エビ',g:'みならい 1'}, {id:'kcrab',n:'カニ',g:'みならい 2'},
+  {id:'kpuffer',n:'フグ',g:'みならい 3'}, {id:'kclown',n:'クマノミ',g:'みならい 4'},
+  {id:'kturtle',n:'ウミガメ',g:'じょうず 1'}, {id:'octopus',n:'タコ',g:'じょうず 2'},
+  {id:'ray',n:'エイ',g:'めいじん'}, {id:'kcroc',n:'ワニ',g:'たつじん'}, {id:'kwhale',n:'クジラ',g:'でんせつ'},
+];
+const BURNED=9, REVIEW_CAP=10;
+const hourFloor=t=>Math.floor(t/HOUR)*HOUR;
+function enterSRS(k){const p=prog(k);if(!p.s){p.s=1;p.due=hourFloor(Date.now()+SRS_INT[1])}}
+// Kanji written from memory before the SRS existed start at stage 1, due now.
+for(const k of ORDER){const p=prog(k);if(p.w&&!p.s){p.s=1;p.due=Date.now()}}
+save();
+const dueList=()=>ORDER.filter(k=>{const p=prog(k);return p.s&&p.s<BURNED&&p.due<=Date.now()});
+function nextDueText(){
+  const ts=ORDER.map(prog).filter(p=>p.s&&p.s<BURNED).map(p=>p.due); if(!ts.length)return '';
+  const dt=Math.min(...ts)-Date.now();
+  return dt<HOUR?'もうすぐ':dt<24*HOUR?`${Math.ceil(dt/HOUR)}じかんご`:`${Math.round(dt/(24*HOUR))}にちご`;
+}
+function renderLadder(){
+  const counts=Array(LEVELS.length).fill(0); for(const k of ORDER)counts[prog(k).s||0]++;
+  $('ladder').innerHTML=LEVELS.map((L,i)=>`<div class="rung"><div class="art">${art(L.id)}</div><b>${counts[i]}</b><small>${L.g}</small></div>`).join('');
+  const n=dueList().length, when=nextDueText();
+  $('playReview').disabled=n===0; $('revCount').textContent=n; $('revCount').hidden=n===0;
+  $('revWhen').textContent=n?`ふくしゅう ${n}こ できるよ`:when?`つぎの ふくしゅうは ${when}`:'「かく」で みないで かけたら、ふくしゅうが はじまるよ';
+}
+
+let R=null;
+function startReview(){
+  const due=shuffle(dueList()).slice(0,REVIEW_CAP); if(!due.length)return;
+  R={queue:due,wrong:{},done:0,ups:[]};
+  show('practice'); $('practice').classList.add('reviewing'); nextReview();
+}
+function levelHTML(s){return `<div class="art">${art(LEVELS[s].id)}</div>${LEVELS[s].n}・${LEVELS[s].g}`}
+function nextReview(){
+  $('revNext').hidden=true; $('revGiveUp').hidden=false; $('revHint').hidden=false;
+  if(!R.queue.length)return endReview();
+  const k=R.queue[0], p=prog(k), [yomi,oku='']=pick(INFO[k].r.filter(x=>x[0]!=='*')).split('|');
+  cur.k=k; R.reading=yomi+oku;
+  $('revPrompt').innerHTML=`<span class="pbox"><span class="pfuri">${yomi}</span><i></i></span>${oku?`<span>${oku}</span>`:''}`;
+  $('revLevel').innerHTML=levelHTML(p.s); $('revPic').textContent=''; $('revLeft').textContent=R.queue.length;
+  resetBoard('review');
+  coach('この かんじ、かけるかな？');
+  if(SFX.on)setTimeout(()=>say(R.reading),300);
+}
+// Wrong answers come back later in the session; the level only changes once it's written correctly
+// (WaniKani rule: drop ceil(wrong/2) stages, doubled from じょうず up).
+function reviewDone(){
+  const k=cur.k, p=prog(k), ok=!cur.hinted&&cur.totalMiss<=1;
+  R.queue.shift();
+  if(!ok){
+    R.wrong[k]=(R.wrong[k]||0)+1;
+    R.queue.splice(Math.min(R.queue.length,2+Math.floor(Math.random()*3)),0,k);
+    SFX.bloop(); coach('おしい！ あとで もういちど かいてみよう',true);
+  }else{
+    const before=p.s, inc=R.wrong[k]||0;
+    p.s=inc?Math.max(1,before-Math.ceil(inc/2)*(before>=5?2:1)):before+1;
+    p.due=p.s>=BURNED?null:hourFloor(Date.now()+SRS_INT[p.s]);
+    save(); R.done++;
+    if(p.s>before){R.ups.push(p.s);SFX.fanfare();coach(p.s===BURNED?'でんせつの クジラに なった！ もう ばっちり！':`レベル アップ！ ${LEVELS[p.s].n}に なったよ`)}
+    else{SFX.chime();coach(p.s<before?`かけたね！ レベルは ${LEVELS[p.s].n}に もどるよ`:'かけたね！')}
+    $('revLevel').innerHTML=`<div class="art">${art(LEVELS[before].id)}</div><span class="arrow">→</span>${levelHTML(p.s)}`;
+  }
+  $('revNext').hidden=false; $('revGiveUp').hidden=true; $('revHint').hidden=true; $('revNext').focus();
+}
+function endReview(){
+  const best=R.ups.length?Math.max(...R.ups):0, done=R.done, ups=R.ups.length;
+  R=null; $('practice').classList.remove('reviewing');
+  afterCele=renderHome;
+  celebrate(best?LEVELS[best].id:'octopus','ふくしゅう おわり！',`${done}こ かけたね。レベル アップ ${ups}こ`);
+}
+$('playReview').onclick=startReview;
+$('revNext').onclick=nextReview;
+$('revHint').onclick=()=>{$('revPic').textContent=INFO[cur.k].pic};
+$('revSpeak').onclick=()=>say(R.reading);
+$('revGiveUp').onclick=()=>{
+  if(cur.reveal)return; cur.hinted=true; cur.reveal=true;
+  board.classList.remove('memory'); markNext(); SFX.bloop(); coach('うすい せんを なぞって おぼえよう',true);
+};
+
+// ---------- home ----------
+function friends(){
+  const list=ORDER.map((k,i)=>prog(k).w?{id:FRIEND[i],key:k}:null).filter(Boolean);
+  SECTIONS.forEach((s,i)=>{if(P.sec[i])list.push({id:'manta',key:'sec'+i})});
+  return list;
+}
+function renderTank(){
+  const box=$('swimmers'); box.innerHTML='';
+  const list=friends();
+  $('tankEmpty').hidden=list.length>0;
+  $('friendCount').textContent=`なかま ${list.length}ひき`;
+  list.forEach(({id,key})=>{
+    const r=seeded(key), c=CRE[id], el=document.createElement('div');
+    const size=c.big?110:c.still?50:c.svg?64:44;
+    const a=c.still?20+r()*55:r()*55, b=a+18+r()*30, dur=14+r()*14;
+    el.className='swimmer'+(c.still?' still':'');
+    el.style.cssText=`--a:${a}%;--b:${Math.min(b,86)}%;--dur:${dur}s;--delay:${-r()*dur}s;width:${size}px;`+
+      (c.floor?`bottom:14px;`:`top:${8+r()*52}%;`);
+    el.innerHTML=`<div class="bob"><div class="face art" style="font-size:${size}px">${art(id)}</div></div>`;
+    box.appendChild(el);
+  });
+}
+function renderWeeds(){
+  const w=$('weeds'); w.innerHTML='';
+  [[6,70],[9,46],[22,58],[58,40],[63,64],[88,52]].forEach(([x,h],i)=>{
+    const d=document.createElement('div'); d.className='weed';
+    d.style.cssText=`left:${x}%;height:${h}px;animation-delay:${-i*.9}s`; w.appendChild(d);
+  });
+}
+function renderReefs(){
+  const root=$('reefs'); root.innerHTML='';
+  SECTIONS.forEach((s,si)=>{
+    const sec=document.createElement('section'); sec.className='reef';
+    const got=!!P.sec[si];
+    sec.innerHTML=`<div class="reef-head"><div><h2>${s.zone}</h2><p class="book">${s.lessons?`<b>${s.lessons}</b>　`:''}${s.book}</p></div>
+      <div class="reward${got?' got':''}"><div class="art">${art('manta')}</div>${got?'マンタ！':'ぜんぶ かくと…'}</div></div>`;
+    const tiles=document.createElement('div'); tiles.className='tiles';
+    for(const k of s.kanji){
+      const p=prog(k), b=document.createElement('button'); b.className='tile';
+      b.setAttribute('aria-label',k);
+      b.innerHTML=`${p.s?`<span class="lvl art">${art(LEVELS[p.s].id)}</span>`:''}<span class="kj">${k}</span><span class="stars"><i class="${p.t?'on':''}"></i><i class="w ${p.w?'on':''}"></i><i class="r ${p.r>=2?'on':''}"></i></span>`;
+      b.onclick=()=>openKanji(k);
+      tiles.appendChild(b);
+    }
+    sec.appendChild(tiles); root.appendChild(sec);
+  });
+}
+function renderHome(){renderTank();renderLadder();renderReefs();show('home')}
+
+// ---------- practice board ----------
+const board=$('board'), gGhost=$('gGhost'), gInk=$('gInk'), gHint=$('gHint'), live=$('live');
+const N=24;
+let cur={k:null,mode:'trace',idx:0,miss:0,targets:[],run:0};
+const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+function sampleEl(el){const L=el.getTotalLength(),o=[];for(let i=0;i<N;i++){const p=el.getPointAtLength(L*i/(N-1));o.push({x:p.x,y:p.y})}return{pts:o,len:L}}
+function resample(pts){
+  const d=[0];for(let i=1;i<pts.length;i++)d.push(d[i-1]+dist(pts[i-1],pts[i]));
+  const L=d[d.length-1]; if(!L) return {pts:Array(N).fill(pts[0]),len:0};
+  const o=[];let j=0;
+  for(let i=0;i<N;i++){const t=L*i/(N-1);while(j<d.length-2&&d[j+1]<t)j++;const f=(t-d[j])/((d[j+1]-d[j])||1);
+    o.push({x:pts[j].x+(pts[j+1].x-pts[j].x)*f,y:pts[j].y+(pts[j+1].y-pts[j].y)*f})}
+  return {pts:o,len:L};
+}
+// Generous tolerances (board is 109 units across) so a six-year-old's wobbly stroke still counts.
+function fits(u,t,rev){
+  const tp=rev?[...t.pts].reverse():t.pts; let m=0;
+  for(let i=0;i<N;i++)m+=dist(u.pts[i],tp[i]); m/=N;
+  const tiny=t.len<16, ratio=u.len/t.len;
+  return m<(tiny?11:13) && dist(u.pts[0],tp[0])<18 && dist(u.pts[N-1],tp[N-1])<20 && ratio>(tiny?.3:.4) && ratio<(tiny?3.6:2.4);
+}
+function addPath(layer,d,cls,dur){
+  const p=document.createElementNS(NS,'path'); p.setAttribute('d',d); p.setAttribute('class',cls); layer.appendChild(p);
+  if(dur&&!reduce){const L=p.getTotalLength(); p.style.strokeDasharray=L; p.style.strokeDashoffset=L; p.getBoundingClientRect();
+    p.style.transition=`stroke-dashoffset ${dur}ms ease-in-out`; p.style.strokeDashoffset=0}
+  return p;
+}
+function dot(layer,pt,cls,r=3.2){const c=document.createElementNS(NS,'circle');c.setAttribute('cx',pt.x);c.setAttribute('cy',pt.y);c.setAttribute('r',r);c.setAttribute('class',cls);layer.appendChild(c);return c}
+function num(layer,pt,n){const t=document.createElementNS(NS,'text');t.setAttribute('x',pt.x+3.5);t.setAttribute('y',pt.y-2.5);t.setAttribute('class','num');t.textContent=n;layer.appendChild(t)}
+function splash(pt){if(reduce)return;for(let i=0;i<3;i++){const c=dot(gHint,{x:pt.x+(i-1)*4,y:pt.y-i*3},'pop',1.6+i*.6);c.style.animationDelay=i*80+'ms';setTimeout(()=>c.remove(),900)}}
+function coach(msg,wig){const b=$('coachMsg');b.textContent=msg;b.classList.remove('wiggle');if(wig){void b.offsetWidth;b.classList.add('wiggle')}}
+
+function openKanji(k,mode){
+  cur.k=k; const info=INFO[k];
+  $('bigK').textContent=k;
+  $('reads').innerHTML=info.r.map(r=>`<span class="w${r[0]==='*'?' minor':''}">${word(k,r)}</span>`).join('');
+  $('pic').textContent=info.pic;
+  $('strokeN').textContent=STROKES[k].length;
+  show('practice'); $('practice').classList.remove('reviewing');
+  const p=prog(k);
+  setMode(mode||(p.t?'write':'watch'));
+}
+function resetBoard(mode){
+  cur.mode=mode; cur.idx=0; cur.miss=0; cur.totalMiss=0; cur.hinted=false; cur.reveal=false; cur.run++;
+  board.classList.toggle('memory',mode!=='trace'); board.classList.remove('done-glow');
+  gGhost.innerHTML=''; gInk.innerHTML=''; gHint.innerHTML=''; live.setAttribute('d','');
+  cur.targets=STROKES[cur.k].map(d=>sampleEl(addPath(gGhost,d,'ghost')));
+}
+function setMode(mode){
+  for(const b of $('modes').children)b.setAttribute('aria-pressed',b.dataset.mode===mode);
+  resetBoard(mode);
+  if(mode==='watch') watch();
+  else if(mode==='trace'){coach('うすい せんを なぞってね。みどりの ●から かくよ');markNext()}
+  else coach('みないで かけるかな？ 1かくめから どうぞ');
+}
+async function watch(){
+  const my=cur.run, strokes=STROKES[cur.k];
+  coach('タコの おてほん。よく みててね');
+  await sleep(400);
+  for(let i=0;i<strokes.length;i++){
+    if(my!==cur.run)return;
+    const t=cur.targets[i], dur=Math.max(380,Math.min(1100,t.len*16));
+    num(gHint,t.pts[0],i+1);
+    addPath(gInk,strokes[i],'ink',dur); SFX.stroke(i);
+    await sleep(dur+280);
+  }
+  if(my===cur.run)coach('こんどは なぞって みよう！「なぞる」を おしてね');
+}
+function markNext(){
+  gHint.innerHTML='';
+  if(cur.idx>=cur.targets.length)return;
+  const t=cur.targets[cur.idx];
+  dot(gHint,t.pts[0],'start pulse'); num(gHint,t.pts[0],cur.idx+1);
+}
+function showHint(){
+  gHint.innerHTML='';
+  if(cur.mode==='review'&&cur.miss>=2)cur.hinted=true;
+  const t=cur.targets[cur.idx];
+  addPath(gHint,STROKES[cur.k][cur.idx],'hint',700);
+  dot(gHint,t.pts[0],'start pulse'); num(gHint,t.pts[0],cur.idx+1);
+}
+
+// Drawing: one pointer at a time; once an Apple Pencil is seen, ignore fingers (palm rejection).
+let drawing=null, penSeen=false;
+function toBoard(e){const p=board.createSVGPoint();p.x=e.clientX;p.y=e.clientY;const q=p.matrixTransform(board.getScreenCTM().inverse());return{x:q.x,y:q.y}}
+function pathD(pts){return pts.map((p,i)=>(i?'L':'M')+p.x.toFixed(1)+' '+p.y.toFixed(1)).join('')}
+board.addEventListener('pointerdown',e=>{
+  if(cur.mode==='watch'||cur.idx>=cur.targets.length)return;
+  if(e.pointerType==='pen')penSeen=true; else if(penSeen&&e.pointerType==='touch')return;
+  if(drawing)return;
+  e.preventDefault(); board.setPointerCapture(e.pointerId);
+  drawing={id:e.pointerId,pts:[toBoard(e)]}; SFX.penDown();
+  live.classList.remove('bad'); live.setAttribute('d',pathD(drawing.pts));
+});
+board.addEventListener('pointermove',e=>{
+  if(!drawing||e.pointerId!==drawing.id)return;
+  const evs=e.getCoalescedEvents?e.getCoalescedEvents():[e];
+  for(const ev of (evs.length?evs:[e]))drawing.pts.push(toBoard(ev));
+  live.setAttribute('d',pathD(drawing.pts));
+});
+const endStroke=e=>{
+  if(!drawing||e.pointerId!==drawing.id)return;
+  const pts=drawing.pts; drawing=null; judge(pts);
+};
+board.addEventListener('pointerup',endStroke);
+board.addEventListener('pointercancel',e=>{if(drawing&&e.pointerId===drawing.id){drawing=null;live.setAttribute('d','')}});
+
+const PRAISE=['いいね！','じょうず！','そのちょうし！','すごい！','ぴったり！'];
+function judge(pts){
+  const u=resample(pts), T=cur.targets, t=T[cur.idx];
+  if(u.len<2&&t.len>=16){live.setAttribute('d','');return}
+  if(fits(u,t,false)){
+    live.setAttribute('d','');
+    const guided=cur.mode==='trace'||cur.reveal;
+    if(!guided)gHint.innerHTML='';
+    addPath(gInk,STROKES[cur.k][cur.idx],'ink',reduce?0:220);
+    splash(t.pts[N-1]); SFX.stroke(cur.idx);
+    cur.idx++; cur.miss=0;
+    if(cur.idx>=T.length){finish();return}
+    coach(pick(PRAISE)+` つぎは ${cur.idx+1}かくめ`);
+    if(guided)markNext();
+    return;
+  }
+  live.classList.add('bad'); setTimeout(()=>{if(!drawing)live.setAttribute('d','')},460);
+  cur.miss++; cur.totalMiss++; SFX.bloop();
+  if(fits(u,t,true)) coach(`むきが はんたいだよ。${cur.idx+1}かくめは ●の ほうから かこう`,true);
+  else if(T.some((tt,j)=>j>cur.idx&&fits(u,tt,false))) coach(`かく じゅんばんが ちがうよ。いまは ${cur.idx+1}かくめ`,true);
+  else coach(cur.miss>=2?'タコが ヒントを みせるね':'おしい！ もういちど',true);
+  if(cur.miss>=2||(cur.mode!=='trace'&&cur.miss>=1&&fits(u,t,true)))showHint();
+  else if(cur.mode==='trace'||cur.reveal)markNext();
+}
+async function finish(){
+  const k=cur.k, p=prog(k), mode=cur.mode;
+  board.classList.add('done-glow'); gHint.innerHTML='';
+  if(mode==='review'){reviewDone();return}
+  SFX.chime(); if(SFX.on)setTimeout(()=>say(kana(INFO[k].r[0])),700);
+  if(mode==='trace'){
+    const first=!p.t; p.t=1; save();
+    coach(first?'なぞれたね！ こんどは「かく」で みないで かいてみよう':'じょうずに なぞれたね！');
+    return;
+  }
+  const first=!p.w; p.t=1; p.w=1; enterSRS(k); save();
+  coach('みないで かけた！ すごい！');
+  if(!first)return;
+  await sleep(reduce?200:900);
+  const id=FRIEND[ORDER.indexOf(k)];
+  celebrate(id,`${CRE[id].n}が なかまに なったよ！`,`「${k}」を みないで かけたね`);
+  const si=SECTIONS.findIndex(s=>s.kanji.includes(k));
+  if(!P.sec[si]&&[...SECTIONS[si].kanji].every(x=>prog(x).w)){
+    P.sec[si]=1; save();
+    pendingCele=['manta','マンタが きたよ！',`${SECTIONS[si].zone}の かんじ ぜんぶ かけたね`];
+  }
+}
+let pendingCele=null, afterCele=null;
+function celebrate(id,title,text){
+  $('celeArt').innerHTML=art(id); $('celeTitle').textContent=title; $('celeText').textContent=text;
+  $('cele').hidden=false; $('celeBtn').focus();
+  if(id==='manta')SFX.whale(); else SFX.fanfare();
+}
+$('celeBtn').onclick=()=>{
+  if(pendingCele){const c=pendingCele;pendingCele=null;celebrate(...c);return}
+  $('cele').hidden=true;
+  if(afterCele){const f=afterCele;afterCele=null;f()}
+};
+$('modes').addEventListener('click',e=>{const b=e.target.closest('button');if(b)setMode(b.dataset.mode)});
+$('redo').onclick=()=>setMode(cur.mode);
+$('speak').onclick=()=>say(INFO[cur.k].r.filter(r=>r[0]!=='*').map(kana).join('、'));
+const step=d=>{const i=(ORDER.indexOf(cur.k)+d+ORDER.length)%ORDER.length;openKanji(ORDER[i])};
+$('prevK').onclick=()=>step(-1); $('nextK').onclick=()=>step(1);
+$('backHome1').onclick=()=>{R=null;$('practice').classList.remove('reviewing');renderHome()};
+
+// ---------- reading game ----------
+const ROUND=6;
+let Q=null;
+function startQuiz(){
+  let pool=ORDER.filter(k=>{const p=prog(k);return p.t||p.w});
+  if(pool.length<ROUND)pool=ORDER.slice();
+  Q={items:shuffle(pool.slice()).slice(0,ROUND),i:0,score:0,res:[]};
+  $('qResult').hidden=true; $('qPlay').hidden=false;
+  show('quiz'); nextQ();
+}
+function dots(){$('qDots').innerHTML=Array.from({length:ROUND},(_,i)=>`<i class="${Q.res[i]===true?'ok':Q.res[i]===false?'miss':''}${i===Q.i?' now':''}"></i>`).join('')}
+function nextQ(){
+  if(Q.i>=ROUND)return endQuiz();
+  dots();
+  const k=Q.items[Q.i], reads=INFO[k].r.filter(r=>r[0]!=='*'), r=pick(reads), all=new Set(INFO[k].r.map(kana));
+  const others=shuffle(ORDER.filter(x=>x!==k).flatMap(x=>INFO[x].r.filter(y=>y[0]!=='*').map(kana)).filter(y=>!all.has(y)));
+  const opts=[kana(r)]; for(const o of others){if(!opts.includes(o))opts.push(o); if(opts.length===3)break}
+  Q.cur={k,ans:kana(r),miss:0};
+  $('qCard').textContent=wordPlain(k,r); $('qHint').textContent=''; $('qMsg').textContent='なんて よむかな？';
+  const c=$('carrier'); c.classList.remove('in','out'); void c.offsetWidth; c.classList.add('in'); SFX.swoosh();
+  const box=$('qOpts'); box.innerHTML='';
+  shuffle(opts).forEach(o=>{const b=document.createElement('button');b.className='opt';b.textContent=o;b.onclick=()=>answer(b,o);box.appendChild(b)});
+}
+async function answer(b,o){
+  if(Q.lock||b.classList.contains('no'))return;
+  if(o===Q.cur.ans){
+    Q.lock=true; b.classList.add('yes'); SFX.right(); if(SFX.on)setTimeout(()=>say(o),350);
+    const firstTry=Q.cur.miss===0; Q.res[Q.i]=firstTry;
+    if(firstTry){Q.score++; const p=prog(Q.cur.k); p.r=(p.r||0)+1; save()}
+    $('qMsg').textContent=firstTry?pick(PRAISE):'できたね！';
+    await sleep(700); $('carrier').classList.add('out'); SFX.swooshUp(); await sleep(reduce?150:850);
+    Q.i++; Q.lock=false; nextQ();
+  }else{
+    b.classList.add('no'); Q.cur.miss++; SFX.bloop();
+    $('qHint').textContent=INFO[Q.cur.k].pic; $('qMsg').textContent='ちがうよ。ヒントを みてね';
+  }
+}
+function endQuiz(){
+  dots(); $('qPlay').hidden=true; $('qResult').hidden=false;
+  $('qResArt').innerHTML=art(Q.score>=5?'ray2':'ray');
+  $('qScore').textContent=`${Q.score} / ${ROUND}`;
+  if(Q.score>=4)SFX.fanfare(); else SFX.chime();
+  $('qResText').textContent=Q.score===ROUND?'ぜんぶ せいかい！ エイも おおよろこび':Q.score>=4?'よく よめたね！':'もういちど あそんで みよう';
+}
+$('playQuiz').onclick=startQuiz; $('qAgain').onclick=startQuiz;
+$('qHome').onclick=renderHome; $('backHome2').onclick=renderHome;
+
+// ---------- boot ----------
+$('mascot').innerHTML=art('octopus'); $('coachArt').innerHTML=art('octopus'); $('deco').innerHTML=art('kmush');
+const soundLabel=()=>{$('soundBtn').textContent=SFX.on?'おと ON':'おと OFF';$('soundBtn').setAttribute('aria-pressed',SFX.on)};
+$('soundBtn').onclick=()=>{SFX.toggle();soundLabel()}; soundLabel();
+for(const ev of ['pointerdown','touchend','click'])document.addEventListener(ev,()=>SFX.unlock(),{capture:true});
+document.addEventListener('click',e=>{const b=e.target.closest('button');if(b&&!b.classList.contains('opt')&&b.id!=='soundBtn')SFX.pop()},true);
+$('ctaRay').innerHTML=art('ray'); $('ctaOcto').innerHTML=art('octopus'); $('qRay').innerHTML=raySVG('#9cc0cf');
+renderWeeds(); renderHome();
+</script>
