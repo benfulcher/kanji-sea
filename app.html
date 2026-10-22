@@ -806,12 +806,24 @@ function startQuiz(){
   show('quiz'); nextQ();
 }
 function dots(){$('qDots').innerHTML=Array.from({length:ROUND},(_,i)=>`<i class="${Q.res[i]===true?'ok':Q.res[i]===false?'miss':''}${i===Q.i?' now':''}"></i>`).join('')}
+// Decoys that look like the answer, so it can't be picked by its ending alone.
+// For a word shown with okurigana (青い), every option ends the same way: real readings first, then other
+// kanji's stems plus that ending when too few real readings do. Otherwise options of the same length that share a sound come first.
+function decoys(k,r){
+  const ans=kana(r), mine=new Set(INFO[k].r.map(kana)), tail=r.split('|')[1]||'';
+  const reads=ORDER.filter(x=>x!==k).flatMap(x=>INFO[x].r.filter(y=>y[0]!=='*'));
+  const score=new Map();
+  const add=(y,bonus)=>{if(mine.has(y)||score.has(y))return;
+    score.set(y,bonus+(y.length===ans.length?2:0)+(y[0]===ans[0]?1:0)+(y.at(-1)===ans.at(-1)?1:0)+Math.random()*1.5)};
+  if(tail)reads.forEach(y=>{const [stem,oku]=y.split('|');
+    if(oku&&kana(y).endsWith(tail))add(kana(y),10); else if(!stem.endsWith('っ'))add(stem+tail,oku?1:0)});
+  else reads.forEach(y=>{if(!y.includes('|'))add(y,0)});
+  return [...score.keys()].sort((a,b)=>score.get(b)-score.get(a)).slice(0,2);
+}
 function nextQ(){
   if(Q.i>=ROUND)return endQuiz();
   dots();
-  const k=Q.items[Q.i], reads=INFO[k].r.filter(r=>r[0]!=='*'), r=pick(reads), all=new Set(INFO[k].r.map(kana));
-  const others=shuffle(ORDER.filter(x=>x!==k).flatMap(x=>INFO[x].r.filter(y=>y[0]!=='*').map(kana)).filter(y=>!all.has(y)));
-  const opts=[kana(r)]; for(const o of others){if(!opts.includes(o))opts.push(o); if(opts.length===3)break}
+  const k=Q.items[Q.i], r=pick(INFO[k].r.filter(r=>r[0]!=='*')), opts=[kana(r),...decoys(k,r)];
   Q.cur={k,ans:kana(r),miss:0};
   $('qCard').textContent=wordPlain(k,r); $('qHint').textContent=''; $('qMsg').textContent='なんて よむかな？';
   const c=$('carrier'); c.classList.remove('in','out'); void c.offsetWidth; c.classList.add('in'); SFX.swoosh();
