@@ -606,12 +606,26 @@ function resample(pts){
     o.push({x:pts[j].x+(pts[j+1].x-pts[j].x)*f,y:pts[j].y+(pts[j+1].y-pts[j].y)*f})}
   return {pts:o,len:L};
 }
-// Generous tolerances (board is 109 units across) so a six-year-old's wobbly stroke still counts.
+// Judged as a six-year-old writes: the stroke may drift and come out bigger or smaller than the guide,
+// so position is checked loosely and shape is compared with the drift and size difference removed.
+// Board is 109 units across.
+const mid=a=>{let x=0,y=0;for(const q of a){x+=q.x;y+=q.y}return{x:x/a.length,y:y/a.length}};
+const spread=(a,c)=>Math.sqrt(a.reduce((s,q)=>s+(q.x-c.x)**2+(q.y-c.y)**2,0)/a.length)||1;
+const STRICT={where:20,shape:10};
 function fits(u,t,rev){
-  const tp=rev?[...t.pts].reverse():t.pts; let m=0;
-  for(let i=0;i<N;i++)m+=dist(u.pts[i],tp[i]); m/=N;
-  const tiny=t.len<16, ratio=u.len/t.len;
-  return m<(tiny?11:13) && dist(u.pts[0],tp[0])<18 && dist(u.pts[N-1],tp[N-1])<20 && ratio>(tiny?.3:.4) && ratio<(tiny?3.6:2.4);
+  const tp=rev?[...t.pts].reverse():t.pts, tiny=t.len<16, ratio=u.len/t.len;
+  const cu=mid(u.pts), ct=mid(tp); fits.last={ratio,off:dist(cu,ct)};
+  if(ratio<(tiny?.25:.35)||ratio>(tiny?4:3))return false;
+  if(dist(cu,ct)>(tiny?18:STRICT.where))return false;
+  const k=tiny?1:Math.min(1.8,Math.max(.55,spread(tp,ct)/spread(u.pts,cu)));
+  let m=0;
+  for(let i=0;i<N;i++)m+=Math.hypot((u.pts[i].x-cu.x)*k-(tp[i].x-ct.x),(u.pts[i].y-cu.y)*k-(tp[i].y-ct.y));
+  fits.last.shape=m/N;
+  if(m/N>=(tiny?9:STRICT.shape))return false;
+  // Direction: her stroke must run the same way as the guide (start to end), so a backwards line doesn't count.
+  const du={x:u.pts[N-1].x-u.pts[0].x,y:u.pts[N-1].y-u.pts[0].y}, dt={x:tp[N-1].x-tp[0].x,y:tp[N-1].y-tp[0].y};
+  fits.last.cos=(du.x*dt.x+du.y*dt.y)/(Math.hypot(du.x,du.y)*Math.hypot(dt.x,dt.y)||1);
+  return tiny||du.x*dt.x+du.y*dt.y>.5*Math.hypot(du.x,du.y)*Math.hypot(dt.x,dt.y);
 }
 function addPath(layer,d,cls,dur){
   const p=document.createElementNS(NS,'path'); p.setAttribute('d',d); p.setAttribute('class',cls); layer.appendChild(p);
@@ -675,8 +689,10 @@ function showHint(){
 }
 
 // Drawing: one pointer at a time; once an Apple Pencil is seen, ignore fingers (palm rejection).
-let drawing=null, penSeen=false;
-function toBoard(e){const p=board.createSVGPoint();p.x=e.clientX;p.y=e.clientY;const q=p.matrixTransform(board.getScreenCTM().inverse());return{x:q.x,y:q.y}}
+let drawing=null, penSeen=false, endedBy='';
+// Pen position in board units, worked out from the board's box on screen (getScreenCTM is unreliable in iPad Safari).
+function toBoard(e){const r=board.getBoundingClientRect(),s=Math.min(r.width,r.height)/109;
+  return{x:(e.clientX-r.left-(r.width-109*s)/2)/s,y:(e.clientY-r.top-(r.height-109*s)/2)/s}}
 function pathD(pts){return pts.map((p,i)=>(i?'L':'M')+p.x.toFixed(1)+' '+p.y.toFixed(1)).join('')}
 board.addEventListener('pointerdown',e=>{
   if(cur.mode==='watch'||cur.idx>=cur.targets.length)return;
@@ -688,13 +704,12 @@ board.addEventListener('pointerdown',e=>{
 });
 board.addEventListener('pointermove',e=>{
   if(!drawing||e.pointerId!==drawing.id)return;
-  const evs=e.getCoalescedEvents?e.getCoalescedEvents():[e];
-  for(const ev of (evs.length?evs:[e]))drawing.pts.push(toBoard(ev));
+  drawing.pts.push(toBoard(e));
   live.setAttribute('d',pathD(drawing.pts));
 });
 const endStroke=e=>{
   if(!drawing||e.pointerId!==drawing.id)return;
-  const pts=drawing.pts; drawing=null; judge(pts);
+  const pts=drawing.pts; drawing=null; endedBy=e.type; judge(pts);
 };
 // iPad Safari often ends a stroke with pointercancel or a lost capture instead of pointerup,
 // so all three count as lifting the pen.
@@ -702,12 +717,14 @@ const endStroke=e=>{
 for(const ev of ['pointerup','pointercancel'])window.addEventListener(ev,endStroke);
 board.addEventListener('lostpointercapture',endStroke);
 // Open the app with #debug on the end of the address to see the pen events on screen.
+let DEBUG=null;
 if(location.hash==='#debug'){
   const box=document.createElement('pre'), log=[];
+  DEBUG=m=>{log.push(m);box.textContent=log.slice(-8).join('\n')};
   box.style.cssText='position:fixed;left:8px;bottom:8px;z-index:30;margin:0;padding:6px 8px;max-width:90vw;font:11px/1.4 ui-monospace,monospace;background:rgba(0,0,0,.75);color:#9f9;pointer-events:none;white-space:pre-wrap';
   document.body.appendChild(box);
   for(const ev of ['pointerdown','pointerup','pointercancel','lostpointercapture','touchcancel'])
-    board.addEventListener(ev,e=>{log.push(`${e.type} ${e.pointerType||''} id=${e.pointerId??''} drawing=${!!drawing} idx=${cur.idx}`);box.textContent=log.slice(-8).join('\n')},true);
+    board.addEventListener(ev,e=>DEBUG(`${e.type} ${e.pointerType||''} id=${e.pointerId??''} drawing=${!!drawing} idx=${cur.idx}`),true);
 }
 // Keep Safari from turning a stroke into a scroll, zoom or text selection.
 for(const ev of ['touchstart','touchmove'])$('boardwrap').addEventListener(ev,e=>e.preventDefault(),{passive:false});
@@ -715,6 +732,8 @@ for(const ev of ['touchstart','touchmove'])$('boardwrap').addEventListener(ev,e=
 const PRAISE=['いいね！','じょうず！','そのちょうし！','すごい！','ぴったり！'];
 function judge(pts){
   const u=resample(pts), T=cur.targets, t=T[cur.idx];
+  if(DEBUG){const ok=fits(u,t,false),f=fits.last,r=v=>v==null?'-':v.toFixed(2),p=q=>`${q.x.toFixed(0)},${q.y.toFixed(0)}`;
+    DEBUG(`${ok?'OK':'NO'} by ${endedBy} n=${pts.length} start ${p(u.pts[0])}/${p(t.pts[0])} end ${p(u.pts[N-1])}/${p(t.pts[N-1])} len ${r(f.ratio)} off ${r(f.off)} shape ${r(f.shape)} dir ${r(f.cos)}`)}
   if(u.len<2&&t.len>=16){live.setAttribute('d','');return}
   if(fits(u,t,false)){
     live.setAttribute('d','');
