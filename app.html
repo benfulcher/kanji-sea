@@ -505,15 +505,16 @@ let R=null;
 // A session serves every due kanji first (WaniKani style), then keeps going as free practice until she taps おわる.
 // Practice picks at random, weighted towards low levels: each level up makes a kanji 0.6x as likely,
 // so エビ comes up about 8x as often as ウミガメ. The same kanji can come twice in a row.
+// A practice miss makes that kanji 3x as likely for the rest of the session (up to 9x); writing it again eases that off.
 // Practice never changes levels, so it can't upset the review timings.
 function practicePick(){
-  const ks=ORDER.filter(k=>prog(k).s), w=ks.map(k=>.6**(prog(k).s-1));
+  const ks=ORDER.filter(k=>prog(k).s), w=ks.map(k=>.6**(prog(k).s-1)*(R.boost[k]||1));
   let r=Math.random()*w.reduce((a,b)=>a+b,0);
   return ks.find((k,i)=>(r-=w[i])<0)||ks[ks.length-1];
 }
 function startReview(){
   if(!ORDER.some(k=>prog(k).s))return;
-  R={queue:shuffle(dueList()),wrong:{},done:0,ups:[],practiced:0,extra:false};
+  R={queue:shuffle(dueList()),wrong:{},done:0,ups:[],practiced:0,extra:false,boost:{}};
   show('practice'); $('practice').classList.add('reviewing'); nextReview();
 }
 function levelHTML(s){return `<div class="art">${art(LEVELS[s].id)}</div>${LEVELS[s].n}・${LEVELS[s].g}`}
@@ -535,8 +536,9 @@ function nextReview(){
 function reviewDone(){
   const k=cur.k, p=prog(k), ok=!cur.hinted&&cur.totalMiss<=1;
   if(R.extra){
-    R.practiced++;
-    if(ok){SFX.chime();coach('かけたね！')}else{SFX.bloop();coach('おしい！ また でてくるよ',true)}
+    R.practiced++; const b=R.boost[k]||1;
+    if(ok){R.boost[k]=Math.max(1,b/3);SFX.chime();coach('かけたね！')}
+    else{R.boost[k]=Math.min(9,b*3);SFX.bloop();coach('おしい！ また でてくるよ',true)}
   }else if(!ok){
     R.queue.shift();
     R.wrong[k]=(R.wrong[k]||0)+1;
