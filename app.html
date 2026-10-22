@@ -126,6 +126,13 @@ footer a{color:var(--mist)}
 #board .spark{stroke:#fff;stroke-width:4;fill:none;stroke-linecap:round;filter:drop-shadow(0 0 2px #8ad8ff)}
 #board .star{fill:#fff;stroke:var(--cinna);stroke-width:.7;transform-box:fill-box;transform-origin:center;opacity:0;animation:twinkle .9s ease-out forwards}
 @keyframes twinkle{0%{transform:scale(0) rotate(0);opacity:1}55%{transform:scale(1.4) rotate(80deg);opacity:1}100%{transform:scale(.5) rotate(140deg);opacity:0}}
+/* On a level up, the new level's animal jumps on screen and dances to a little tune. */
+.dancer{position:fixed;left:50%;bottom:4vh;width:min(220px,40vw);margin-left:calc(min(220px,40vw)/-2);z-index:24;pointer-events:none}
+.dancer .move{animation:dance .38s ease-in-out infinite alternate;transform-origin:bottom center}
+.dancer .move .emo{font-size:min(200px,36vw)}
+.dancer .note{position:absolute;font-size:34px;font-weight:900;color:var(--sun);opacity:0;animation:note 1.2s ease-out infinite}
+@keyframes dance{from{transform:rotate(-12deg) scale(1.06,.94)}to{transform:translateY(-16px) rotate(12deg) scale(.95,1.06)}}
+@keyframes note{0%{transform:translateY(0) scale(.6);opacity:0}25%{opacity:1}100%{transform:translateY(-90px) scale(1.1);opacity:0}}
 /* A メンダコ flies across the screen when every stroke of a kanji written without the guide is perfect. */
 .flyer{position:fixed;left:0;top:28vh;width:150px;z-index:25;pointer-events:none}
 .flyer .ear{transform-box:fill-box;animation:flapL .22s ease-in-out infinite alternate}
@@ -452,6 +459,14 @@ const SFX=(()=>{
     kira:go(i=>{tone({type:'triangle',f0:PENTA[i%PENTA.length],dur:.3,vol:.14});
       [1568,2093,2637,3136,2637,3136].forEach((f,j)=>tone({f0:f,t:.12+j*.07,dur:.3,vol:.07}));hiss({t:.1,dur:.7,f0:3000,f1:8000,q:2,vol:.05})}),
     // Tank creatures: one voice per kind of animal.
+    // Dance tune for a level up: a bouncy melody over bass and a hi-hat, about 3 seconds.
+    dance:go(()=>{
+      const b=.19, mel=[784,0,659,784,1047,0,880,784,659,0,784,880,1047,1175,1319,0,1568];
+      mel.forEach((f,j)=>{if(f)tone({type:'triangle',f0:f,t:j*b,dur:j===16?.7:.17,vol:.13})});
+      [131,196,175,196,131,196,175,262].forEach((f,j)=>tone({type:'sine',f0:f,t:j*2*b,dur:.3,vol:.22}));
+      for(let j=0;j<17;j++)hiss({t:j*b,dur:.05,f0:6000,f1:7000,q:3,vol:j%2?.03:.06});
+      bubbles(6,16*b,.06);
+    }),
     critter:go(v=>({
       boing:()=>{tone({f0:260,f1:520,dur:.35,vol:.18,vib:12});bubbles(2,.12)},
       squeak:()=>{tone({f0:900,f1:1800,dur:.12,vol:.12});tone({f0:1200,f1:2300,t:.13,dur:.12,vol:.1})},
@@ -588,7 +603,7 @@ function reviewDone(){
     p.s=inc?Math.max(1,before-Math.ceil(inc/2)*(before>=5?2:1)):before+1;
     p.due=p.s>=BURNED?null:hourFloor(Date.now()+SRS_INT[p.s]);
     save(); R.done++;
-    if(p.s>before){R.ups.push(p.s);SFX.fanfare();coach(p.s===BURNED?'でんせつの クジラに なった！ もう ばっちり！':`レベル アップ！ ${LEVELS[p.s].n}に なったよ`)}
+    if(p.s>before){R.ups.push(p.s);danceParty(p.s);coach(p.s===BURNED?'でんせつの クジラに なった！ もう ばっちり！':`レベル アップ！ ${LEVELS[p.s].n}に なったよ`)}
     else{SFX.chime();coach(p.s<before?`かけたね！ レベルは ${LEVELS[p.s].n}に もどるよ`:'かけたね！')}
     $('revLevel').innerHTML=`<div class="art">${art(LEVELS[before].id)}</div><span class="arrow">→</span>${levelHTML(p.s)}`;
   }
@@ -819,6 +834,16 @@ const WOW=['かんぺき！✨','ピカピカ！✨','キラキラ！✨'];
 // A near-perfect stroke sits right on the guide at the right size; tracing over the guide makes that easier, so it asks for more.
 const perfect=f=>{const tr=cur.mode==='trace';return f.off<(tr?3.5:5)&&f.shape<(tr?3:3.5)&&f.ratio>.75&&f.ratio<1.35};
 // Replay a perfect stroke: a white spark races along it twice, and stars twinkle in its wake.
+function danceParty(level){
+  SFX.dance(); if(reduce)return;
+  document.querySelector('.dancer')?.remove();
+  const d=document.createElement('div'); d.className='dancer';
+  d.innerHTML=`<div class="move art">${art(LEVELS[level].id)}</div>`+
+    [[-10,20,0],[95,10,.4],[5,-5,.8],[85,40,.2]].map(([x,y,t])=>`<span class="note" style="left:${x}%;top:${y}%;animation-delay:${t}s">♪</span>`).join('');
+  document.body.appendChild(d);
+  const k=[[0,'0,110vh'],[.1,'0,-10vh'],[.17,'0,0'],[.35,'-60px,0'],[.55,'60px,0'],[.72,'0,0'],[.85,'0,-8vh'],[1,'0,110vh']];
+  d.animate(k.map(([offset,xy])=>({offset,transform:`translate(${xy})`})),{duration:3800,easing:'ease-in-out'}).onfinish=()=>d.remove();
+}
 function flyDumbo(){
   if(reduce)return;
   const f=document.createElement('div'); f.className='flyer'; f.innerHTML=art('dumbo'); document.body.appendChild(f);
