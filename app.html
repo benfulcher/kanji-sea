@@ -220,6 +220,15 @@ ruby rt{font-family:var(--f-ui);font-size:.5em;font-weight:700;color:var(--sun)}
 .pbox{display:flex;flex-direction:column;align-items:center;gap:6px}
 .pfuri{font-size:22px;font-weight:700;color:var(--sun);letter-spacing:.12em}
 .pbox i{display:block;width:64px;height:64px;border:3px dashed var(--mist);border-radius:10px}
+.sentence{font-size:26px;font-weight:700;line-height:1.7}
+.sentence .pbox{display:inline-flex;vertical-align:bottom;margin:0 3px}
+.sentence .pbox i{width:52px;height:52px}
+.ybox{display:inline-flex;flex-direction:column;align-items:center;gap:4px;vertical-align:bottom;margin:0 3px}
+.yfuri{display:flex;gap:3px}
+.yfuri i{width:32px;height:34px;border:2px dashed var(--mist);border-radius:7px;font-style:normal;font-size:23px;line-height:31px;text-align:center;color:var(--sun)}
+.yfuri i.now{border:2.5px solid var(--sun)}
+.ybox b{font-family:var(--f-kanji);font-size:52px;line-height:1.05}
+#practice.yomi .no-yomi{display:none}
 .lvlnow{display:flex;align-items:center;gap:10px;font-weight:700;color:var(--mist)}
 .lvlnow .art{width:44px}.lvlnow .emo{font-size:36px}
 .lvlnow .arrow{font-size:24px;color:var(--sun)}
@@ -249,6 +258,7 @@ ruby rt{font-family:var(--f-ui);font-size:.5em;font-weight:700;color:var(--sun)}
       <div class="play">
         <button class="cta" id="playReview"><span class="ico art" id="ctaOcto"></span><span id="revLabel">ふくしゅう</span> <span class="badge" id="revCount"></span></button>
         <button class="cta" id="playQuiz"><span class="ico art" id="ctaRay"></span>よめるかな？ ゲーム</button>
+        <button class="cta" id="playYomi"><span class="ico art" id="ctaYomi"></span>よみを かく</button>
       </div>
       <p class="pill" id="revWhen" style="margin:0;align-self:flex-start"></p>
       <div class="ladder" id="ladder" aria-label="かんじの レベル"></div>
@@ -289,12 +299,12 @@ ruby rt{font-family:var(--f-ui);font-size:.5em;font-weight:700;color:var(--sun)}
           <div class="card review-only" style="flex-direction:column;align-items:flex-start">
             <div class="meta"><span id="revMeta"></span></div>
             <div class="prompt" id="revPrompt"></div>
-            <div class="lvlnow" id="revLevel"></div>
+            <div class="lvlnow no-yomi" id="revLevel"></div>
             <div class="pic" id="revPic"></div>
           </div>
           <div class="row review-only">
             <button class="chip" id="revHint">え の ヒント</button>
-            <button class="chip" id="revSpeak">こえで きく</button>
+            <button class="chip no-yomi" id="revSpeak">こえで きく</button>
             <button class="chip" id="revPeek">ちょっと みる</button>
             <button class="chip" id="revGiveUp">わからない</button>
             <button class="cta" id="revNext" hidden>つぎへ</button>
@@ -385,6 +395,44 @@ const INFO = {
   '山':{r:['やま'],pic:'⛰️'}, '水':{r:['みず'],pic:'💧'}, '雨':{r:['あめ'],pic:'☔'}, '上':{r:['うえ'],pic:'⬆️'}, '下':{r:['した'],pic:'⬇️'},
 };
 const ORDER = SECTIONS.flatMap(s => [...s.kanji]);
+// Short sentences in the drill book's style: hiragana with spaces between words, and the kanji's reading in [ ].
+// ぶんで かく shows the reading over a box to write the kanji in; よみを かく shows the kanji and asks for the reading.
+const SENT = {
+  '木':['[き]の うえに ことりが いるよ。','おおきな [き]に のぼったよ。'],
+  '大':['[おお]きい くじらが およぐ。','たこの あたまは [おお]きいね。'],
+  '小':['[ちい]さい さかなが いっぱい。','かにの はさみは [ちい]さいね。'],
+  '一':['えいが [いち]ばん すき。','あめを [ひと]つ ください。'],
+  '二':['かにが [に]ひき いるよ。','おにぎりを [ふた]つ たべた。'],
+  '三':['くらげが [さん]びき ういて いる。','かいがらを [みっ]つ ひろったよ。'],
+  '四':['[し]がつに なったよ。','いるかが [よん]ひき はねた。','きのこを [よっ]つ みつけた。'],
+  '五':['たこの あしを [ご]ほん かぞえた。','いしを [いつ]つ ならべた。'],
+  '六':['[ろく]がつは あめが おおい。','あめだまを [むっ]つ もらった。'],
+  '七':['[しち]がつに うみへ いこう。','にじは [なな]いろ。','ほしが [なな]つ ひかる。'],
+  '八':['[はち]がつは なつやすみ。','いちごを [やっ]つ たべた。'],
+  '九':['[く]がつに なった。','さかなが [きゅう]ひき いるよ。','あねは [ここの]つです。'],
+  '十':['[じゅう]えんだまを ひろった。','りんごが [とお] あるよ。'],
+  '子':['いるかの [こ]どもが およぐ。','おとこの [こ]が はしる。'],
+  '空':['あおい [そら]を とりが とぶ。','[そら]に にじが でたよ。'],
+  '先':['[せん]せいに あいさつした。','がっこうの [せん]せい。'],
+  '生':['せん[せい]が わらった。','せん[せい]と うみへ いった。'],
+  '男':['[おとこ]の こが およぐ。','[おとこ]の ひとが つりを して いる。'],
+  '女':['[おんな]の こが わらう。','[おんな]の ひとが うたって いる。'],
+  '手':['[て]を あらおう。','かにと [て]を つなぐ。'],
+  '天':['きょうは いい [てん]きだね。','あしたの [てん]きは はれ。'],
+  '青':['[あお]い うみが すき。','[あお]ぞらが ひろがる。'],
+  '文':['[ぶん]を よむ。','みじかい [ぶん]を かいた。'],
+  '字':['きれいな [じ]を かこう。','ひらがなの [じ]を よむ。'],
+  '正':['[ただ]しい こたえは どれ。','しせいを [ただ]す。'],
+  '見':['すいそうの さかなを [み]る。','えを [み]せて。','しまが [み]える。'],
+  '学':['[がく]せいが あるく。','だい[がく]に いく。'],
+  '校':['がっ[こう]へ いく。','[こう]ていで あそぶ。'],
+  '山':['[やま]に のぼる。','たかい [やま]が みえる。'],
+  '水':['つめたい [みず]を のむ。','すいそうの [みず]を かえる。'],
+  '雨':['[あめ]が ふって きた。','[あめ]の ひは かさを さす。'],
+  '上':['いわの [うえ]に かにが いる。','つくえの [うえ]を みて。'],
+  '下':['いわの [した]に たこが かくれた。','[した]を みて ごらん。'],
+};
+
 
 // Sea friends: one joins the tank for each kanji written from memory.
 const CRE = {
@@ -565,29 +613,74 @@ function practicePick(){
   return ks.find((k,i)=>(r-=w[i])<0)||ks[ks.length-1];
 }
 // With a set of kanji, the session is free practice on just that set.
-function startReview(pool){
+// kind 'yomi' is the book's other drill: the kanji sits in a sentence and she writes its reading, one kana at a time.
+// It is always free practice, on the kanji she has met so far.
+function startReview(pool,kind='kaku'){
+  if(kind==='yomi'){pool=ORDER.filter(k=>{const p=prog(k);return p.t||p.w||p.s}); if(pool.length<3)pool=ORDER.slice()}
   if(!pool&&!ORDER.some(k=>prog(k).s))return;
-  R={queue:pool?[]:shuffle(dueList()),wrong:{},done:0,ups:[],practiced:0,extra:false,boost:{},pool};
-  show('practice'); $('practice').classList.add('reviewing'); nextReview();
+  R={kind,queue:pool?[]:shuffle(dueList()),wrong:{},done:0,ups:[],practiced:0,extra:false,boost:{},pool};
+  show('practice'); $('practice').classList.add('reviewing'); $('practice').classList.toggle('yomi',kind==='yomi'); nextReview();
+}
+const splitSent=t=>t.split(/\[|\]/); // → [before, reading, after]
+function renderYomi(){
+  const boxes=R.kana.map((c,i)=>`<i class="${i===R.ki?'now':''}">${i<R.ki?c:''}</i>`).join('');
+  $('revPrompt').innerHTML=`<div class="sentence">${R.parts[0]}<span class="ybox"><span class="yfuri">${boxes}</span><b>${R.k}</b></span>${R.parts[1]}</div>`;
+}
+// Next kana of a reading; after わからない the rest of the word stays traceable too.
+function nextKana(){
+  cur.k=R.kana[R.ki]; resetBoard('review');
+  if(R.gaveUp){cur.reveal=true;cur.hinted=true;board.classList.remove('memory');markNext()}
+  coach(`よみを かこう。${R.ki+1}もじめ`);
 }
 function levelHTML(s){return `<div class="art">${art(LEVELS[s].id)}</div>${LEVELS[s].n}・${LEVELS[s].g}`}
 function nextReview(){
   $('revNext').hidden=true; $('revGiveUp').hidden=false; $('revHint').hidden=false; $('revPeek').hidden=false;
   if(!R.queue.length&&!R.pool)R.queue=shuffle(dueList()); // any that fell due during the session
   const wasExtra=R.extra; R.extra=!R.queue.length;
-  const k=R.extra?practicePick():R.queue[0], p=prog(k), [yomi,oku='']=pick(INFO[k].r.filter(x=>x[0]!=='*')).split('|');
-  cur.k=k; R.reading=yomi+oku;
-  $('revPrompt').innerHTML=`<span class="pbox"><span class="pfuri">${yomi}</span><i></i></span>${oku?`<span>${oku}</span>`:''}`;
-  $('revLevel').innerHTML=levelHTML(p.s||0); $('revPic').textContent='';
+  const k=R.extra?practicePick():R.queue[0], p=prog(k), sent=SENT[k]&&pick(SENT[k]);
+  R.k=k; $('revLevel').innerHTML=levelHTML(p.s||0); $('revPic').textContent='';
+  if(R.kind==='yomi'){
+    const [pre,yomi,post]=splitSent(sent);
+    Object.assign(R,{parts:[pre,post],kana:[...yomi],ki:0,miss:0,hinted:false,gaveUp:false,perfect:true,reading:yomi});
+    $('revMeta').innerHTML=`よみ <b>${R.practiced+1}</b>かいめ`;
+    renderYomi(); nextKana(); coach('この かんじの よみを かこう');
+    return;
+  }
+  // Half the time the word sits in one of the book-style sentences (ぶんで かく).
+  if(sent&&Math.random()<.5){
+    const [pre,yomi,post]=splitSent(sent); R.reading=pre+yomi+post;
+    $('revPrompt').innerHTML=`<div class="sentence">${pre}<span class="pbox"><span class="pfuri">${yomi}</span><i></i></span>${post}</div>`;
+  }else{
+    const [yomi,oku='']=pick(INFO[k].r.filter(x=>x[0]!=='*')).split('|'); R.reading=yomi+oku;
+    $('revPrompt').innerHTML=`<span class="pbox"><span class="pfuri">${yomi}</span><i></i></span>${oku?`<span>${oku}</span>`:''}`;
+  }
+  cur.k=k;
   $('revMeta').innerHTML=R.extra?`れんしゅう <b>${R.practiced+1}</b>かいめ`:`のこり <b>${R.queue.length}</b>`;
   resetBoard('review');
   coach(R.extra&&!wasExtra&&(R.done||Object.keys(R.wrong).length)?'ふくしゅう ぜんぶ おわり！ ここからは れんしゅう':'この かんじ、かけるかな？');
   const rd=R.reading; if(SFX.on)setTimeout(()=>say(rd),300);
 }
+// A reading is right if she never needed a hint (hints come after two misses on one stroke, a peek, or わからない).
+function yomiKanaDone(){
+  R.hinted=R.hinted||cur.hinted; R.perfect=R.perfect&&cur.allPerfect;
+  if(R.ki<R.kana.length-1){
+    R.ki++; renderYomi(); SFX.right();
+    const run=cur.run; setTimeout(()=>{if(R&&cur.run===run)nextKana()},450);
+    return;
+  }
+  R.ki++; renderYomi();
+  const k=R.k, p=prog(k), ok=!R.hinted, b=R.boost[k]||1;
+  R.practiced++;
+  if(ok){R.boost[k]=Math.max(1,b/3); p.r=(p.r||0)+1; save(); SFX.chime(); coach(`よめたね！ 「${R.reading}」`); if(R.perfect)setTimeout(flyDumbo,500)}
+  else{R.boost[k]=Math.min(9,b*3); SFX.bloop(); coach(`「${R.reading}」だよ。また でてくるよ`,true)}
+  if(SFX.on){const rd=R.parts.join(R.reading); setTimeout(()=>say(rd),600)}
+  $('revNext').hidden=false; $('revGiveUp').hidden=true; $('revHint').hidden=true; $('revPeek').hidden=true; $('revNext').focus();
+}
 // Wrong answers come back later in the session; the level only changes once it's written correctly
 // (WaniKani rule: drop ceil(wrong/2) stages, doubled from じょうず up).
 function reviewDone(){
-  const k=cur.k, p=prog(k), ok=!cur.hinted&&cur.totalMiss<=1;
+  if(R.kind==='yomi')return yomiKanaDone();
+  const k=R.k, p=prog(k), ok=!cur.hinted&&cur.totalMiss<=1;
   if(R.extra){
     R.practiced++; const b=R.boost[k]||1;
     if(ok){R.boost[k]=Math.max(1,b/3);SFX.chime();coach('かけたね！')}
@@ -611,16 +704,17 @@ function reviewDone(){
 }
 function endReview(){
   const best=R.ups.length?Math.max(...R.ups):0, done=R.done, ups=R.ups.length, pr=R.practiced;
-  R=null; $('practice').classList.remove('reviewing');
+  R=null; $('practice').classList.remove('reviewing','yomi');
   if(!done&&!pr){renderHome();return}
   afterCele=renderHome;
   celebrate(best?LEVELS[best].id:'octopus',done?'ふくしゅう おわり！':'れんしゅう おわり！',
     [done&&`ふくしゅう ${done}こ・レベル アップ ${ups}こ`,pr&&`れんしゅう ${pr}こ`].filter(Boolean).join('。'));
 }
 $('playReview').onclick=()=>startReview();
+$('playYomi').onclick=()=>startReview(null,'yomi');
 $('revNext').onclick=nextReview;
 $('revEnd').onclick=()=>{if(R)endReview()};
-$('revHint').onclick=()=>{$('revPic').textContent=INFO[cur.k].pic};
+$('revHint').onclick=()=>{$('revPic').textContent=INFO[R.k].pic};
 $('revSpeak').onclick=()=>say(R.reading);
 // A peek flashes the whole kanji for a moment, then she carries on from memory.
 // Like わからない it means she didn't quite know it, so it comes back later in the session instead of levelling up.
@@ -630,7 +724,7 @@ $('revPeek').onclick=()=>{
   const run=cur.run; setTimeout(()=>{if(cur.run===run&&!cur.reveal){board.classList.add('memory');coach('さあ、かいてみよう')}},1200);
 };
 $('revGiveUp').onclick=()=>{
-  if(cur.reveal)return; cur.hinted=true; cur.reveal=true; cur.allPerfect=false;
+  if(cur.reveal)return; cur.hinted=true; cur.reveal=true; cur.allPerfect=false; R.gaveUp=true;
   board.classList.remove('memory'); markNext(); SFX.bloop(); coach('うすい せんを なぞって おぼえよう',true);
 };
 
@@ -744,7 +838,7 @@ function openKanji(k,mode){
   $('reads').innerHTML=info.r.map(r=>`<span class="w${r[0]==='*'?' minor':''}">${word(k,r)}</span>`).join('');
   $('pic').textContent=info.pic;
   $('strokeN').textContent=STROKES[k].length;
-  show('practice'); $('practice').classList.remove('reviewing');
+  show('practice'); $('practice').classList.remove('reviewing','yomi');
   const p=prog(k);
   setMode(mode||(p.t?'write':'watch'));
 }
@@ -895,10 +989,12 @@ function judge(pts){
   else if(cur.mode==='trace'||cur.reveal)markNext();
 }
 async function finish(){
-  const k=cur.k, p=prog(k), mode=cur.mode;
+  const k=cur.k, mode=cur.mode;
   board.classList.add('done-glow'); gHint.innerHTML='';
-  if(cur.allPerfect&&mode!=='trace')setTimeout(flyDumbo,500); // only for writing without the guide
+  // Only for writing without the guide; a reading earns it for the whole word instead, in yomiKanaDone.
+  if(cur.allPerfect&&mode!=='trace'&&R?.kind!=='yomi')setTimeout(flyDumbo,500);
   if(mode==='review'){reviewDone();return}
+  const p=prog(k);
   SFX.chime(); if(SFX.on)setTimeout(()=>say(kana(INFO[k].r[0])),700);
   if(mode==='trace'){
     const first=!p.t; p.t=1; save();
@@ -933,7 +1029,7 @@ $('redo').onclick=()=>setMode(cur.mode);
 $('speak').onclick=()=>say(INFO[cur.k].r.filter(r=>r[0]!=='*').map(kana).join('、'));
 const step=d=>{const i=(ORDER.indexOf(cur.k)+d+ORDER.length)%ORDER.length;openKanji(ORDER[i])};
 $('prevK').onclick=()=>step(-1); $('nextK').onclick=()=>step(1);
-$('backHome1').onclick=()=>{R=null;$('practice').classList.remove('reviewing');renderHome()};
+$('backHome1').onclick=()=>{R=null;$('practice').classList.remove('reviewing','yomi');renderHome()};
 
 // ---------- reading game ----------
 const ROUND=6;
@@ -1009,6 +1105,6 @@ $('sizes').addEventListener('click',e=>{const b=e.target.closest('button');if(b)
 {let i=0;try{i=+localStorage.getItem('kanjiSea.boardSize')||0}catch(e){} setSize(SIZES[i]?i:0)}
 for(const ev of ['pointerdown','touchend','click'])document.addEventListener(ev,()=>SFX.unlock(),{capture:true});
 document.addEventListener('click',e=>{const b=e.target.closest('button');if(b&&!b.classList.contains('opt')&&b.id!=='soundBtn')SFX.pop()},true);
-$('ctaRay').innerHTML=art('ray'); $('ctaOcto').innerHTML=art('octopus'); $('qRay').innerHTML=raySVG('#9cc0cf');
+$('ctaRay').innerHTML=art('ray'); $('ctaYomi').innerHTML=art('dumbo'); $('ctaOcto').innerHTML=art('octopus'); $('qRay').innerHTML=raySVG('#9cc0cf');
 renderWeeds(); renderHome();
 </script>
