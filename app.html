@@ -108,7 +108,7 @@ footer a{color:var(--mist)}
 
 /* ---------- practice ---------- */
 .practice{display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;justify-content:center}
-.boardwrap{flex:0 1 auto;width:calc(min(100%,62vh,560px)*var(--bs,1));max-width:100%;touch-action:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.boardwrap{position:relative;flex:0 1 auto;width:calc(min(100%,62vh,560px)*var(--bs,1));max-width:100%;touch-action:none;-webkit-user-select:none;-webkit-touch-callout:none}
 #board{display:block;width:100%;height:auto;aspect-ratio:1;max-width:100%;border-radius:22px;background:var(--paper);
   touch-action:none;box-shadow:0 8px 0 rgba(0,0,0,.25)}
 #board .grid{stroke:var(--redline);stroke-width:.5;stroke-dasharray:2 2;fill:none}
@@ -137,11 +137,14 @@ footer a{color:var(--mist)}
 .dancer .note{position:absolute;font-size:34px;font-weight:900;color:var(--sun);opacity:0;animation:note 1.2s ease-out infinite}
 @keyframes dance{from{transform:rotate(-12deg) scale(1.06,.94)}to{transform:translateY(-16px) rotate(12deg) scale(.95,1.06)}}
 @keyframes note{0%{transform:translateY(0) scale(.6);opacity:0}25%{opacity:1}100%{transform:translateY(-90px) scale(1.1);opacity:0}}
-/* A メンダコ flies across the screen when every stroke of a kanji written without the guide is perfect. */
-.flyer{position:fixed;left:0;top:28vh;width:150px;z-index:25;pointer-events:none}
-.flyer .ear{transform-box:fill-box;animation:flapL .22s ease-in-out infinite alternate}
-.flyer .ear.l{transform-origin:right center}
-.flyer .ear.r{transform-origin:left center;animation-name:flapR}
+/* A kanji written cleanly without the guide brings out the animal for its level, popping in from the board's edge. */
+.cheer{position:absolute;inset:0;overflow:hidden;border-radius:22px;pointer-events:none;z-index:3}
+.cheer .pal{position:absolute;left:0;top:0;width:34%}
+.cheer .pal.small{width:20%}
+.cheer .pal .emo{display:block;font-size:min(110px,18vw);line-height:1;text-align:center}
+.cheer .ear{transform-box:fill-box;animation:flapL .22s ease-in-out infinite alternate}
+.cheer .ear.l{transform-origin:right center}
+.cheer .ear.r{transform-origin:left center;animation-name:flapR}
 @keyframes flapL{from{transform:rotate(18deg)}to{transform:rotate(-22deg)}}
 @keyframes flapR{from{transform:rotate(-18deg)}to{transform:rotate(22deg)}}
 @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.45)}}
@@ -656,7 +659,7 @@ function nextReview(){
   R.k=k; $('revLevel').innerHTML=levelHTML(p.s||0); $('revPic').textContent='';
   if(R.kind==='yomi'){
     const [pre,yomi,post]=splitSent(sent);
-    Object.assign(R,{parts:[pre,post],kana:[...yomi],ki:0,miss:0,hinted:false,gaveUp:false,perfect:true,reading:yomi});
+    Object.assign(R,{parts:[pre,post],kana:[...yomi],ki:0,miss:0,hinted:false,gaveUp:false,clean:true,reading:yomi});
     $('revMeta').innerHTML=`よみ <b>${R.practiced+1}</b>かいめ`;
     renderYomi(); nextKana(); coach('この かんじの よみを かこう');
     return;
@@ -677,7 +680,7 @@ function nextReview(){
 }
 // A reading is right if she never needed a hint (hints come after two misses on one stroke, a peek, or わからない).
 function yomiKanaDone(){
-  R.hinted=R.hinted||cur.hinted; R.perfect=R.perfect&&cur.allPerfect;
+  R.hinted=R.hinted||cur.hinted; R.clean=R.clean&&cur.clean;
   if(R.ki<R.kana.length-1){
     R.ki++; renderYomi(); SFX.right();
     const run=cur.run; setTimeout(()=>{if(R&&cur.run===run)nextKana()},450);
@@ -686,7 +689,7 @@ function yomiKanaDone(){
   R.ki++; renderYomi();
   const k=R.k, p=prog(k), ok=!R.hinted, b=R.boost[k]||1;
   R.practiced++;
-  if(ok){R.boost[k]=Math.max(1,b/3); p.r=(p.r||0)+1; save(); SFX.chime(); coach(`よめたね！ 「${R.reading}」`); if(R.perfect)setTimeout(flyDumbo,500)}
+  if(ok){R.boost[k]=Math.max(1,b/3); p.r=(p.r||0)+1; save(); SFX.chime(); coach(`よめたね！ 「${R.reading}」`); if(R.clean)setTimeout(()=>cheer(p.s||0),500)}
   else{R.boost[k]=Math.min(9,b*3); SFX.bloop(); coach(`「${R.reading}」だよ。また でてくるよ`,true)}
   if(SFX.on){const rd=R.parts.join(R.reading); setTimeout(()=>say(rd),600)}
   $('revNext').hidden=false; $('revGiveUp').hidden=true; $('revHint').hidden=true; $('revPeek').hidden=true; $('revNext').focus();
@@ -695,7 +698,7 @@ function yomiKanaDone(){
 // (WaniKani rule: drop ceil(wrong/2) stages, doubled from じょうず up).
 function reviewDone(){
   if(R.kind==='yomi')return yomiKanaDone();
-  const k=R.k, p=prog(k), ok=!cur.hinted&&cur.totalMiss<=1;
+  const k=R.k, p=prog(k), ok=!cur.hinted&&cur.totalMiss<=1; let levelUp=false;
   if(R.extra){
     R.practiced++; const b=R.boost[k]||1;
     if(ok){R.boost[k]=Math.max(1,b/3);SFX.chime();coach('かけたね！')}
@@ -711,11 +714,12 @@ function reviewDone(){
     p.s=inc?Math.max(1,before-Math.ceil(inc/2)*(before>=5?2:1)):before+1;
     p.due=p.s>=BURNED?null:hourFloor(Date.now()+SRS_INT[p.s]);
     save(); R.done++;
-    if(p.s>before){R.ups.push(p.s);danceParty(p.s);coach(p.s===BURNED?'でんせつの クジラに なった！ もう ばっちり！':`レベル アップ！ ${LEVELS[p.s].n}に なったよ`)}
+    if(p.s>before){R.ups.push(p.s);danceParty(p.s);levelUp=true;coach(p.s===BURNED?'でんせつの クジラに なった！ もう ばっちり！':`レベル アップ！ ${LEVELS[p.s].n}に なったよ`)}
     else{SFX.chime();coach(p.s<before?`かけたね！ レベルは ${LEVELS[p.s].n}に もどるよ`:'かけたね！')}
     $('revLevel').innerHTML=`<div class="art">${art(LEVELS[before].id)}</div><span class="arrow">→</span>${levelHTML(p.s)}`;
   }
   $('revNext').hidden=false; $('revGiveUp').hidden=true; $('revHint').hidden=true; $('revPeek').hidden=true; $('revNext').focus();
+  return levelUp;
 }
 function endReview(){
   const best=R.ups.length?Math.max(...R.ups):0, done=R.done, ups=R.ups.length, pr=R.practiced;
@@ -730,19 +734,19 @@ $('playYomi').onclick=()=>startReview(null,'yomi');
 $('playBun').onclick=()=>startReview(null,'bun');
 $('revNext').onclick=nextReview;
 $('revEnd').onclick=()=>{if(R)endReview()};
-$('revHint').onclick=()=>{$('revPic').textContent=INFO[R.k].pic};
+$('revHint').onclick=()=>{cur.clean=false;$('revPic').textContent=INFO[R.k].pic};
 $('revSpeak').onclick=()=>say(R.reading);
 // A peek shows the whole kanji for a moment and lets it fade away, then she carries on from memory.
 // Like わからない it means she didn't quite know it, so it comes back later in the session instead of levelling up.
 $('revPeek').onclick=()=>{
-  if(cur.reveal)return; cur.hinted=true; cur.allPerfect=false;
+  if(cur.reveal)return; cur.hinted=true; cur.clean=false;
   board.classList.remove('memory'); coach('よく みてね！');
   const run=cur.run;
   setTimeout(()=>{if(cur.run===run&&!cur.reveal){board.classList.add('peekfade','memory');coach('さあ、かいてみよう')}},900);
   setTimeout(()=>board.classList.remove('peekfade'),2600);
 };
 $('revGiveUp').onclick=()=>{
-  if(cur.reveal)return; cur.hinted=true; cur.reveal=true; cur.allPerfect=false; R.gaveUp=true;
+  if(cur.reveal)return; cur.hinted=true; cur.reveal=true; cur.clean=false; R.gaveUp=true;
   board.classList.remove('memory'); markNext(); SFX.bloop(); coach('うすい せんを なぞって おぼえよう',true);
 };
 
@@ -861,7 +865,8 @@ function openKanji(k,mode){
   setMode(mode||(p.t?'write':'watch'));
 }
 function resetBoard(mode){
-  cur.mode=mode; cur.allPerfect=true; cur.idx=0; cur.miss=0; cur.totalMiss=0; cur.hinted=false; cur.reveal=false; cur.run++;
+  $('boardwrap').querySelector('.cheer')?.remove();
+  cur.mode=mode; cur.clean=true; cur.idx=0; cur.miss=0; cur.totalMiss=0; cur.hinted=false; cur.reveal=false; cur.run++;
   board.classList.toggle('memory',mode!=='trace'); board.classList.remove('done-glow');
   gGhost.innerHTML=''; gInk.innerHTML=''; gHint.innerHTML=''; live.setAttribute('d','');
   cur.targets=STROKES[cur.k].map(d=>sampleEl(addPath(gGhost,d,'ghost')));
@@ -956,13 +961,49 @@ function danceParty(level){
   const k=[[0,'0,110vh'],[.1,'0,-10vh'],[.17,'0,0'],[.35,'-60px,0'],[.55,'60px,0'],[.72,'0,0'],[.85,'0,-8vh'],[1,'0,110vh']];
   d.animate(k.map(([offset,xy])=>({offset,transform:`translate(${xy})`})),{duration:3800,easing:'ease-in-out'}).onfinish=()=>d.remove();
 }
-function flyDumbo(){
+// The level's animal pops out from an edge of the board, picked at random from a few ways in:
+// hopping across, peeking in from one side, swooping through, dropping from the top, or tracing the kanji's strokes.
+function cheer(level,way=pick(['hop','peek','swoop','drop','trace'])){
   if(reduce)return;
-  const f=document.createElement('div'); f.className='flyer'; f.innerHTML=art('dumbo'); document.body.appendChild(f);
-  SFX.fly();
-  f.animate(['translate(-30vw,12vh) rotate(14deg)','translate(15vw,-6vh) rotate(-10deg)','translate(50vw,9vh) rotate(10deg)',
-    'translate(85vw,-7vh) rotate(-10deg)','translate(125vw,3vh) rotate(8deg)'].map(transform=>({transform})),
-    {duration:2800,easing:'ease-in-out'}).onfinish=()=>f.remove();
+  const wrap=$('boardwrap'); wrap.querySelector('.cheer')?.remove();
+  const id=LEVELS[level].id;
+  const c=document.createElement('div'); c.className='cheer';
+  const a=document.createElement('div'); a.className='pal art'+(way==='trace'?' small':''); a.innerHTML=art(id);
+  c.appendChild(a); wrap.appendChild(c);
+  // Positions are the animal's top-left corner in % of the board; 34 is its size, so -34 and 100 are just out of sight.
+  const at=(x,y,t='',o)=>({left:x+'%',top:y+'%',transform:t||'none',...(o==null?{}:{offset:o})});
+  const flip=Math.random()<.5, X=x=>flip?66-x:x, F=flip?' scaleX(-1)':'';
+  let ks, dur;
+  if(way==='hop'){
+    ks=[at(X(-34),66,F,0)];
+    [[-2,1],[24,2],[50,3],[76,4],[100,5]].forEach(([x,i])=>{ks.push(at(X(x-13),22,'rotate(-8deg)'+F,(i-.5)/5),at(X(x),66,'scale(1.12,.88)'+F,i/5))});
+    ks[ks.length-1].transform='none'+F; dur=2600;
+    ks.forEach((k,i)=>k.easing=i%2?'ease-in':'ease-out'); // rise slowing, fall speeding up
+  }else if(way==='peek'){
+    const [ox,oy,ix,iy,r]=pick([[33,100,33,64,0],[33,-34,33,-2,180],[-34,33,-4,33,90],[100,33,70,33,-90]]), tilt=d=>`rotate(${r+d}deg)`;
+    ks=[at(ox,oy,tilt(0),0),at(ix,iy,tilt(0),.18),at(ix,iy,tilt(-12),.32),at(ix,iy,tilt(12),.46),at(ix,iy,tilt(-12),.6),at(ix,iy,tilt(0),.72),at(ix,iy,tilt(0),.82),at(ox,oy,tilt(0),1)];
+    dur=2600;
+  }else if(way==='swoop'){
+    ks=[at(X(-34),-6,'rotate(25deg)'+F,0),at(X(10),40,'rotate(12deg)'+F,.3),at(X(33),56,'none'+F,.5),at(X(56),40,'rotate(-12deg)'+F,.7),at(X(100),-6,'rotate(-25deg)'+F,1)];
+    dur=1900; SFX.fly();
+  }else if(way==='drop'){
+    ks=[at(33,-34,'none',0),at(33,66,'scale(1.2,.8)',.32),at(33,40,'scale(.95,1.05)',.46),at(33,66,'scale(1.1,.9)',.58),at(33,64,'none',.66),at(33,64,'rotate(-8deg)',.74),at(33,64,'none',.82),at(33,100,'none',1)];
+    dur=2600;
+  }else{
+    // Trace: glide along each stroke in order, hopping between strokes, starting and ending off the board's edge.
+    const pts=[], tmp=document.createElementNS(NS,'path'); gHint.appendChild(tmp);
+    for(const d of STROKES[cur.k]){
+      tmp.setAttribute('d',d); const L=tmp.getTotalLength(), n=Math.max(4,Math.round(L/4));
+      for(let i=0;i<=n;i++){const q=tmp.getPointAtLength(L*i/n);pts.push({x:q.x/1.09-10,y:q.y/1.09-10,lift:i===0})}
+    }
+    tmp.remove();
+    pts.unshift({x:-20,y:pts[0].y}); pts.push({x:100,y:pts[pts.length-1].y});
+    let tot=0; const cum=pts.map((q,i)=>tot+=i?Math.hypot(q.x-pts[i-1].x,q.y-pts[i-1].y):0);
+    ks=pts.map((q,i)=>at(q.x,q.y,q.lift&&i>1?'scale(1.25)':'none',cum[i]/tot));
+    dur=Math.min(4200,Math.max(2200,tot*9));
+  }
+  SFX.critter(voice(id));
+  a.animate(ks,{duration:dur,easing:way==='hop'||way==='trace'?'linear':'ease-in-out'}).onfinish=()=>c.remove();
 }
 function sparkle(d){
   if(reduce)return;
@@ -991,7 +1032,7 @@ function judge(pts){
     if(great)addPath(gInk,d,'halo',reduce?0:220);
     addPath(gInk,d,great?'ink perfect':'ink',reduce?0:220);
     splash(t.pts[N-1]);
-    if(great){SFX.kira(cur.idx);sparkle(d)}else{SFX.stroke(cur.idx);cur.allPerfect=false}
+    if(great){SFX.kira(cur.idx);sparkle(d)}else SFX.stroke(cur.idx);
     cur.idx++; cur.miss=0;
     if(cur.idx>=T.length){finish();return}
     coach(pick(great?WOW:PRAISE)+` つぎは ${cur.idx+1}かくめ`);
@@ -999,7 +1040,7 @@ function judge(pts){
     return;
   }
   live.classList.add('bad'); setTimeout(()=>{if(!drawing)live.setAttribute('d','')},460);
-  cur.miss++; cur.totalMiss++; cur.allPerfect=false; SFX.bloop();
+  cur.miss++; cur.totalMiss++; cur.clean=false; SFX.bloop();
   if(fits(u,t,true)) coach(`むきが はんたいだよ。${cur.idx+1}かくめは ●の ほうから かこう`,true);
   else if(T.some((tt,j)=>j>cur.idx&&fits(u,tt,false))) coach(`かく じゅんばんが ちがうよ。いまは ${cur.idx+1}かくめ`,true);
   else coach(cur.miss>=2?'タコが ヒントを みせるね':'おしい！ もういちど',true);
@@ -1009,9 +1050,10 @@ function judge(pts){
 async function finish(){
   const k=cur.k, mode=cur.mode;
   board.classList.add('done-glow'); gHint.innerHTML='';
-  // Only for writing without the guide; a reading earns it for the whole word instead, in yomiKanaDone.
-  if(cur.allPerfect&&mode!=='trace'&&R?.kind!=='yomi')setTimeout(flyDumbo,500);
-  if(mode==='review'){reviewDone();return}
+  // A clean kanji (no misses or hints) written without the guide brings out its level's animal.
+  // A reading earns it for the whole word instead, in yomiKanaDone, and a level up has its own dance.
+  const clean=cur.clean&&mode!=='trace';
+  if(mode==='review'){const up=reviewDone(); if(clean&&!up&&R?.kind!=='yomi')setTimeout(()=>cheer(prog(k).s||0),500); return}
   const p=prog(k);
   SFX.chime(); if(SFX.on)setTimeout(()=>say(kana(INFO[k].r[0])),700);
   if(mode==='trace'){
@@ -1021,7 +1063,7 @@ async function finish(){
   }
   const first=!p.w; p.t=1; p.w=1; enterSRS(k); save();
   coach('みないで かけた！ すごい！');
-  if(!first)return;
+  if(!first){if(clean)setTimeout(()=>cheer(p.s||0),500);return}
   await sleep(reduce?200:900);
   const id=FRIEND[ORDER.indexOf(k)];
   celebrate(id,`${CRE[id].n}が なかまに なったよ！`,`「${k}」を みないで かけたね`);
