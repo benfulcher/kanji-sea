@@ -48,6 +48,9 @@ h1 small{display:block;font-size:13px;font-weight:700;letter-spacing:.14em;color
 .swimmer.still,.swimmer.still .face{animation:none}
 .swimmer.still .bob{transform-origin:bottom center;animation:wobble 2.6s ease-in-out infinite alternate}
 .tank .deco{position:absolute;left:14%;bottom:12px;width:44px}
+.tank .swimmer,.tank .deco,.tank .mascot{cursor:pointer;-webkit-tap-highlight-color:transparent}
+.swimmer.tapped .face>*,.deco.tapped>*,.mascot.tapped>*{animation:jiggle .5s ease-out}
+@keyframes jiggle{0%,100%{transform:scale(1)}30%{transform:scale(1.25,.8)}60%{transform:scale(.9,1.12)}}
 @keyframes wobble{from{transform:rotate(-4deg)}to{transform:rotate(4deg)}}
 @keyframes swim{0%,100%{left:var(--a)}50%{left:var(--b)}}
 @keyframes face{0%{transform:scaleX(-1)}50%{transform:scaleX(1)}}
@@ -69,6 +72,8 @@ h1 small{display:block;font-size:13px;font-weight:700;letter-spacing:.14em;color
 .reef h2{margin:0;font-size:22px;font-weight:900;letter-spacing:.04em}
 .reef .book{margin:2px 0 0;font-size:13px;color:var(--mist);font-weight:500}
 .reef .book b{font-variant-numeric:tabular-nums;color:var(--sun);font-weight:700}
+.setgo{padding:10px 16px;border-radius:999px;background:var(--sun);color:#3b2600;font-weight:900;font-size:15px;flex:none}
+.reef-head .right{display:flex;align-items:center;gap:12px}
 .reward{width:64px;flex:none;text-align:center;font-size:11px;color:var(--mist);font-weight:700}
 .reward .art{filter:grayscale(1) brightness(.55);opacity:.7}
 .reward.got .art{filter:none;opacity:1}
@@ -104,7 +109,7 @@ footer a{color:var(--mist)}
 #board{display:block;width:100%;height:auto;aspect-ratio:1;max-width:100%;border-radius:22px;background:var(--paper);
   touch-action:none;box-shadow:0 8px 0 rgba(0,0,0,.25)}
 #board .grid{stroke:var(--redline);stroke-width:.5;stroke-dasharray:2 2;fill:none}
-#board .ghost{stroke:var(--ghost);stroke-width:6.5;fill:none;stroke-linecap:round;stroke-linejoin:round}
+#board .ghost{stroke:var(--ghost);stroke-width:6.5;fill:none;stroke-linecap:round;stroke-linejoin:round;transition:stroke-opacity .25s}
 #board.memory .ghost{stroke-opacity:0}
 #board .ink{stroke:var(--ink);stroke-width:6;fill:none;stroke-linecap:round;stroke-linejoin:round}
 #board .live{stroke:#5b3a8c;stroke-width:6;fill:none;stroke-linecap:round;stroke-linejoin:round;opacity:.85}
@@ -121,7 +126,7 @@ footer a{color:var(--mist)}
 #board .spark{stroke:#fff;stroke-width:4;fill:none;stroke-linecap:round;filter:drop-shadow(0 0 2px #8ad8ff)}
 #board .star{fill:#fff;stroke:var(--cinna);stroke-width:.7;transform-box:fill-box;transform-origin:center;opacity:0;animation:twinkle .9s ease-out forwards}
 @keyframes twinkle{0%{transform:scale(0) rotate(0);opacity:1}55%{transform:scale(1.4) rotate(80deg);opacity:1}100%{transform:scale(.5) rotate(140deg);opacity:0}}
-/* A メンダコ flies across the screen when every stroke of a kanji is perfect. */
+/* A メンダコ flies across the screen when every stroke of a kanji written without the guide is perfect. */
 .flyer{position:fixed;left:0;top:28vh;width:150px;z-index:25;pointer-events:none}
 .flyer .ear{transform-box:fill-box;animation:flapL .22s ease-in-out infinite alternate}
 .flyer .ear.l{transform-origin:right center}
@@ -283,6 +288,7 @@ ruby rt{font-family:var(--f-ui);font-size:.5em;font-weight:700;color:var(--sun)}
           <div class="row review-only">
             <button class="chip" id="revHint">え の ヒント</button>
             <button class="chip" id="revSpeak">こえで きく</button>
+            <button class="chip" id="revPeek">ちょっと みる</button>
             <button class="chip" id="revGiveUp">わからない</button>
             <button class="cta" id="revNext" hidden>つぎへ</button>
             <button class="chip" id="revEnd">おわる</button>
@@ -445,6 +451,14 @@ const SFX=(()=>{
     fly:go(()=>{hiss({dur:1.4,f0:350,f1:2200,q:1.2,vol:.1});[784,988,1175,1568].forEach((f,j)=>tone({type:'triangle',f0:f,f1:f*1.06,t:.35+j*.12,dur:.25,vol:.1}));bubbles(5,1,.08)}),
     kira:go(i=>{tone({type:'triangle',f0:PENTA[i%PENTA.length],dur:.3,vol:.14});
       [1568,2093,2637,3136,2637,3136].forEach((f,j)=>tone({f0:f,t:.12+j*.07,dur:.3,vol:.07}));hiss({t:.1,dur:.7,f0:3000,f1:8000,q:2,vol:.05})}),
+    // Tank creatures: one voice per kind of animal.
+    critter:go(v=>({
+      boing:()=>{tone({f0:260,f1:520,dur:.35,vol:.18,vib:12});bubbles(2,.12)},
+      squeak:()=>{tone({f0:900,f1:1800,dur:.12,vol:.12});tone({f0:1200,f1:2300,t:.13,dur:.12,vol:.1})},
+      deep:()=>{tone({f0:140,f1:230,dur:.6,vol:.22,vib:5});hiss({dur:.6,f0:200,f1:500,q:.7,vol:.05})},
+      click:()=>{for(let j=0;j<4;j++)hiss({t:j*.07,dur:.04,f0:3200,f1:2600,q:4,vol:.25})},
+      puff:()=>{hiss({dur:.35,f0:300,f1:1500,q:1,vol:.15});tone({f0:500,f1:1400,t:.3,dur:.1,vol:.15})},
+    })[v]()),
     right:go(()=>{tone({type:'triangle',f0:784,dur:.15,vol:.15});tone({type:'triangle',f0:1175,t:.1,dur:.3,vol:.15});bubbles(4,.15)}),
   };
 })();
@@ -529,29 +543,31 @@ let R=null;
 // so メンダコ comes up about 8x as often as ウミガメ. The same kanji can come twice in a row.
 // A practice miss makes that kanji 3x as likely for the rest of the session (up to 9x); writing it again eases that off.
 // Practice never changes levels, so it can't upset the review timings.
+// Practising one set picks from all its kanji; ones not yet written from memory (キノコ) count as the lowest level.
 function practicePick(){
-  const ks=ORDER.filter(k=>prog(k).s), w=ks.map(k=>.6**(prog(k).s-1)*(R.boost[k]||1));
+  const ks=R.pool||ORDER.filter(k=>prog(k).s), w=ks.map(k=>.6**((prog(k).s||0)-1)*(R.boost[k]||1));
   let r=Math.random()*w.reduce((a,b)=>a+b,0);
   return ks.find((k,i)=>(r-=w[i])<0)||ks[ks.length-1];
 }
-function startReview(){
-  if(!ORDER.some(k=>prog(k).s))return;
-  R={queue:shuffle(dueList()),wrong:{},done:0,ups:[],practiced:0,extra:false,boost:{}};
+// With a set of kanji, the session is free practice on just that set.
+function startReview(pool){
+  if(!pool&&!ORDER.some(k=>prog(k).s))return;
+  R={queue:pool?[]:shuffle(dueList()),wrong:{},done:0,ups:[],practiced:0,extra:false,boost:{},pool};
   show('practice'); $('practice').classList.add('reviewing'); nextReview();
 }
 function levelHTML(s){return `<div class="art">${art(LEVELS[s].id)}</div>${LEVELS[s].n}・${LEVELS[s].g}`}
 function nextReview(){
-  $('revNext').hidden=true; $('revGiveUp').hidden=false; $('revHint').hidden=false;
-  if(!R.queue.length)R.queue=shuffle(dueList()); // any that fell due during the session
+  $('revNext').hidden=true; $('revGiveUp').hidden=false; $('revHint').hidden=false; $('revPeek').hidden=false;
+  if(!R.queue.length&&!R.pool)R.queue=shuffle(dueList()); // any that fell due during the session
   const wasExtra=R.extra; R.extra=!R.queue.length;
   const k=R.extra?practicePick():R.queue[0], p=prog(k), [yomi,oku='']=pick(INFO[k].r.filter(x=>x[0]!=='*')).split('|');
   cur.k=k; R.reading=yomi+oku;
   $('revPrompt').innerHTML=`<span class="pbox"><span class="pfuri">${yomi}</span><i></i></span>${oku?`<span>${oku}</span>`:''}`;
-  $('revLevel').innerHTML=levelHTML(p.s); $('revPic').textContent='';
+  $('revLevel').innerHTML=levelHTML(p.s||0); $('revPic').textContent='';
   $('revMeta').innerHTML=R.extra?`れんしゅう <b>${R.practiced+1}</b>かいめ`:`のこり <b>${R.queue.length}</b>`;
   resetBoard('review');
   coach(R.extra&&!wasExtra&&(R.done||Object.keys(R.wrong).length)?'ふくしゅう ぜんぶ おわり！ ここからは れんしゅう':'この かんじ、かけるかな？');
-  if(SFX.on)setTimeout(()=>say(R.reading),300);
+  const rd=R.reading; if(SFX.on)setTimeout(()=>say(rd),300);
 }
 // Wrong answers come back later in the session; the level only changes once it's written correctly
 // (WaniKani rule: drop ceil(wrong/2) stages, doubled from じょうず up).
@@ -565,7 +581,7 @@ function reviewDone(){
     R.queue.shift();
     R.wrong[k]=(R.wrong[k]||0)+1;
     R.queue.splice(Math.min(R.queue.length,2+Math.floor(Math.random()*3)),0,k);
-    SFX.bloop(); coach('おしい！ あとで もういちど かいてみよう',true);
+    SFX.bloop(); coach(cur.reveal||cur.totalMiss>1?'おしい！ あとで もういちど かいてみよう':'みて かけたね！ あとで もういちど かいてみよう',true);
   }else{
     R.queue.shift();
     const before=p.s, inc=R.wrong[k]||0;
@@ -576,7 +592,7 @@ function reviewDone(){
     else{SFX.chime();coach(p.s<before?`かけたね！ レベルは ${LEVELS[p.s].n}に もどるよ`:'かけたね！')}
     $('revLevel').innerHTML=`<div class="art">${art(LEVELS[before].id)}</div><span class="arrow">→</span>${levelHTML(p.s)}`;
   }
-  $('revNext').hidden=false; $('revGiveUp').hidden=true; $('revHint').hidden=true; $('revNext').focus();
+  $('revNext').hidden=false; $('revGiveUp').hidden=true; $('revHint').hidden=true; $('revPeek').hidden=true; $('revNext').focus();
 }
 function endReview(){
   const best=R.ups.length?Math.max(...R.ups):0, done=R.done, ups=R.ups.length, pr=R.practiced;
@@ -586,11 +602,18 @@ function endReview(){
   celebrate(best?LEVELS[best].id:'octopus',done?'ふくしゅう おわり！':'れんしゅう おわり！',
     [done&&`ふくしゅう ${done}こ・レベル アップ ${ups}こ`,pr&&`れんしゅう ${pr}こ`].filter(Boolean).join('。'));
 }
-$('playReview').onclick=startReview;
+$('playReview').onclick=()=>startReview();
 $('revNext').onclick=nextReview;
 $('revEnd').onclick=()=>{if(R)endReview()};
 $('revHint').onclick=()=>{$('revPic').textContent=INFO[cur.k].pic};
 $('revSpeak').onclick=()=>say(R.reading);
+// A peek flashes the whole kanji for a moment, then she carries on from memory.
+// Like わからない it means she didn't quite know it, so it comes back later in the session instead of levelling up.
+$('revPeek').onclick=()=>{
+  if(cur.reveal)return; cur.hinted=true; cur.allPerfect=false;
+  board.classList.remove('memory'); coach('よく みてね！');
+  const run=cur.run; setTimeout(()=>{if(cur.run===run&&!cur.reveal){board.classList.add('memory');coach('さあ、かいてみよう')}},1200);
+};
 $('revGiveUp').onclick=()=>{
   if(cur.reveal)return; cur.hinted=true; cur.reveal=true; cur.allPerfect=false;
   board.classList.remove('memory'); markNext(); SFX.bloop(); coach('うすい せんを なぞって おぼえよう',true);
@@ -611,13 +634,20 @@ function renderTank(){
     const r=seeded(key), c=CRE[id], el=document.createElement('div');
     const size=c.big?110:c.still?50:c.svg?64:44;
     const a=c.still?20+r()*55:r()*55, b=a+18+r()*30, dur=14+r()*14;
-    el.className='swimmer'+(c.still?' still':'');
+    el.className='swimmer'+(c.still?' still':''); el.dataset.id=id;
     el.style.cssText=`--a:${a}%;--b:${Math.min(b,86)}%;--dur:${dur}s;--delay:${-r()*dur}s;width:${size}px;`+
       (c.floor?`bottom:14px;`:`top:${8+r()*52}%;`);
     el.innerHTML=`<div class="bob"><div class="face art" style="font-size:${size}px">${art(id)}</div></div>`;
     box.appendChild(el);
   });
 }
+const voice=id=>/puffer/.test(id)?'puff':/crab|lobster|shell|shrimp/.test(id)?'click':
+  /whale|shark|turtle|croc|manta|ray|iguana|snake/.test(id)?'deep':/dolphin|seal|otter|fish|clown/.test(id)?'squeak':'boing';
+$('tank').addEventListener('pointerdown',e=>{
+  const el=e.target.closest('.swimmer,.deco,.mascot'); if(!el)return;
+  SFX.unlock(); SFX.critter(voice(el.dataset.id||(el.id==='deco'?'kmush':'octopus')));
+  el.classList.remove('tapped'); void el.offsetWidth; el.classList.add('tapped');
+});
 function renderWeeds(){
   const w=$('weeds'); w.innerHTML='';
   [[6,70],[9,46],[22,58],[58,40],[63,64],[88,52]].forEach(([x,h],i)=>{
@@ -631,7 +661,9 @@ function renderReefs(){
     const sec=document.createElement('section'); sec.className='reef';
     const got=!!P.sec[si];
     sec.innerHTML=`<div class="reef-head"><div><h2>${s.zone}</h2><p class="book">${s.lessons?`<b>${s.lessons}</b>　`:''}${s.book}</p></div>
-      <div class="reward${got?' got':''}"><div class="art">${art('manta')}</div>${got?'マンタ！':'ぜんぶ かくと…'}</div></div>`;
+      <div class="right"><button class="setgo">▶ れんしゅう</button>
+      <div class="reward${got?' got':''}"><div class="art">${art('manta')}</div>${got?'マンタ！':'ぜんぶ かくと…'}</div></div></div>`;
+    sec.querySelector('.setgo').onclick=()=>startReview([...s.kanji]);
     const tiles=document.createElement('div'); tiles.className='tiles';
     for(const k of s.kanji){
       const p=prog(k), b=document.createElement('button'); b.className='tile';
@@ -840,7 +872,7 @@ function judge(pts){
 async function finish(){
   const k=cur.k, p=prog(k), mode=cur.mode;
   board.classList.add('done-glow'); gHint.innerHTML='';
-  if(cur.allPerfect)setTimeout(flyDumbo,500);
+  if(cur.allPerfect&&mode!=='trace')setTimeout(flyDumbo,500); // only for writing without the guide
   if(mode==='review'){reviewDone();return}
   SFX.chime(); if(SFX.on)setTimeout(()=>say(kana(INFO[k].r[0])),700);
   if(mode==='trace'){
