@@ -22,6 +22,8 @@ After adding kanji to `SECTIONS` or sentences to `SENT` in `app.html`, run `pyth
 
 Open the Pages site in Safari on the iPad and choose Share → Add to Home Screen.
 Progress is saved in the browser on that device.
+To guard against a wipe, the バックアップ button at the bottom of the home screen saves it as a small `.json` file (on the iPad: Share → Save to Files, e.g. into iCloud Drive), and もどす loads one back.
+A reminder appears on the home screen when the last backup is more than 30 days old.
 
 ## Credits
 

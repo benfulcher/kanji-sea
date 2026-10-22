@@ -90,6 +90,9 @@ h1 small{display:block;font-size:13px;font-weight:700;letter-spacing:.14em;color
 .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--mist);font-weight:700}
 .legend span{display:inline-flex;align-items:center;gap:6px}
 .legend i{width:12px;height:12px;border-radius:50%;display:inline-block}
+.grownups{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;color:var(--mist)}
+.grownups .pill{font-size:13px;padding:6px 12px}
+.pill.nag{background:#ffd166;color:#22122f}
 footer{font-size:12px;color:var(--mist);line-height:1.6}
 footer a{color:var(--mist)}
 
@@ -245,7 +248,7 @@ ruby rt{font-family:var(--f-ui);font-size:.5em;font-weight:700;color:var(--sun)}
     <div class="wrap">
       <div class="top">
         <h1><small>1ねん かんじ</small>かんじの うみ</h1>
-        <div class="row"><button class="pill" id="soundBtn" aria-pressed="true"></button><span class="pill" id="friendCount"></span></div>
+        <div class="row"><button class="pill" id="soundBtn" aria-pressed="true"></button><span class="pill" id="friendCount"></span><button class="pill nag" id="backupNag" hidden>💾 バックアップ してね</button></div>
       </div>
       <div class="tank" id="tank" aria-label="すいそう">
         <div class="rays"></div>
@@ -270,6 +273,13 @@ ruby rt{font-family:var(--f-ui);font-size:.5em;font-weight:700;color:var(--sun)}
         <span><i style="background:#e6a817"></i>よめた</span>
       </div>
       <div id="reefs" class="wrap" style="gap:16px"></div>
+      <div class="grownups">
+        <b>おとなの かたへ</b>
+        <button class="pill" id="backupSave">💾 バックアップ</button>
+        <button class="pill" id="backupLoad">↩︎ もどす</button>
+        <input type="file" id="backupFile" accept=".json,application/json" hidden>
+        <small id="backupWhen"></small>
+      </div>
       <footer>Stroke data from <a href="https://kanjivg.tagaini.net" target="_blank" rel="noopener">KanjiVG</a> by Ulrich Apel (CC BY-SA 3.0). Kanji order follows くりかえし かんじドリル 1年 上.</footer>
     </div>
   </section>
@@ -792,7 +802,7 @@ function renderReefs(){
     sec.appendChild(tiles); root.appendChild(sec);
   });
 }
-function renderHome(){renderTank();renderLadder();renderReefs();show('home')}
+function renderHome(){renderTank();renderLadder();renderReefs();renderBackup();show('home')}
 
 // ---------- practice board ----------
 const board=$('board'), gGhost=$('gGhost'), gInk=$('gInk'), gHint=$('gHint'), live=$('live');
@@ -1097,6 +1107,46 @@ function endQuiz(){
 }
 $('playQuiz').onclick=startQuiz; $('qAgain').onclick=startQuiz;
 $('qHome').onclick=renderHome; $('backHome2').onclick=renderHome;
+
+// ---------- backup (for grown-ups) ----------
+// Progress lives only in this browser's storage, so a grown-up can save it as a small file
+// (share sheet -> Save to Files, e.g. into iCloud Drive) and load it back after a wipe.
+// A reminder shows on the home screen when the last backup is more than a month old.
+const BKEY='kanjiSea.backupAt', MONTH=30*24*HOUR;
+const backupAt=()=>{try{return +localStorage.getItem(BKEY)||0}catch(e){return 0}};
+const ymd=t=>new Date(t).toLocaleDateString('ja-JP');
+function renderBackup(){
+  const at=backupAt(), any=ORDER.some(k=>{const p=prog(k);return p.t||p.w||p.r||p.s});
+  $('backupWhen').textContent=at?`さいごの バックアップ: ${ymd(at)}`:'まだ バックアップ していません';
+  $('backupNag').hidden=!any||Date.now()-at<MONTH;
+}
+async function backupSave(){
+  const d=new Date(), name=`kanji-sea-${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}.json`;
+  const text=JSON.stringify({app:'kanjiSea',key:KEY,at:d.toISOString(),progress:P});
+  const file=new File([text],name,{type:'application/json'});
+  const done=()=>{try{localStorage.setItem(BKEY,Date.now())}catch(e){} renderBackup()};
+  // Where sharing isn't allowed (a desktop browser, an embedded page), download the file instead.
+  if(navigator.canShare?.({files:[file]})){
+    try{await navigator.share({files:[file],title:name}); return done()}
+    catch(e){if(e.name==='AbortError')return}
+  }
+  const a=document.createElement('a'); a.href=URL.createObjectURL(file); a.download=name;
+  document.body.append(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),5000); done();
+}
+async function backupLoad(f){
+  try{
+    const o=JSON.parse(await f.text()), p=o.progress||o;
+    if(!p||typeof p.k!=='object')throw new Error('not a かんじの うみ backup');
+    const n=Object.values(p.k).filter(v=>v.s).length;
+    if(!confirm(`${o.at?ymd(o.at)+' の ':''}バックアップに もどしますか？（ふくしゅう ${n}こ）\nいまの きろくは うわがき されます。\n\nRestore this backup? It replaces the progress on this device.`))return;
+    P=p; P.sec=P.sec||{}; save();
+    if(o.at)try{localStorage.setItem(BKEY,Date.parse(o.at))}catch(e){}
+    renderHome();
+  }catch(e){alert('もどせませんでした: '+e.message)}
+}
+$('backupSave').onclick=$('backupNag').onclick=backupSave;
+$('backupLoad').onclick=()=>$('backupFile').click();
+$('backupFile').onchange=e=>{const f=e.target.files[0]; e.target.value=''; if(f)backupLoad(f)};
 
 // ---------- boot ----------
 $('mascot').innerHTML=art('octopus'); $('coachArt').innerHTML=art('octopus'); $('deco').innerHTML=art('kmush');
