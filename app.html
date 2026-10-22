@@ -125,7 +125,7 @@ footer a{color:var(--mist)}
 #board .pop{fill:none;stroke:#5fc3e4;stroke-width:1.2;transform-box:fill-box;transform-origin:center;animation:popb .7s ease-out forwards}
 #board.done-glow .ink{stroke:#1f7a9c;transition:stroke .5s}
 /* Near-perfect strokes: Cinnamoroll blue with a soft glow, then a spark races along them. */
-#board .ink.perfect{stroke:var(--cinna)}
+#board .ink.blue{stroke:var(--cinna)}
 #board .halo{stroke:#d4f0ff;stroke-width:11;fill:none;stroke-linecap:round;stroke-linejoin:round}
 #board .spark{stroke:#fff;stroke-width:4;fill:none;stroke-linecap:round;filter:drop-shadow(0 0 2px #8ad8ff)}
 #board .star{fill:#fff;stroke:var(--cinna);stroke-width:.7;transform-box:fill-box;transform-origin:center;opacity:0;animation:twinkle .9s ease-out forwards}
@@ -145,6 +145,11 @@ footer a{color:var(--mist)}
 .cheer .ear{transform-box:fill-box;animation:flapL .22s ease-in-out infinite alternate}
 .cheer .ear.l{transform-origin:right center}
 .cheer .ear.r{transform-origin:left center;animation-name:flapR}
+/* All strokes near-perfect: the board goes dark and an anglerfish lights up the kanji with its lure. */
+.cheer .spot{position:absolute;z-index:-1;width:800%;height:800%;left:-386%;top:-382%;opacity:0;
+  background:radial-gradient(circle,rgba(255,246,190,.3) 0,rgba(255,246,190,.1) 4%,rgba(4,12,35,0) 6%,rgba(4,12,35,.86) 14%)}
+.cheer svg{overflow:visible}
+.cheer .lure{transform-box:fill-box;transform-origin:center}
 @keyframes flapL{from{transform:rotate(18deg)}to{transform:rotate(-22deg)}}
 @keyframes flapR{from{transform:rotate(-18deg)}to{transform:rotate(22deg)}}
 @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.45)}}
@@ -518,6 +523,8 @@ const SFX=(()=>{
     whale:go(()=>{tone({f0:170,f1:420,dur:1.1,vol:.18,vib:5});tone({f0:420,f1:230,t:1,dur:1.3,vol:.15,vib:4});hiss({dur:2.2,f0:250,f1:600,q:.6,vol:.06})}),
     swoosh:go(()=>{hiss({dur:.7,f0:300,f1:1400,q:1.5,vol:.14});bubbles(3,.4)}),
     swooshUp:go(()=>hiss({dur:.6,f0:700,f1:2800,q:1.5,vol:.12})),
+    // Anglerfish: a low deep-sea hum, then a twinkle as the lure flares.
+    glow:go(()=>{tone({f0:110,f1:150,dur:2.6,vol:.12,vib:3});[1319,1568,2093,2637,3136].forEach((f,j)=>tone({f0:f,t:1.85+j*.08,dur:.45,vol:.07}));hiss({t:1.85,dur:.9,f0:3000,f1:7000,q:2,vol:.05})}),
     fly:go(()=>{hiss({dur:1.4,f0:350,f1:2200,q:1.2,vol:.1});[784,988,1175,1568].forEach((f,j)=>tone({type:'triangle',f0:f,f1:f*1.06,t:.35+j*.12,dur:.25,vol:.1}));bubbles(5,1,.08)}),
     kira:go(i=>{tone({type:'triangle',f0:PENTA[i%PENTA.length],dur:.3,vol:.14});
       [1568,2093,2637,3136,2637,3136].forEach((f,j)=>tone({f0:f,t:.12+j*.07,dur:.3,vol:.07}));hiss({t:.1,dur:.7,f0:3000,f1:8000,q:2,vol:.05})}),
@@ -554,6 +561,8 @@ const KAWAII={
   snake:({c,s})=>svg(`<path d="M90 72Q78 54 66 66T42 66T22 58" stroke="${c}" stroke-width="13" fill="none" stroke-linecap="round"/><path d="M90 72Q78 54 66 66T42 66T22 58" stroke="${s}" stroke-width="13" fill="none" stroke-dasharray="5 9"/><path d="M4 57l-4-2.5M4 57l-4 3" stroke="#ff5d7a" stroke-width="1.8" stroke-linecap="round"/><ellipse cx="18" cy="52" rx="15" ry="12" fill="${c}"/>${kface(12,24,50,3.4)}`),
   croc:({c,s})=>svg(`<path d="M72 58Q90 58 98 44Q95 68 72 70Z" fill="${c}"/><ellipse cx="44" cy="74" rx="7" ry="5" fill="${s}"/><ellipse cx="68" cy="74" rx="7" ry="5" fill="${s}"/><ellipse cx="56" cy="60" rx="26" ry="15" fill="${c}"/><ellipse cx="56" cy="67" rx="18" ry="6" fill="#dff2bf"/><g fill="${s}"><circle cx="52" cy="46" r="3"/><circle cx="62" cy="45" r="3"/><circle cx="72" cy="47" r="3"/></g><rect x="4" y="50" width="40" height="18" rx="9" fill="${c}"/><path d="M10 67l2 3 2-3zM18 67l2 3 2-3zM26 67l2 3 2-3z" fill="#fff"/><circle cx="9" cy="55" r="1.3" fill="#2f5e33"/><circle cx="14" cy="55" r="1.3" fill="#2f5e33"/><circle cx="30" cy="46" r="8" fill="${c}"/><circle cx="44" cy="46" r="8" fill="${c}"/>${kface(30,44,46,3.6)}`),
   mush:({c})=>svg(`<path d="M36 58Q34 84 40 90H60Q66 84 64 58Z" fill="#fff4e0"/><path d="M10 60Q10 18 50 18Q90 18 90 60Q50 68 10 60Z" fill="${c}"/><g fill="#fff"><circle cx="30" cy="40" r="6"/><circle cx="52" cy="29" r="5"/><circle cx="72" cy="42" r="6.5"/><circle cx="45" cy="51" r="3.5"/></g>${kface(43,57,73,3.6)}`),
+  // Anglerfish (チョウチンアンコウ): a round body with a glowing lure on a rod over its face.
+  angler:({c,s})=>svg(`<path d="M80 55L97 40Q93 55 97 70Z" fill="${s}"/><path d="M50 30Q60 16 72 28Z" fill="${s}"/><path d="M44 31Q36 8 17 16" stroke="${s}" stroke-width="2.6" fill="none" stroke-linecap="round"/><ellipse cx="52" cy="56" rx="32" ry="27" fill="${c}"/><ellipse cx="50" cy="68" rx="22" ry="9" fill="#fff" opacity=".3"/><ellipse cx="62" cy="62" rx="9" ry="5" fill="${s}" transform="rotate(30 62 62)"/><path d="M33 40q6-8 16-9" stroke="#fff" stroke-width="3.5" fill="none" stroke-linecap="round" opacity=".5"/><path d="M33 56l1.5 3 1.5-2.8M38.5 56.2l1.5 2.8 1.5-3" fill="#fff"/>${kface(30,44,48,4.2)}<g class="lure"><circle cx="14" cy="18" r="9" fill="#fff59d" opacity=".4"/><circle cx="14" cy="18" r="5" fill="#fffbe0"/></g>`),
   // Dumbo octopus (メンダコ): a bell-shaped body with ear fins and a scalloped skirt.
   dumbo:({c,s})=>svg(`<g class="ear l"><ellipse cx="17" cy="30" rx="13" ry="7.5" transform="rotate(-38 17 30)" fill="${s}"/></g><g class="ear r"><ellipse cx="83" cy="30" rx="13" ry="7.5" transform="rotate(38 83 30)" fill="${s}"/></g><path d="M50 12C72 12 79 30 79 50C79 62 85 72 90 80Q82 87 74 81Q67 91 58 85Q50 93 42 85Q33 91 26 81Q18 87 10 80C15 72 21 62 21 50C21 30 28 12 50 12Z" fill="${c}"/><g stroke="${s}" stroke-width="2.4" fill="none" stroke-linecap="round" opacity=".55"><path d="M36 66Q33 75 26 81"/><path d="M46 69Q45 78 42 85"/><path d="M54 69Q55 78 58 85"/><path d="M64 66Q67 75 74 81"/></g><path d="M33 26q6-8 15-9" stroke="#fff" stroke-width="3.5" fill="none" stroke-linecap="round" opacity=".6"/>${kface(41,59,44,4.4)}`),
   clown:({c})=>svg(`<path d="M74 50L94 36Q90 50 94 64Z" fill="${c}"/><path d="M42 32Q54 18 66 32Z" fill="${c}"/><ellipse cx="46" cy="50" rx="30" ry="20" fill="${c}"/><g fill="#fff" stroke="#22122f" stroke-width="1.6"><ellipse cx="37" cy="50" rx="4.5" ry="19"/><ellipse cx="60" cy="50" rx="4" ry="15"/></g>${kface(19,28,46,3.3)}`),
@@ -659,7 +668,7 @@ function nextReview(){
   R.k=k; $('revLevel').innerHTML=levelHTML(p.s||0); $('revPic').textContent='';
   if(R.kind==='yomi'){
     const [pre,yomi,post]=splitSent(sent);
-    Object.assign(R,{parts:[pre,post],kana:[...yomi],ki:0,miss:0,hinted:false,gaveUp:false,clean:true,reading:yomi});
+    Object.assign(R,{parts:[pre,post],kana:[...yomi],ki:0,miss:0,hinted:false,gaveUp:false,clean:true,low:3,reading:yomi});
     $('revMeta').innerHTML=`よみ <b>${R.practiced+1}</b>かいめ`;
     renderYomi(); nextKana(); coach('この かんじの よみを かこう');
     return;
@@ -680,7 +689,7 @@ function nextReview(){
 }
 // A reading is right if she never needed a hint (hints come after two misses on one stroke, a peek, or わからない).
 function yomiKanaDone(){
-  R.hinted=R.hinted||cur.hinted; R.clean=R.clean&&cur.clean;
+  R.hinted=R.hinted||cur.hinted; R.clean=R.clean&&cur.clean; R.low=Math.min(R.low,cur.low);
   if(R.ki<R.kana.length-1){
     R.ki++; renderYomi(); SFX.right();
     const run=cur.run; setTimeout(()=>{if(R&&cur.run===run)nextKana()},450);
@@ -689,7 +698,7 @@ function yomiKanaDone(){
   R.ki++; renderYomi();
   const k=R.k, p=prog(k), ok=!R.hinted, b=R.boost[k]||1;
   R.practiced++;
-  if(ok){R.boost[k]=Math.max(1,b/3); p.r=(p.r||0)+1; save(); SFX.chime(); coach(`よめたね！ 「${R.reading}」`); if(R.clean)setTimeout(()=>cheer(p.s||0),500)}
+  if(ok){R.boost[k]=Math.max(1,b/3); p.r=(p.r||0)+1; save(); SFX.chime(); coach(`よめたね！ 「${R.reading}」`); if(R.clean)reward(p.s||0,R.low)}
   else{R.boost[k]=Math.min(9,b*3); SFX.bloop(); coach(`「${R.reading}」だよ。また でてくるよ`,true)}
   if(SFX.on){const rd=R.parts.join(R.reading); setTimeout(()=>say(rd),600)}
   $('revNext').hidden=false; $('revGiveUp').hidden=true; $('revHint').hidden=true; $('revPeek').hidden=true; $('revNext').focus();
@@ -866,7 +875,7 @@ function openKanji(k,mode){
 }
 function resetBoard(mode){
   $('boardwrap').querySelector('.cheer')?.remove();
-  cur.mode=mode; cur.clean=true; cur.idx=0; cur.miss=0; cur.totalMiss=0; cur.hinted=false; cur.reveal=false; cur.run++;
+  cur.mode=mode; cur.clean=true; cur.low=3; cur.idx=0; cur.miss=0; cur.totalMiss=0; cur.hinted=false; cur.reveal=false; cur.run++;
   board.classList.toggle('memory',mode!=='trace'); board.classList.remove('done-glow');
   gGhost.innerHTML=''; gInk.innerHTML=''; gHint.innerHTML=''; live.setAttribute('d','');
   cur.targets=STROKES[cur.k].map(d=>sampleEl(addPath(gGhost,d,'ghost')));
@@ -946,10 +955,18 @@ if(location.hash==='#debug'){
 // Keep Safari from turning a stroke into a scroll, zoom or text selection.
 for(const ev of ['touchstart','touchmove'])$('boardwrap').addEventListener(ev,e=>e.preventDefault(),{passive:false});
 
-const PRAISE=['いいね！','じょうず！','そのちょうし！','すごい！','ぴったり！'];
+const PRAISE=['いいね！','そのちょうし！','がんばったね！'];
+const GREAT=['じょうず！','すごい！','ぴったり！'];
 const WOW=['かんぺき！✨','ピカピカ！✨','キラキラ！✨'];
-// A near-perfect stroke sits right on the guide at the right size; tracing over the guide makes that easier, so it asks for more.
-const perfect=f=>{const tr=cur.mode==='trace';return f.off<(tr?3.5:5)&&f.shape<(tr?3:3.5)&&f.ratio>.75&&f.ratio<1.35};
+// A stroke that fits is graded 3 (near-perfect: right on the guide at the right size), 2 (great) or 1 (ok).
+// Tracing over the guide makes that easier, so it asks for more.
+// Calibrated on simulated strokes: a child's wobbly writing gets great on about 60% of strokes and near-perfect on about 15%.
+const GRADES={trace:[{off:3.5,shape:3,lo:.75,hi:1.35},{off:6,shape:4.5,lo:.7,hi:1.45}],
+              write:[{off:5,shape:3.5,lo:.75,hi:1.35},{off:10,shape:6,lo:.6,hi:1.6}]};
+function grade(f){
+  const [p,g]=GRADES[cur.mode==='trace'?'trace':'write'], within=c=>f.off<c.off&&f.shape<c.shape&&f.ratio>c.lo&&f.ratio<c.hi;
+  return within(p)?3:within(g)?2:1;
+}
 // Replay a perfect stroke: a white spark races along it twice, and stars twinkle in its wake.
 function danceParty(level){
   SFX.dance(); if(reduce)return;
@@ -960,6 +977,20 @@ function danceParty(level){
   document.body.appendChild(d);
   const k=[[0,'0,110vh'],[.1,'0,-10vh'],[.17,'0,0'],[.35,'-60px,0'],[.55,'60px,0'],[.72,'0,0'],[.85,'0,-8vh'],[1,'0,110vh']];
   d.animate(k.map(([offset,xy])=>({offset,transform:`translate(${xy})`})),{duration:3800,easing:'ease-in-out'}).onfinish=()=>d.remove();
+}
+const reward=(level,tier)=>{if(tier>=2)setTimeout(()=>tier===3?angler():cheer(level),500)};
+// The board goes dark and an anglerfish swims through, its lure lighting up the kanji; the lure flares in the middle.
+function angler(){
+  if(reduce)return;
+  const wrap=$('boardwrap'); wrap.querySelector('.cheer')?.remove();
+  const c=document.createElement('div'); c.className='cheer';
+  c.innerHTML=`<div class="pal"><div class="spot"></div>${KAWAII.angler({c:'#8b78d0',s:'#5f4ba8'})}</div>`;
+  wrap.appendChild(c);
+  const a=c.firstChild, dur=4400, at=(x,y,r,o)=>({left:x+'%',top:y+'%',transform:`rotate(${r}deg)`,offset:o});
+  a.animate([at(100,40,0,0),at(70,30,-6,.15),at(48,40,5,.3),at(33,34,0,.42),at(33,34,0,.6),at(12,42,6,.75),at(-34,32,-4,1)],{duration:dur,easing:'ease-in-out'});
+  a.querySelector('.spot').animate([{opacity:0},{opacity:1,offset:.1},{opacity:1,offset:.82},{opacity:0}],{duration:dur});
+  a.querySelector('.lure').animate([{transform:'scale(1)'},{transform:'scale(1)',offset:.42},{transform:'scale(2.2)',offset:.48},{transform:'scale(1.3)',offset:.6},{transform:'scale(1)'}],{duration:dur}).onfinish=()=>c.remove();
+  SFX.glow();
 }
 // The level's animal pops out from an edge of the board, picked at random from a few ways in:
 // hopping across, peeking in from one side, swooping through, dropping from the top, or tracing the kanji's strokes.
@@ -1022,20 +1053,20 @@ function sparkle(d){
 function judge(pts){
   const u=resample(pts), T=cur.targets, t=T[cur.idx];
   if(DEBUG){const ok=fits(u,t,false),f=fits.last,r=v=>v==null?'-':v.toFixed(2),p=q=>`${q.x.toFixed(0)},${q.y.toFixed(0)}`;
-    DEBUG(`${ok?(perfect(fits.last)?'PERFECT':'OK'):'NO'} by ${endedBy} n=${pts.length} start ${p(u.pts[0])}/${p(t.pts[0])} end ${p(u.pts[N-1])}/${p(t.pts[N-1])} len ${r(f.ratio)} off ${r(f.off)} shape ${r(f.shape)} dir ${r(f.cos)}`)}
+    DEBUG(`${ok?['','OK','GREAT','PERFECT'][grade(fits.last)]:'NO'} by ${endedBy} n=${pts.length} start ${p(u.pts[0])}/${p(t.pts[0])} end ${p(u.pts[N-1])}/${p(t.pts[N-1])} len ${r(f.ratio)} off ${r(f.off)} shape ${r(f.shape)} dir ${r(f.cos)}`)}
   if(u.len<2&&t.len>=16){live.setAttribute('d','');return}
   if(fits(u,t,false)){
     live.setAttribute('d','');
     const guided=cur.mode==='trace'||cur.reveal;
     if(!guided)gHint.innerHTML='';
-    const d=STROKES[cur.k][cur.idx], great=perfect(fits.last);
-    if(great)addPath(gInk,d,'halo',reduce?0:220);
-    addPath(gInk,d,great?'ink perfect':'ink',reduce?0:220);
+    const d=STROKES[cur.k][cur.idx], g=grade(fits.last);
+    if(g===3)addPath(gInk,d,'halo',reduce?0:220);
+    addPath(gInk,d,g>1?'ink blue':'ink',reduce?0:220);
     splash(t.pts[N-1]);
-    if(great){SFX.kira(cur.idx);sparkle(d)}else SFX.stroke(cur.idx);
-    cur.idx++; cur.miss=0;
+    if(g===3){SFX.kira(cur.idx);sparkle(d)}else SFX.stroke(cur.idx);
+    cur.low=Math.min(cur.low,g); cur.idx++; cur.miss=0;
     if(cur.idx>=T.length){finish();return}
-    coach(pick(great?WOW:PRAISE)+` つぎは ${cur.idx+1}かくめ`);
+    coach(pick([,PRAISE,GREAT,WOW][g])+` つぎは ${cur.idx+1}かくめ`);
     if(guided)markNext();
     return;
   }
@@ -1050,10 +1081,11 @@ function judge(pts){
 async function finish(){
   const k=cur.k, mode=cur.mode;
   board.classList.add('done-glow'); gHint.innerHTML='';
-  // A clean kanji (no misses or hints) written without the guide brings out its level's animal.
+  // Written without the guide and with no misses or hints, a kanji whose strokes are all great or better
+  // brings out its level's animal, and all near-perfect brings the anglerfish.
   // A reading earns it for the whole word instead, in yomiKanaDone, and a level up has its own dance.
-  const clean=cur.clean&&mode!=='trace';
-  if(mode==='review'){const up=reviewDone(); if(clean&&!up&&R?.kind!=='yomi')setTimeout(()=>cheer(prog(k).s||0),500); return}
+  const tier=cur.clean&&mode!=='trace'?cur.low:0;
+  if(mode==='review'){const up=reviewDone(); if(!up&&R?.kind!=='yomi')reward(prog(k).s||0,tier); return}
   const p=prog(k);
   SFX.chime(); if(SFX.on)setTimeout(()=>say(kana(INFO[k].r[0])),700);
   if(mode==='trace'){
@@ -1063,7 +1095,7 @@ async function finish(){
   }
   const first=!p.w; p.t=1; p.w=1; enterSRS(k); save();
   coach('みないで かけた！ すごい！');
-  if(!first){if(clean)setTimeout(()=>cheer(p.s||0),500);return}
+  if(!first){reward(p.s||0,tier);return}
   await sleep(reduce?200:900);
   const id=FRIEND[ORDER.indexOf(k)];
   celebrate(id,`${CRE[id].n}が なかまに なったよ！`,`「${k}」を みないで かけたね`);
