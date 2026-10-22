@@ -96,7 +96,7 @@ footer a{color:var(--mist)}
 
 /* ---------- practice ---------- */
 .practice{display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;justify-content:center}
-.boardwrap{flex:0 1 auto;width:min(100%,62vh,560px);max-width:100%}
+.boardwrap{flex:0 1 auto;width:min(100%,62vh,560px);max-width:100%;touch-action:none;-webkit-user-select:none;-webkit-touch-callout:none}
 #board{display:block;width:100%;height:auto;aspect-ratio:1;max-width:100%;border-radius:22px;background:var(--paper);
   touch-action:none;box-shadow:0 8px 0 rgba(0,0,0,.25)}
 #board .grid{stroke:var(--redline);stroke-width:.5;stroke-dasharray:2 2;fill:none}
@@ -241,7 +241,7 @@ ruby rt{font-family:var(--f-ui);font-size:.5em;font-weight:700;color:var(--sun)}
         <div class="nav lesson-only"><button class="navb" id="prevK" aria-label="まえの かんじ">‹</button><button class="navb" id="nextK" aria-label="つぎの かんじ">›</button></div>
       </div>
       <div class="practice">
-        <div class="boardwrap">
+        <div class="boardwrap" id="boardwrap">
           <svg id="board" viewBox="0 0 109 109" aria-label="かく ところ">
             <rect x="0" y="0" width="109" height="109" fill="none"/>
             <path class="grid" d="M54.5 3V106M3 54.5H106"/>
@@ -682,7 +682,7 @@ board.addEventListener('pointerdown',e=>{
   if(cur.mode==='watch'||cur.idx>=cur.targets.length)return;
   if(e.pointerType==='pen')penSeen=true; else if(penSeen&&e.pointerType==='touch')return;
   if(drawing)return;
-  e.preventDefault(); board.setPointerCapture(e.pointerId);
+  e.preventDefault(); try{board.setPointerCapture(e.pointerId)}catch(err){}
   drawing={id:e.pointerId,pts:[toBoard(e)]}; SFX.penDown();
   live.classList.remove('bad'); live.setAttribute('d',pathD(drawing.pts));
 });
@@ -696,8 +696,21 @@ const endStroke=e=>{
   if(!drawing||e.pointerId!==drawing.id)return;
   const pts=drawing.pts; drawing=null; judge(pts);
 };
-board.addEventListener('pointerup',endStroke);
-board.addEventListener('pointercancel',e=>{if(drawing&&e.pointerId===drawing.id){drawing=null;live.setAttribute('d','')}});
+// iPad Safari often ends a stroke with pointercancel or a lost capture instead of pointerup,
+// so all three count as lifting the pen.
+// Listen on window too, in case capture failed and the pen lifts off the board.
+for(const ev of ['pointerup','pointercancel'])window.addEventListener(ev,endStroke);
+board.addEventListener('lostpointercapture',endStroke);
+// Open the app with #debug on the end of the address to see the pen events on screen.
+if(location.hash==='#debug'){
+  const box=document.createElement('pre'), log=[];
+  box.style.cssText='position:fixed;left:8px;bottom:8px;z-index:30;margin:0;padding:6px 8px;max-width:90vw;font:11px/1.4 ui-monospace,monospace;background:rgba(0,0,0,.75);color:#9f9;pointer-events:none;white-space:pre-wrap';
+  document.body.appendChild(box);
+  for(const ev of ['pointerdown','pointerup','pointercancel','lostpointercapture','touchcancel'])
+    board.addEventListener(ev,e=>{log.push(`${e.type} ${e.pointerType||''} id=${e.pointerId??''} drawing=${!!drawing} idx=${cur.idx}`);box.textContent=log.slice(-8).join('\n')},true);
+}
+// Keep Safari from turning a stroke into a scroll, zoom or text selection.
+for(const ev of ['touchstart','touchmove'])$('boardwrap').addEventListener(ev,e=>e.preventDefault(),{passive:false});
 
 const PRAISE=['いいね！','じょうず！','そのちょうし！','すごい！','ぴったり！'];
 function judge(pts){
