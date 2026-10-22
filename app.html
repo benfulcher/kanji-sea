@@ -554,6 +554,8 @@ const KEY='kanjiSea.v1';
 let P={k:{},sec:{}};
 try{const s=JSON.parse(localStorage.getItem(KEY)); if(s&&s.k) P=s;}catch(e){}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(P))}catch(e){}};
+// Ask the browser not to clear this storage when the device runs low on space.
+try{navigator.storage?.persist?.().catch(()=>{})}catch(e){}
 const prog=k=>P.k[k]||(P.k[k]={t:0,w:0,r:0});
 
 // ---------- helpers ----------
