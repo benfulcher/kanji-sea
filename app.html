@@ -111,6 +111,7 @@ footer a{color:var(--mist)}
 #board .grid{stroke:var(--redline);stroke-width:.5;stroke-dasharray:2 2;fill:none}
 #board .ghost{stroke:var(--ghost);stroke-width:6.5;fill:none;stroke-linecap:round;stroke-linejoin:round;transition:stroke-opacity .25s}
 #board.memory .ghost{stroke-opacity:0}
+#board.peekfade .ghost{transition:stroke-opacity 1.6s ease-in}
 #board .ink{stroke:var(--ink);stroke-width:6;fill:none;stroke-linecap:round;stroke-linejoin:round}
 #board .live{stroke:#5b3a8c;stroke-width:6;fill:none;stroke-linecap:round;stroke-linejoin:round;opacity:.85}
 #board .live.bad{stroke:var(--coral);transition:opacity .45s;opacity:0}
@@ -719,12 +720,14 @@ $('revNext').onclick=nextReview;
 $('revEnd').onclick=()=>{if(R)endReview()};
 $('revHint').onclick=()=>{$('revPic').textContent=INFO[R.k].pic};
 $('revSpeak').onclick=()=>say(R.reading);
-// A peek flashes the whole kanji for a moment, then she carries on from memory.
+// A peek shows the whole kanji for a moment and lets it fade away, then she carries on from memory.
 // Like わからない it means she didn't quite know it, so it comes back later in the session instead of levelling up.
 $('revPeek').onclick=()=>{
   if(cur.reveal)return; cur.hinted=true; cur.allPerfect=false;
   board.classList.remove('memory'); coach('よく みてね！');
-  const run=cur.run; setTimeout(()=>{if(cur.run===run&&!cur.reveal){board.classList.add('memory');coach('さあ、かいてみよう')}},1200);
+  const run=cur.run;
+  setTimeout(()=>{if(cur.run===run&&!cur.reveal){board.classList.add('peekfade','memory');coach('さあ、かいてみよう')}},900);
+  setTimeout(()=>board.classList.remove('peekfade'),2600);
 };
 $('revGiveUp').onclick=()=>{
   if(cur.reveal)return; cur.hinted=true; cur.reveal=true; cur.allPerfect=false; R.gaveUp=true;
