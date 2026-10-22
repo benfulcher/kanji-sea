@@ -258,6 +258,7 @@ ruby rt{font-family:var(--f-ui);font-size:.5em;font-weight:700;color:var(--sun)}
       <div class="play">
         <button class="cta" id="playReview"><span class="ico art" id="ctaOcto"></span><span id="revLabel">ふくしゅう</span> <span class="badge" id="revCount"></span></button>
         <button class="cta" id="playQuiz"><span class="ico art" id="ctaRay"></span>よめるかな？ ゲーム</button>
+        <button class="cta" id="playBun"><span class="ico art" id="ctaBun"></span>ぶんで かく</button>
         <button class="cta" id="playYomi"><span class="ico art" id="ctaYomi"></span>よみを かく</button>
       </div>
       <p class="pill" id="revWhen" style="margin:0;align-self:flex-start"></p>
@@ -613,10 +614,11 @@ function practicePick(){
   return ks.find((k,i)=>(r-=w[i])<0)||ks[ks.length-1];
 }
 // With a set of kanji, the session is free practice on just that set.
-// kind 'yomi' is the book's other drill: the kanji sits in a sentence and she writes its reading, one kana at a time.
-// It is always free practice, on the kanji she has met so far.
+// The book's two sentence drills are their own kinds of session, always free practice on the kanji she has met so far:
+// 'bun' (ぶんで かく) always puts the word in a sentence to write the kanji in,
+// and 'yomi' (よみを かく) shows the kanji in a sentence for her to write its reading, one kana at a time.
 function startReview(pool,kind='kaku'){
-  if(kind==='yomi'){pool=ORDER.filter(k=>{const p=prog(k);return p.t||p.w||p.s}); if(pool.length<3)pool=ORDER.slice()}
+  if(kind!=='kaku'){pool=ORDER.filter(k=>{const p=prog(k);return p.t||p.w||p.s}); if(pool.length<3)pool=ORDER.slice()}
   if(!pool&&!ORDER.some(k=>prog(k).s))return;
   R={kind,queue:pool?[]:shuffle(dueList()),wrong:{},done:0,ups:[],practiced:0,extra:false,boost:{},pool};
   show('practice'); $('practice').classList.add('reviewing'); $('practice').classList.toggle('yomi',kind==='yomi'); nextReview();
@@ -646,8 +648,8 @@ function nextReview(){
     renderYomi(); nextKana(); coach('この かんじの よみを かこう');
     return;
   }
-  // Half the time the word sits in one of the book-style sentences (ぶんで かく).
-  if(sent&&Math.random()<.5){
+  // In ぶんで かく, and half the time otherwise, the word sits in one of the book-style sentences.
+  if(sent&&(R.kind==='bun'||Math.random()<.5)){
     const [pre,yomi,post]=splitSent(sent); R.reading=pre+yomi+post;
     $('revPrompt').innerHTML=`<div class="sentence">${pre}<span class="pbox"><span class="pfuri">${yomi}</span><i></i></span>${post}</div>`;
   }else{
@@ -712,6 +714,7 @@ function endReview(){
 }
 $('playReview').onclick=()=>startReview();
 $('playYomi').onclick=()=>startReview(null,'yomi');
+$('playBun').onclick=()=>startReview(null,'bun');
 $('revNext').onclick=nextReview;
 $('revEnd').onclick=()=>{if(R)endReview()};
 $('revHint').onclick=()=>{$('revPic').textContent=INFO[R.k].pic};
@@ -1105,6 +1108,6 @@ $('sizes').addEventListener('click',e=>{const b=e.target.closest('button');if(b)
 {let i=0;try{i=+localStorage.getItem('kanjiSea.boardSize')||0}catch(e){} setSize(SIZES[i]?i:0)}
 for(const ev of ['pointerdown','touchend','click'])document.addEventListener(ev,()=>SFX.unlock(),{capture:true});
 document.addEventListener('click',e=>{const b=e.target.closest('button');if(b&&!b.classList.contains('opt')&&b.id!=='soundBtn')SFX.pop()},true);
-$('ctaRay').innerHTML=art('ray'); $('ctaYomi').innerHTML=art('dumbo'); $('ctaOcto').innerHTML=art('octopus'); $('qRay').innerHTML=raySVG('#9cc0cf');
+$('ctaRay').innerHTML=art('ray'); $('ctaYomi').innerHTML=art('dumbo'); $('ctaBun').innerHTML=art('kturtle'); $('ctaOcto').innerHTML=art('octopus'); $('qRay').innerHTML=raySVG('#9cc0cf');
 renderWeeds(); renderHome();
 </script>

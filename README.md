@@ -6,7 +6,8 @@ It covers the kanji in 光文書院 くりかえし かんじドリル 1年 上,
 - **Practice:** watch the stroke order (みる), trace it (なぞる), then write it from memory (かく), with every stroke checked for shape, direction and order.
 - **Reviews (ふくしゅう):** WaniKani-style spaced repetition, where every review is writing from memory and each level is a sea creature.
   Once nothing is due, the same button gives free practice (れんしゅう), which picks low-level kanji most often and never changes levels.
-  Half the prompts put the word in a short book-style sentence, with the reading over the box to write in (ぶんで かく).
+  Half the prompts put the word in a short book-style sentence, with the reading over the box to write in.
+- **Writing in sentences (ぶんで かく):** practice where every prompt is one of those sentences.
 - **Writing readings (よみを かく):** the kanji sits in a sentence and you write its reading in hiragana, one kana at a time, each checked stroke by stroke.
 - **Reading game (よめるかな？):** a stingray brings a kanji and you pick its reading.
 
