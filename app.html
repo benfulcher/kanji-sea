@@ -224,7 +224,7 @@ ruby rt{font-family:var(--f-ui);font-size:.5em;font-weight:700;color:var(--sun)}
         <p class="tank-empty" id="tankEmpty" hidden>かんじを みないで かけたら、<br>うみの なかまが ふえるよ！</p>
       </div>
       <div class="play">
-        <button class="cta" id="playReview"><span class="ico art" id="ctaOcto"></span>ふくしゅう <span class="badge" id="revCount"></span></button>
+        <button class="cta" id="playReview"><span class="ico art" id="ctaOcto"></span><span id="revLabel">ふくしゅう</span> <span class="badge" id="revCount"></span></button>
         <button class="cta" id="playQuiz"><span class="ico art" id="ctaRay"></span>よめるかな？ ゲーム</button>
       </div>
       <p class="pill" id="revWhen" style="margin:0;align-self:flex-start"></p>
@@ -257,7 +257,7 @@ ruby rt{font-family:var(--f-ui);font-size:.5em;font-weight:700;color:var(--sun)}
         </div>
         <aside class="panel">
           <div class="card review-only" style="flex-direction:column;align-items:flex-start">
-            <div class="meta"><span>のこり <b id="revLeft"></b></span></div>
+            <div class="meta"><span id="revMeta"></span></div>
             <div class="prompt" id="revPrompt"></div>
             <div class="lvlnow" id="revLevel"></div>
             <div class="pic" id="revPic"></div>
@@ -267,6 +267,7 @@ ruby rt{font-family:var(--f-ui);font-size:.5em;font-weight:700;color:var(--sun)}
             <button class="chip" id="revSpeak">こえで きく</button>
             <button class="chip" id="revGiveUp">わからない</button>
             <button class="cta" id="revNext" hidden>つぎへ</button>
+            <button class="chip" id="revEnd">おわる</button>
           </div>
           <div class="card lesson-only">
             <div class="bigk" id="bigK"></div>
@@ -478,7 +479,7 @@ const LEVELS=[
   {id:'kturtle',n:'ウミガメ',g:'じょうず 1'}, {id:'octopus',n:'タコ',g:'じょうず 2'},
   {id:'ray',n:'エイ',g:'めいじん'}, {id:'kcroc',n:'ワニ',g:'たつじん'}, {id:'kwhale',n:'クジラ',g:'でんせつ'},
 ];
-const BURNED=9, REVIEW_CAP=10;
+const BURNED=9;
 const hourFloor=t=>Math.floor(t/HOUR)*HOUR;
 function enterSRS(k){const p=prog(k);if(!p.s){p.s=1;p.due=hourFloor(Date.now()+SRS_INT[1])}}
 // Kanji written from memory before the SRS existed start at stage 1, due now.
@@ -493,39 +494,56 @@ function nextDueText(){
 function renderLadder(){
   const counts=Array(LEVELS.length).fill(0); for(const k of ORDER)counts[prog(k).s||0]++;
   $('ladder').innerHTML=LEVELS.map((L,i)=>`<div class="rung"><div class="art">${art(L.id)}</div><b>${counts[i]}</b><small>${L.g}</small></div>`).join('');
-  const n=dueList().length, when=nextDueText();
-  $('playReview').disabled=n===0; $('revCount').textContent=n; $('revCount').hidden=n===0;
-  $('revWhen').textContent=n?`ふくしゅう ${n}こ できるよ`:when?`つぎの ふくしゅうは ${when}`:'「かく」で みないで かけたら、ふくしゅうが はじまるよ';
+  const n=dueList().length, when=nextDueText(), any=ORDER.some(k=>prog(k).s);
+  $('playReview').disabled=!any; $('revLabel').textContent=n||!any?'ふくしゅう':'れんしゅう';
+  $('revCount').textContent=n; $('revCount').hidden=n===0;
+  $('revWhen').textContent=n?`ふくしゅう ${n}こ できるよ`:!any?'「かく」で みないで かけたら、ふくしゅうが はじまるよ':
+    `${when?`つぎの ふくしゅうは ${when}。`:''}れんしゅうは いつでも できるよ`;
 }
 
 let R=null;
+// A session serves every due kanji first (WaniKani style), then keeps going as free practice until she taps おわる.
+// Practice picks at random, weighted towards low levels: each level up makes a kanji 0.6x as likely,
+// so エビ comes up about 8x as often as ウミガメ. The same kanji can come twice in a row.
+// Practice never changes levels, so it can't upset the review timings.
+function practicePick(){
+  const ks=ORDER.filter(k=>prog(k).s), w=ks.map(k=>.6**(prog(k).s-1));
+  let r=Math.random()*w.reduce((a,b)=>a+b,0);
+  return ks.find((k,i)=>(r-=w[i])<0)||ks[ks.length-1];
+}
 function startReview(){
-  const due=shuffle(dueList()).slice(0,REVIEW_CAP); if(!due.length)return;
-  R={queue:due,wrong:{},done:0,ups:[]};
+  if(!ORDER.some(k=>prog(k).s))return;
+  R={queue:shuffle(dueList()),wrong:{},done:0,ups:[],practiced:0,extra:false};
   show('practice'); $('practice').classList.add('reviewing'); nextReview();
 }
 function levelHTML(s){return `<div class="art">${art(LEVELS[s].id)}</div>${LEVELS[s].n}・${LEVELS[s].g}`}
 function nextReview(){
   $('revNext').hidden=true; $('revGiveUp').hidden=false; $('revHint').hidden=false;
-  if(!R.queue.length)return endReview();
-  const k=R.queue[0], p=prog(k), [yomi,oku='']=pick(INFO[k].r.filter(x=>x[0]!=='*')).split('|');
+  if(!R.queue.length)R.queue=shuffle(dueList()); // any that fell due during the session
+  const wasExtra=R.extra; R.extra=!R.queue.length;
+  const k=R.extra?practicePick():R.queue[0], p=prog(k), [yomi,oku='']=pick(INFO[k].r.filter(x=>x[0]!=='*')).split('|');
   cur.k=k; R.reading=yomi+oku;
   $('revPrompt').innerHTML=`<span class="pbox"><span class="pfuri">${yomi}</span><i></i></span>${oku?`<span>${oku}</span>`:''}`;
-  $('revLevel').innerHTML=levelHTML(p.s); $('revPic').textContent=''; $('revLeft').textContent=R.queue.length;
+  $('revLevel').innerHTML=levelHTML(p.s); $('revPic').textContent='';
+  $('revMeta').innerHTML=R.extra?`れんしゅう <b>${R.practiced+1}</b>かいめ`:`のこり <b>${R.queue.length}</b>`;
   resetBoard('review');
-  coach('この かんじ、かけるかな？');
+  coach(R.extra&&!wasExtra&&(R.done||Object.keys(R.wrong).length)?'ふくしゅう ぜんぶ おわり！ ここからは れんしゅう':'この かんじ、かけるかな？');
   if(SFX.on)setTimeout(()=>say(R.reading),300);
 }
 // Wrong answers come back later in the session; the level only changes once it's written correctly
 // (WaniKani rule: drop ceil(wrong/2) stages, doubled from じょうず up).
 function reviewDone(){
   const k=cur.k, p=prog(k), ok=!cur.hinted&&cur.totalMiss<=1;
-  R.queue.shift();
-  if(!ok){
+  if(R.extra){
+    R.practiced++;
+    if(ok){SFX.chime();coach('かけたね！')}else{SFX.bloop();coach('おしい！ また でてくるよ',true)}
+  }else if(!ok){
+    R.queue.shift();
     R.wrong[k]=(R.wrong[k]||0)+1;
     R.queue.splice(Math.min(R.queue.length,2+Math.floor(Math.random()*3)),0,k);
     SFX.bloop(); coach('おしい！ あとで もういちど かいてみよう',true);
   }else{
+    R.queue.shift();
     const before=p.s, inc=R.wrong[k]||0;
     p.s=inc?Math.max(1,before-Math.ceil(inc/2)*(before>=5?2:1)):before+1;
     p.due=p.s>=BURNED?null:hourFloor(Date.now()+SRS_INT[p.s]);
@@ -537,13 +555,16 @@ function reviewDone(){
   $('revNext').hidden=false; $('revGiveUp').hidden=true; $('revHint').hidden=true; $('revNext').focus();
 }
 function endReview(){
-  const best=R.ups.length?Math.max(...R.ups):0, done=R.done, ups=R.ups.length;
+  const best=R.ups.length?Math.max(...R.ups):0, done=R.done, ups=R.ups.length, pr=R.practiced;
   R=null; $('practice').classList.remove('reviewing');
+  if(!done&&!pr){renderHome();return}
   afterCele=renderHome;
-  celebrate(best?LEVELS[best].id:'octopus','ふくしゅう おわり！',`${done}こ かけたね。レベル アップ ${ups}こ`);
+  celebrate(best?LEVELS[best].id:'octopus',done?'ふくしゅう おわり！':'れんしゅう おわり！',
+    [done&&`ふくしゅう ${done}こ・レベル アップ ${ups}こ`,pr&&`れんしゅう ${pr}こ`].filter(Boolean).join('。'));
 }
 $('playReview').onclick=startReview;
 $('revNext').onclick=nextReview;
+$('revEnd').onclick=()=>{if(R)endReview()};
 $('revHint').onclick=()=>{$('revPic').textContent=INFO[cur.k].pic};
 $('revSpeak').onclick=()=>say(R.reading);
 $('revGiveUp').onclick=()=>{
