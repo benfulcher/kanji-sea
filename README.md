@@ -5,10 +5,15 @@ It covers the kanji in 光文書院 くりかえし かんじドリル 1年 上,
 
 - **Practice:** watch the stroke order (みる), trace it (なぞる), then write it from memory (かく), with every stroke checked for shape, direction and order.
 - **Reviews (ふくしゅう):** WaniKani-style spaced repetition, where every review is writing from memory and each level is a sea creature.
-  Once nothing is due, the same button gives free practice (れんしゅう), which picks low-level kanji most often and never changes levels.
+  A session goes through every kanji that is due, brings misses back later in the session, and ends once each one has been written with no misses or hints.
+  Each set's ▶ れんしゅう button gives free practice on that set instead, which picks low-level kanji most often and never changes levels.
   Half the prompts put the word in a short book-style sentence, with the reading over the box to write in.
 - **Writing in sentences (ぶんで かく):** practice where every prompt is one of those sentences.
 - **Writing readings (よみを かく):** the kanji sits in a sentence and you write its reading in hiragana, one kana at a time, each checked stroke by stroke.
+- **Tests (🐳 テスト):** each set has a test that goes through its kanji once each, with no hints, inside a whale's mouth.
+  A kanji written with no misses grows a tooth on the whale's jaws, so the teeth are the score.
+  Two misses on one stroke mark that kanji wrong and draw the rest of it in.
+  Tests never change levels, and the best full-test score for each set shows on its button.
 - **Reading game (よめるかな？):** a stingray brings a kanji and you pick its reading.
 
 ## Build

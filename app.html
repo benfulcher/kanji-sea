@@ -73,7 +73,9 @@ h1 small{display:block;font-size:13px;font-weight:700;letter-spacing:.14em;color
 .reef .book{margin:2px 0 0;font-size:13px;color:var(--mist);font-weight:500}
 .reef .book b{font-variant-numeric:tabular-nums;color:var(--sun);font-weight:700}
 .setgo{padding:10px 16px;border-radius:999px;background:var(--sun);color:#3b2600;font-weight:900;font-size:15px;flex:none}
-.reef-head .right{display:flex;align-items:center;gap:12px}
+.reef-head .right{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end}
+.setgo.test{background:#6aa6e8;color:#06192a}
+.setgo.test small{font-size:13px}
 .reward{width:64px;flex:none;text-align:center;font-size:11px;color:var(--mist);font-weight:700}
 .reward .art{filter:grayscale(1) brightness(.55);opacity:.7}
 .reward.got .art{filter:none;opacity:1}
@@ -257,6 +259,30 @@ ruby rt{font-family:var(--f-ui);font-size:.5em;font-weight:700;color:var(--sun)}
 .lvlnow .art{width:44px}.lvlnow .emo{font-size:36px}
 .lvlnow .arrow{font-size:24px;color:var(--sun)}
 
+/* ---------- test: inside a whale's mouth ---------- */
+:root{--jaw:clamp(52px,8.5vh,80px)}
+#practice.testing{padding-top:calc(var(--jaw) + 58px);padding-bottom:calc(var(--jaw) + 58px);
+  background:radial-gradient(70% 22% at 50% 100%,#e98aa0 0 55%,transparent 56%),radial-gradient(120% 90% at 50% 45%,#a8395a 0%,#741d3a 55%,#3c0b1e 100%)}
+#practice.testing .boardwrap{width:calc(min(100%,52vh,560px)*var(--bs,1))}
+@media (orientation:portrait){#practice.testing .boardwrap{width:calc(min(100%,40vh,560px)*var(--bs,1))}}
+#practice.testing .no-test{display:none!important}
+.whale{position:fixed;inset:0;z-index:15;pointer-events:none;overflow:hidden}
+.whale.busy{pointer-events:auto}
+/* Each jaw reaches 50vh past the screen edge, so closed they meet in the middle with no gaps. Its lip is one wide arc. */
+.jaw{position:absolute;left:-4vw;width:108vw;height:calc(var(--jaw) + 50vh)}
+.jaw.top{top:-50vh;background:#4f8bd0;
+  border-radius:0 0 50% 50% / 0 0 calc(var(--jaw)*.7) calc(var(--jaw)*.7);box-shadow:inset 0 -12px 0 #e77a92}
+.jaw.bot{top:calc(100% - var(--jaw));background:#cfe9fb;
+  border-radius:50% 50% 0 0 / calc(var(--jaw)*.7) calc(var(--jaw)*.7) 0 0;box-shadow:inset 0 12px 0 #e77a92}
+.tooth{position:absolute;width:clamp(24px,4.6vw,46px);aspect-ratio:20/28;translate:-50% 0}
+.jaw.top .tooth{top:calc(100% - var(--jaw)*var(--k) - 9px)}
+.jaw.bot .tooth{bottom:calc(100% - var(--jaw)*var(--k) - 9px);rotate:180deg}
+.tooth::before{content:'';position:absolute;left:12%;right:12%;top:2px;height:9px;border-radius:50%;background:#b8475f}
+.tooth svg{position:relative;display:block;width:100%;height:100%;overflow:visible;transform:scaleY(0);transform-origin:top center}
+.tooth.on svg{transform:none;animation:toothIn .7s cubic-bezier(.3,1.6,.5,1)}
+@keyframes toothIn{0%{transform:scale(.5,0);filter:drop-shadow(0 0 0 #fff)}60%{filter:drop-shadow(0 0 8px #fff)}100%{filter:drop-shadow(0 0 0 #fff)}}
+.gulp{position:absolute;left:50%;top:50%;width:min(320px,55vw);opacity:0;translate:-50% -50%}
+
 @media (prefers-reduced-motion: reduce){
   .swimmer,.swimmer .bob,.swimmer .face,.weed,.cele .art,.carrier.in,.carrier.out,#board .start.pulse{animation:none!important}
 }
@@ -331,14 +357,14 @@ ruby rt{font-family:var(--f-ui);font-size:.5em;font-weight:700;color:var(--sun)}
           <div class="card review-only" style="flex-direction:column;align-items:flex-start">
             <div class="meta"><span id="revMeta"></span></div>
             <div class="prompt" id="revPrompt"></div>
-            <div class="lvlnow no-yomi" id="revLevel"></div>
+            <div class="lvlnow no-yomi no-test" id="revLevel"></div>
             <div class="pic" id="revPic"></div>
           </div>
           <div class="row review-only">
-            <button class="chip" id="revHint">え の ヒント</button>
+            <button class="chip no-test" id="revHint">え の ヒント</button>
             <button class="chip no-yomi" id="revSpeak">こえで きく</button>
-            <button class="chip" id="revPeek">ちょっと みる</button>
-            <button class="chip" id="revGiveUp">わからない</button>
+            <button class="chip no-test" id="revPeek">ちょっと みる</button>
+            <button class="chip no-test" id="revGiveUp">わからない</button>
             <button class="cta" id="revNext" hidden>つぎへ</button>
             <button class="chip" id="revEnd">おわる</button>
           </div>
@@ -388,6 +414,13 @@ ruby rt{font-family:var(--f-ui);font-size:.5em;font-weight:700;color:var(--sun)}
       </div>
     </div>
   </section>
+
+  <!-- A test happens inside a whale's mouth: a tooth grows on its jaws for every right answer. -->
+  <div class="whale" id="whale" hidden aria-hidden="true">
+    <div class="gulp art" id="gulp"></div>
+    <div class="jaw bot" id="jawBot"></div>
+    <div class="jaw top" id="jawTop"></div>
+  </div>
 
   <div class="overlay" id="cele" hidden>
     <div class="cele" role="dialog" aria-modal="true" aria-labelledby="celeTitle">
@@ -538,6 +571,8 @@ const SFX=(()=>{
     // Anglerfish: a low deep-sea hum, then a twinkle as the lure flares.
     glow:go(()=>{tone({f0:110,f1:150,dur:2.6,vol:.12,vib:3});[1319,1568,2093,2637,3136].forEach((f,j)=>tone({f0:f,t:1.85+j*.08,dur:.45,vol:.07}));hiss({t:1.85,dur:.9,f0:3000,f1:7000,q:2,vol:.05})}),
     fizz:go(()=>bubbles(12,0,.05,.11)),
+    chomp:go(()=>{tone({f0:180,f1:55,dur:.22,vol:.32});tone({f0:110,f1:45,t:.04,dur:.25,vol:.2});hiss({dur:.16,f0:1200,f1:300,q:1,vol:.2})}),
+    tooth:go(()=>{tone({type:'triangle',f0:1319,dur:.12,vol:.13});tone({type:'triangle',f0:1976,t:.08,dur:.35,vol:.11});hiss({t:.08,dur:.35,f0:4000,f1:9000,q:2,vol:.05})}),
     fly:go(()=>{hiss({dur:1.4,f0:350,f1:2200,q:1.2,vol:.1});[784,988,1175,1568].forEach((f,j)=>tone({type:'triangle',f0:f,f1:f*1.06,t:.35+j*.12,dur:.25,vol:.1}));bubbles(5,1,.08)}),
     kira:go(i=>{tone({type:'triangle',f0:PENTA[i%PENTA.length],dur:.3,vol:.14});
       [1568,2093,2637,3136,2637,3136].forEach((f,j)=>tone({f0:f,t:.12+j*.07,dur:.3,vol:.07}));hiss({t:.1,dur:.7,f0:3000,f1:8000,q:2,vol:.05})}),
@@ -633,21 +668,23 @@ function renderLadder(){
   const counts=Array(LEVELS.length).fill(0); for(const k of ORDER)counts[prog(k).s||0]++;
   $('ladder').innerHTML=LEVELS.map((L,i)=>`<div class="rung"><div class="art">${art(L.id)}</div><b>${counts[i]}</b><small>${L.g}</small></div>`).join('');
   const n=dueList().length, when=nextDueText(), any=ORDER.some(k=>prog(k).s);
-  $('playReview').disabled=!any; $('revLabel').textContent=n||!any?'ふくしゅう':'れんしゅう';
+  $('playReview').disabled=n===0;
   $('revCount').textContent=n; $('revCount').hidden=n===0;
   $('revWhen').textContent=n?`ふくしゅう ${n}こ できるよ`:!any?'「かく」で みないで かけたら、ふくしゅうが はじまるよ':
-    `${when?`つぎの ふくしゅうは ${when}。`:''}れんしゅうは いつでも できるよ`;
+    when?`つぎの ふくしゅうは ${when}`:'';
 }
 
 let R=null;
-// A session serves every due kanji first (WaniKani style), then keeps going as free practice until she taps おわる.
+// A review session serves every due kanji (WaniKani style); misses come back later in the session,
+// and it ends once every one has been written correctly.
+// Practising one set is free practice instead, until she taps おわる.
 // Practice picks at random, weighted towards low levels: each level up makes a kanji 0.6x as likely,
 // so メンダコ comes up about 8x as often as ウミガメ. The same kanji can come twice in a row.
 // A practice miss makes that kanji 3x as likely for the rest of the session (up to 9x); writing it again eases that off.
 // Practice never changes levels, so it can't upset the review timings.
-// Practising one set picks from all its kanji; ones not yet written from memory (キノコ) count as the lowest level.
+// Practice picks from all the set's kanji; ones not yet written from memory (キノコ) count as the lowest level.
 function practicePick(){
-  const ks=R.pool||ORDER.filter(k=>prog(k).s), w=ks.map(k=>.6**((prog(k).s||0)-1)*(R.boost[k]||1));
+  const ks=R.pool, w=ks.map(k=>.6**((prog(k).s||0)-1)*(R.boost[k]||1));
   let r=Math.random()*w.reduce((a,b)=>a+b,0);
   return ks.find((k,i)=>(r-=w[i])<0)||ks[ks.length-1];
 }
@@ -657,7 +694,7 @@ function practicePick(){
 // and 'yomi' (よみを かく) shows the kanji in a sentence for her to write its reading, one kana at a time.
 function startReview(pool,kind='kaku'){
   if(kind!=='kaku'){pool=ORDER.filter(k=>{const p=prog(k);return p.t||p.w||p.s}); if(pool.length<3)pool=ORDER.slice()}
-  if(!pool&&!ORDER.some(k=>prog(k).s))return;
+  if(!pool&&!dueList().length)return;
   R={kind,queue:pool?[]:shuffle(dueList()),wrong:{},done:0,ups:[],practiced:0,extra:false,boost:{},pool};
   show('practice'); $('practice').classList.add('reviewing'); $('practice').classList.toggle('yomi',kind==='yomi'); nextReview();
 }
@@ -675,8 +712,12 @@ function nextKana(){
 function levelHTML(s){return `<div class="art">${art(LEVELS[s].id)}</div>${LEVELS[s].n}・${LEVELS[s].g}`}
 function nextReview(){
   $('revNext').hidden=true; $('revGiveUp').hidden=false; $('revHint').hidden=false; $('revPeek').hidden=false;
-  if(!R.queue.length&&!R.pool)R.queue=shuffle(dueList()); // any that fell due during the session
-  const wasExtra=R.extra; R.extra=!R.queue.length;
+  if(!R.pool&&!R.queue.length){
+    if(R.kind==='test')return endTest();
+    R.queue=shuffle(dueList()); // any that fell due during the session
+    if(!R.queue.length)return endReview();
+  }
+  R.extra=!!R.pool;
   const k=R.extra?practicePick():R.queue[0], p=prog(k), sent=SENT[k]&&pick(SENT[k]);
   R.k=k; $('revLevel').innerHTML=levelHTML(p.s||0); $('revPic').textContent='';
   if(R.kind==='yomi'){
@@ -695,9 +736,10 @@ function nextReview(){
     $('revPrompt').innerHTML=`<span class="pbox"><span class="pfuri">${yomi}</span><i></i></span>${oku?`<span>${oku}</span>`:''}`;
   }
   cur.k=k;
-  $('revMeta').innerHTML=R.extra?`れんしゅう <b>${R.practiced+1}</b>かいめ`:`のこり <b>${R.queue.length}</b>`;
+  const T=R.test;
+  $('revMeta').innerHTML=R.extra?`れんしゅう <b>${R.practiced+1}</b>かいめ`:T?`テスト <b>${T.done+1}</b> / ${T.n}`:`のこり <b>${R.queue.length}</b>`;
   resetBoard('review');
-  coach(R.extra&&!wasExtra&&(R.done||Object.keys(R.wrong).length)?'ふくしゅう ぜんぶ おわり！ ここからは れんしゅう':'この かんじ、かけるかな？');
+  coach(T&&!T.done?'クジラの くちの なかで テスト！ ヒントは なしだよ':'この かんじ、かけるかな？');
   const rd=R.reading; if(SFX.on)setTimeout(()=>say(rd),300);
 }
 // A reading is right if she never needed a hint (hints come after two misses on one stroke, a peek, or わからない).
@@ -720,6 +762,7 @@ function yomiKanaDone(){
 // (WaniKani rule: drop ceil(wrong/2) stages, doubled from じょうず up).
 function reviewDone(){
   if(R.kind==='yomi')return yomiKanaDone();
+  if(R.kind==='test')return testDone();
   const k=R.k, p=prog(k), ok=cur.clean; let levelUp=false;
   if(R.extra){
     R.practiced++; const b=R.boost[k]||1;
@@ -751,11 +794,90 @@ function endReview(){
   celebrate(best?LEVELS[best].id:'octopus',done?'ふくしゅう おわり！':'れんしゅう おわり！',
     [done&&`ふくしゅう ${done}こ・レベル アップ ${ups}こ`,pr&&`れんしゅう ${pr}こ`].filter(Boolean).join('。'));
 }
+
+// ---------- test: each kanji of one set once, no hints, inside a whale's mouth ----------
+// Right means written with no misses at all, and each right answer grows a tooth.
+// A test never changes levels; her best full-test score for each set shows on its button.
+const TOOTH='<svg viewBox="0 0 20 28"><path d="M1 0H19Q19 13 11.5 26.5Q10 28.5 8.5 26.5Q1 13 1 0Z" fill="#fffaf0" stroke="#e3d6c0" stroke-width="1.2"/><path d="M5 3Q6 11 8.5 17" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>';
+let TEETH=[];
+// One socket per kanji, along the arc of each lip; teeth fill top, bottom, top, … from left to right.
+function buildTeeth(n){
+  const rows=[[$('jawTop'),Math.ceil(n/2)],[$('jawBot'),Math.floor(n/2)]];
+  const sockets=rows.map(([jaw,m])=>{
+    jaw.innerHTML=''; const span=Math.min(64,(m-1)*16);
+    return Array.from({length:m},(_,i)=>{
+      const x=50-span/2+(m>1?span*i/(m-1):0), u=(x-50)/54; // x in % of the screen width; the jaw is 108vw wide from -4vw
+      const t=document.createElement('div'); t.className='tooth'; t.innerHTML=TOOTH;
+      t.style.left=(x+4)/108*100+'%'; t.style.setProperty('--k',(.7*(1-Math.sqrt(1-u*u))).toFixed(3));
+      jaw.appendChild(t); return t;
+    });
+  });
+  TEETH=Array.from({length:n},(_,i)=>sockets[i%2][i>>1]);
+}
+// Move both jaws between off screen, open (round the edges of the screen) and shut (meeting in the middle).
+function jaws(from,to,dur,easing){
+  const top=$('jawTop'), J=top.offsetTop+top.offsetHeight, y={off:-(J+80),open:0,shut:innerHeight/2-.3*J};
+  return Promise.all([[top,1],[$('jawBot'),-1]].map(([el,sg])=>{
+    for(const a of el.getAnimations())a.cancel();
+    return el.animate([{transform:`translateY(${sg*y[from]}px)`},{transform:`translateY(${sg*y[to]}px)`}],
+      {duration:reduce?0:dur,easing,fill:'forwards'}).finished;
+  }));
+}
+async function startTest(si){
+  const ks=[...SECTIONS[si].kanji];
+  R={kind:'test',queue:shuffle(ks),wrong:{},done:0,ups:[],practiced:0,extra:false,boost:{},pool:null,test:{si,n:ks.length,score:0,done:0}};
+  buildTeeth(ks.length);
+  const W=$('whale'), g=$('gulp'); W.hidden=false; W.classList.add('busy');
+  jaws('off','off',0);
+  SFX.critter('deep');
+  if(!reduce){
+    g.innerHTML=art('kwhale');
+    g.animate([{transform:'scale(.3)',opacity:0},{transform:'scale(1)',opacity:1,offset:.35},{transform:'scale(5)',opacity:1}],{duration:750,easing:'ease-in',fill:'forwards'});
+    await sleep(300);
+  }
+  await jaws('off','shut',450,'ease-in'); SFX.chomp();
+  g.innerHTML=''; for(const a of g.getAnimations())a.cancel();
+  show('practice'); $('practice').classList.remove('yomi'); $('practice').classList.add('reviewing','testing'); nextReview();
+  await sleep(reduce?0:300);
+  await jaws('shut','open',700,'cubic-bezier(.34,1.4,.64,1)');
+  W.classList.remove('busy');
+}
+function testDone(){
+  const T=R.test, ok=cur.clean; R.queue.shift(); T.done++;
+  if(ok){TEETH[T.score++].classList.add('on'); SFX.tooth(); coach(pick(['せいかい！ はが はえたよ','ばっちり！ ピカピカの は！','すごい！ また はが ふえた！']))}
+  else{SFX.bloop(); coach(cur.idx<cur.targets.length?'ざんねん！ こう かくんだよ':'かけたね！ でも まちがいが あったね',true)}
+  $('revNext').hidden=false; $('revNext').focus();
+  return true;
+}
+// Two misses on one stroke and that kanji is wrong: the rest of it draws itself in so she sees how it goes.
+async function showAnswer(){
+  const run=cur.run, from=cur.idx;
+  gHint.innerHTML=''; testDone(); cur.idx=cur.targets.length;
+  for(let i=from;i<cur.targets.length&&run===cur.run;i++){
+    const dur=Math.max(380,Math.min(1100,cur.targets[i].len*16));
+    addPath(gHint,STROKES[cur.k][i],'hint',dur); await sleep(dur+150);
+  }
+}
+function endTest(){
+  const T=R.test; R=null;
+  if(T.done===T.n){P.test=P.test||{}; P.test[T.si]=Math.max(P.test[T.si]||0,T.score); save()}
+  if(!T.done){closeWhale();return}
+  afterCele=closeWhale;
+  celebrate('kwhale',T.score===T.n?'ぜんぶ せいかい！':'テスト おわり！',`${T.done}もんの うち ${T.score}もん せいかい 🦷`);
+}
+async function closeWhale(){
+  const W=$('whale'); W.classList.add('busy');
+  await jaws('open','shut',380,'ease-in'); SFX.chomp();
+  $('practice').classList.remove('reviewing','testing'); renderHome();
+  await sleep(reduce?0:250); SFX.swoosh();
+  await jaws('shut','off',550,'ease-in');
+  W.hidden=true; W.classList.remove('busy');
+}
 $('playReview').onclick=()=>startReview();
 $('playYomi').onclick=()=>startReview(null,'yomi');
 $('playBun').onclick=()=>startReview(null,'bun');
 $('revNext').onclick=nextReview;
-$('revEnd').onclick=()=>{if(R)endReview()};
+$('revEnd').onclick=()=>{if(R)R.test?endTest():endReview()};
 $('revHint').onclick=()=>{cur.clean=false;$('revPic').textContent=INFO[R.k].pic};
 $('revSpeak').onclick=()=>say(R.reading);
 // A peek shows the whole kanji for a moment and lets it fade away, then she carries on from memory.
@@ -812,11 +934,12 @@ function renderReefs(){
   const root=$('reefs'); root.innerHTML='';
   SECTIONS.forEach((s,si)=>{
     const sec=document.createElement('section'); sec.className='reef';
-    const got=!!P.sec[si];
+    const got=!!P.sec[si], best=P.test?.[si];
     sec.innerHTML=`<div class="reef-head"><div><h2>${s.zone}</h2><p class="book">${s.lessons?`<b>${s.lessons}</b>　`:''}${s.book}</p></div>
-      <div class="right"><button class="setgo">▶ れんしゅう</button>
+      <div class="right"><button class="setgo">▶ れんしゅう</button><button class="setgo test">🐳 テスト${best==null?'':` <small>🦷${best}/${s.kanji.length}</small>`}</button>
       <div class="reward${got?' got':''}"><div class="art">${art('manta')}</div>${got?'マンタ！':'ぜんぶ かくと…'}</div></div></div>`;
     sec.querySelector('.setgo').onclick=()=>startReview([...s.kanji]);
+    sec.querySelector('.setgo.test').onclick=()=>startTest(si);
     const tiles=document.createElement('div'); tiles.className='tiles';
     for(const k of s.kanji){
       const p=prog(k), b=document.createElement('button'); b.className='tile';
@@ -1108,6 +1231,7 @@ function judge(pts){
   }
   live.classList.add('bad'); setTimeout(()=>{if(!drawing)live.setAttribute('d','')},460);
   cur.miss++; cur.totalMiss++; cur.clean=false; SFX.bloop();
+  if(R?.test){if(cur.miss>=2)showAnswer();else coach('おしい！ もういちど',true);return}
   if(fits(u,t,true)) coach(`むきが はんたいだよ。${cur.idx+1}かくめは ●の ほうから かこう`,true);
   else if(T.some((tt,j)=>j>cur.idx&&fits(u,tt,false))) coach(`かく じゅんばんが ちがうよ。いまは ${cur.idx+1}かくめ`,true);
   else coach(cur.miss>=2?'タコが ヒントを みせるね':'おしい！ もういちど',true);
@@ -1159,7 +1283,7 @@ $('redo').onclick=()=>setMode(cur.mode);
 $('speak').onclick=()=>say(INFO[cur.k].r.filter(r=>r[0]!=='*').map(kana).join('、'));
 const step=d=>{const i=(ORDER.indexOf(cur.k)+d+ORDER.length)%ORDER.length;openKanji(ORDER[i])};
 $('prevK').onclick=()=>step(-1); $('nextK').onclick=()=>step(1);
-$('backHome1').onclick=()=>{R=null;$('practice').classList.remove('reviewing','yomi');renderHome()};
+$('backHome1').onclick=()=>{if(R?.test)return endTest(); R=null;$('practice').classList.remove('reviewing','yomi');renderHome()};
 
 // ---------- reading game ----------
 const ROUND=6;
