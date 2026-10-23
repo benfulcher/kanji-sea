@@ -13,6 +13,7 @@ It covers the kanji in 光文書院 くりかえし かんじドリル 1年 上,
 - **Tests (🐳 テスト):** each set has a test that goes through its kanji once each, with no hints, inside a whale's mouth.
   A kanji written with no misses grows a tooth on the whale's jaws, so the teeth are the score.
   Two misses on one stroke mark that kanji wrong and draw the rest of it in.
+  After a wrong answer, four squares open for optional practice, as in the drill book: trace the first over a faint outline, then write it in the others.
   A right answer on a kanji that is due for review counts as that review and levels it up; nothing else in a test changes levels.
   The best full-test score for each set shows on its button.
 - **Reading game (よめるかな？):** a stingray brings a kanji and you pick its reading.

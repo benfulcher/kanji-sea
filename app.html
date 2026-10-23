@@ -266,6 +266,14 @@ ruby rt{font-family:var(--f-ui);font-size:.5em;font-weight:700;color:var(--sun)}
 #practice.testing .boardwrap{width:calc(min(100%,52vh,560px)*var(--bs,1))}
 @media (orientation:portrait){#practice.testing .boardwrap{width:calc(min(100%,40vh,560px)*var(--bs,1))}}
 #practice.testing .no-test{display:none!important}
+/* After a wrong test answer: optional practice squares like the drill book's, the first with a faint outline to trace. */
+.extra{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;touch-action:none}
+.extra[hidden]{display:none}
+.extra svg{display:block;width:100%;height:auto;aspect-ratio:1;border-radius:12px;background:var(--paper);box-shadow:0 4px 0 rgba(0,0,0,.25)}
+.extra .grid{stroke:var(--redline);stroke-width:.8;stroke-dasharray:2 2;fill:none}
+.extra .ghost{stroke:var(--ghost);stroke-width:6.5;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.extra .ink{stroke:var(--ink);stroke-width:6;fill:none;stroke-linecap:round;stroke-linejoin:round}
+@media (orientation:portrait){#practice.testing.extra-on .boardwrap{width:calc(min(100%,30vh,560px)*var(--bs,1))}}
 .whale{position:fixed;inset:0;z-index:15;pointer-events:none;overflow:hidden}
 .whale.busy{pointer-events:auto}
 /* Each jaw reaches 50vh past the screen edge, so closed they meet in the middle with no gaps. Its lip is one wide arc. */
@@ -366,6 +374,7 @@ ruby rt{font-family:var(--f-ui);font-size:.5em;font-weight:700;color:var(--sun)}
             <button class="chip no-test" id="revPeek">ちょっと みる</button>
             <button class="chip no-test" id="revGiveUp">わからない</button>
             <button class="cta" id="revNext" hidden>つぎへ</button>
+            <button class="chip" id="extraClear" hidden>けす</button>
             <button class="chip" id="revEnd">おわる</button>
           </div>
           <div class="card lesson-only">
@@ -382,6 +391,7 @@ ruby rt{font-family:var(--f-ui);font-size:.5em;font-weight:700;color:var(--sun)}
             <button data-mode="write" aria-pressed="false">かく<small>みないで</small></button>
           </div>
           <div class="coach"><div class="art" id="coachArt"></div><div class="bubble" id="coachMsg"></div></div>
+          <div class="extra" id="extraSq" hidden></div>
           <div class="row lesson-only"><button class="chip" id="redo">もういちど</button></div>
         </aside>
       </div>
@@ -572,7 +582,14 @@ const SFX=(()=>{
     glow:go(()=>{tone({f0:110,f1:150,dur:2.6,vol:.12,vib:3});[1319,1568,2093,2637,3136].forEach((f,j)=>tone({f0:f,t:1.85+j*.08,dur:.45,vol:.07}));hiss({t:1.85,dur:.9,f0:3000,f1:7000,q:2,vol:.05})}),
     fizz:go(()=>bubbles(12,0,.05,.11)),
     chomp:go(()=>{tone({f0:180,f1:55,dur:.22,vol:.32});tone({f0:110,f1:45,t:.04,dur:.25,vol:.2});hiss({dur:.16,f0:1200,f1:300,q:1,vol:.2})}),
-    tooth:go(()=>{tone({type:'triangle',f0:1319,dur:.12,vol:.13});tone({type:'triangle',f0:1976,t:.08,dur:.35,vol:.11});hiss({t:.08,dur:.35,f0:4000,f1:9000,q:2,vol:.05})}),
+    // A new tooth: a thump and a ta-da chord, then a ringing bell, a run of sparkles and bubbles, about 1.2 seconds.
+    tooth:go(()=>{
+      tone({f0:196,f1:392,dur:.2,vol:.22});
+      [784,988,1175,1568].forEach((f,j)=>tone({type:'triangle',f0:f,t:j*.06,dur:.3,vol:.11}));
+      [1568,2093].forEach((f,j)=>tone({type:'triangle',f0:f,t:.26,dur:1,vol:.13-j*.04}));
+      [2093,2637,3136,4186,3136,4186,5274].forEach((f,j)=>tone({f0:f,t:.36+j*.07,dur:.3,vol:.06}));
+      hiss({t:.25,dur:1,f0:4000,f1:10000,q:2,vol:.06}); bubbles(6,.6,.06);
+    }),
     fly:go(()=>{hiss({dur:1.4,f0:350,f1:2200,q:1.2,vol:.1});[784,988,1175,1568].forEach((f,j)=>tone({type:'triangle',f0:f,f1:f*1.06,t:.35+j*.12,dur:.25,vol:.1}));bubbles(5,1,.08)}),
     kira:go(i=>{tone({type:'triangle',f0:PENTA[i%PENTA.length],dur:.3,vol:.14});
       [1568,2093,2637,3136,2637,3136].forEach((f,j)=>tone({f0:f,t:.12+j*.07,dur:.3,vol:.07}));hiss({t:.1,dur:.7,f0:3000,f1:8000,q:2,vol:.05})}),
@@ -711,6 +728,7 @@ function nextKana(){
 }
 function levelHTML(s){return `<div class="art">${art(LEVELS[s].id)}</div>${LEVELS[s].n}・${LEVELS[s].g}`}
 function nextReview(){
+  closeExtra();
   $('revNext').hidden=true; $('revGiveUp').hidden=false; $('revHint').hidden=false; $('revPeek').hidden=false;
   if(!R.pool&&!R.queue.length){
     if(R.kind==='test')return endTest();
@@ -855,10 +873,38 @@ function testDone(){
       coach(`せいかい！ ふくしゅうも できて、${LEVELS[s].n}に レベル アップ！`);
     }else coach(pick(['せいかい！ はが はえたよ','ばっちり！ ピカピカの は！','すごい！ また はが ふえた！']));
   }
-  else{SFX.bloop(); coach(cur.idx<cur.targets.length?'ざんねん！ こう かくんだよ':'かけたね！ でも まちがいが あったね',true)}
+  else{
+    SFX.bloop(); openExtra(cur.k);
+    coach((cur.idx<cur.targets.length?'ざんねん！ こう かくんだよ。':'かけたね！ でも まちがいが あったね。')+'したの ますで れんしゅう してもいいよ',true);
+  }
   $('revNext').hidden=false; $('revNext').focus();
   return true;
 }
+// After a wrong answer, four squares open under the coach for optional practice, like the drill book:
+// trace the first over a faint outline, then write it in the others. The ink isn't checked and doesn't count.
+function openExtra(k){
+  const box=$('extraSq'); box.innerHTML=''; box.hidden=false; $('extraClear').hidden=false; $('practice').classList.add('extra-on');
+  for(let i=0;i<4;i++){
+    const sq=document.createElementNS(NS,'svg'); sq.setAttribute('viewBox','0 0 109 109');
+    sq.innerHTML='<path class="grid" d="M54.5 3V106M3 54.5H106"/>'+(i?'':STROKES[k].map(d=>`<path class="ghost" d="${d}"/>`).join(''));
+    box.appendChild(sq);
+  }
+}
+function closeExtra(){$('extraSq').hidden=true; $('extraSq').innerHTML=''; $('extraClear').hidden=true; $('practice').classList.remove('extra-on')}
+let sqPen=null;
+const sqPt=(sq,e)=>{const r=sq.getBoundingClientRect(),k=109/r.width;return{x:(e.clientX-r.left)*k,y:(e.clientY-r.top)*k}};
+const sqDraw=()=>sqPen.p.setAttribute('d',pathD(sqPen.pts.length>1?sqPen.pts:[sqPen.pts[0],sqPen.pts[0]])); // a tap leaves a dot
+$('extraSq').addEventListener('pointerdown',e=>{
+  const sq=e.target.closest('svg'); if(!sq||sqPen)return;
+  if(e.pointerType==='pen')penSeen=true; else if(penSeen&&e.pointerType==='touch')return;
+  e.preventDefault(); try{sq.setPointerCapture(e.pointerId)}catch(err){}
+  const p=document.createElementNS(NS,'path'); p.setAttribute('class','ink'); sq.appendChild(p);
+  sqPen={id:e.pointerId,sq,p,pts:[sqPt(sq,e)]}; sqDraw(); SFX.penDown();
+});
+$('extraSq').addEventListener('pointermove',e=>{if(sqPen&&e.pointerId===sqPen.id){sqPen.pts.push(sqPt(sqPen.sq,e));sqDraw()}});
+for(const ev of ['pointerup','pointercancel','lostpointercapture'])$('extraSq').addEventListener(ev,e=>{if(sqPen&&e.pointerId===sqPen.id)sqPen=null});
+for(const ev of ['touchstart','touchmove'])$('extraSq').addEventListener(ev,e=>e.preventDefault(),{passive:false});
+$('extraClear').onclick=()=>$('extraSq').querySelectorAll('.ink').forEach(p=>p.remove());
 // Two misses on one stroke and that kanji is wrong: the rest of it draws itself in so she sees how it goes.
 async function showAnswer(){
   const run=cur.run, from=cur.idx;
@@ -877,7 +923,7 @@ function endTest(){
   celebrate('kwhale',T.score===T.n?'ぜんぶ せいかい！':'テスト おわり！',`${T.done}もんの うち ${T.score}もん せいかい 🦷${ups?`。レベル アップ ${ups}こ`:''}`);
 }
 async function closeWhale(){
-  const W=$('whale'); W.classList.add('busy');
+  const W=$('whale'); W.classList.add('busy'); closeExtra();
   await jaws('open','shut',380,'ease-in'); SFX.chomp();
   $('practice').classList.remove('reviewing','testing'); renderHome();
   await sleep(reduce?0:250); SFX.swoosh();
