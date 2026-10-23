@@ -732,7 +732,8 @@ function reviewDone(){
     p.s=inc?Math.max(1,before-Math.ceil(inc/2)*(before>=5?2:1)):before+1;
     p.due=p.s>=BURNED?null:hourFloor(Date.now()+SRS_INT[p.s]);
     save(); R.done++;
-    if(p.s>before){R.ups.push(p.s);danceParty(p.s);levelUp=true;coach(p.s===BURNED?'でんせつの クジラに なった！ もう ばっちり！':`レベル アップ！ ${LEVELS[p.s].n}に なったよ`)}
+    // One slip still levels up, but only a clean kanji (no misses, hints or peeks) gets the dance.
+    if(p.s>before){R.ups.push(p.s);if(cur.clean){danceParty(p.s);levelUp=true}else SFX.chime();coach(p.s===BURNED?'でんせつの クジラに なった！ もう ばっちり！':`レベル アップ！ ${LEVELS[p.s].n}に なったよ`)}
     else{SFX.chime();coach(p.s<before?`かけたね！ レベルは ${LEVELS[p.s].n}に もどるよ`:'かけたね！')}
     $('revLevel').innerHTML=`<div class="art">${art(LEVELS[before].id)}</div><span class="arrow">→</span>${levelHTML(p.s)}`;
   }
