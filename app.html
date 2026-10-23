@@ -150,6 +150,14 @@ footer a{color:var(--mist)}
   background:radial-gradient(circle,rgba(255,246,190,.3) 0,rgba(255,246,190,.1) 4%,rgba(4,12,35,0) 6%,rgba(4,12,35,.86) 14%)}
 .cheer svg{overflow:visible}
 .cheer .lure{transform-box:fill-box;transform-origin:center}
+/* No mistakes but some strokes only ok: a quick burst of bubbles rises up the board. */
+.cheer .bub{position:absolute;border-radius:50%;border:2px solid rgba(95,192,239,.75);
+  background:radial-gradient(circle at 32% 30%,#fff 0 18%,rgba(191,230,255,.45) 24%,rgba(191,230,255,.12) 70%)}
+/* The first time a kanji is written from memory, a メンダコ flies across the screen ahead of the new friend. */
+.flyer{position:fixed;left:0;top:28vh;width:150px;z-index:25;pointer-events:none}
+.flyer .ear{transform-box:fill-box;animation:flapL .22s ease-in-out infinite alternate}
+.flyer .ear.l{transform-origin:right center}
+.flyer .ear.r{transform-origin:left center;animation-name:flapR}
 @keyframes flapL{from{transform:rotate(18deg)}to{transform:rotate(-22deg)}}
 @keyframes flapR{from{transform:rotate(-18deg)}to{transform:rotate(22deg)}}
 @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.45)}}
@@ -525,6 +533,7 @@ const SFX=(()=>{
     swooshUp:go(()=>hiss({dur:.6,f0:700,f1:2800,q:1.5,vol:.12})),
     // Anglerfish: a low deep-sea hum, then a twinkle as the lure flares.
     glow:go(()=>{tone({f0:110,f1:150,dur:2.6,vol:.12,vib:3});[1319,1568,2093,2637,3136].forEach((f,j)=>tone({f0:f,t:1.85+j*.08,dur:.45,vol:.07}));hiss({t:1.85,dur:.9,f0:3000,f1:7000,q:2,vol:.05})}),
+    fizz:go(()=>bubbles(12,0,.05,.11)),
     fly:go(()=>{hiss({dur:1.4,f0:350,f1:2200,q:1.2,vol:.1});[784,988,1175,1568].forEach((f,j)=>tone({type:'triangle',f0:f,f1:f*1.06,t:.35+j*.12,dur:.25,vol:.1}));bubbles(5,1,.08)}),
     kira:go(i=>{tone({type:'triangle',f0:PENTA[i%PENTA.length],dur:.3,vol:.14});
       [1568,2093,2637,3136,2637,3136].forEach((f,j)=>tone({f0:f,t:.12+j*.07,dur:.3,vol:.07}));hiss({t:.1,dur:.7,f0:3000,f1:8000,q:2,vol:.05})}),
@@ -978,7 +987,28 @@ function danceParty(level){
   const k=[[0,'0,110vh'],[.1,'0,-10vh'],[.17,'0,0'],[.35,'-60px,0'],[.55,'60px,0'],[.72,'0,0'],[.85,'0,-8vh'],[1,'0,110vh']];
   d.animate(k.map(([offset,xy])=>({offset,transform:`translate(${xy})`})),{duration:3800,easing:'ease-in-out'}).onfinish=()=>d.remove();
 }
-const reward=(level,tier)=>{if(tier>=2)setTimeout(()=>tier===3?angler():cheer(level),500)};
+const reward=(level,tier)=>{if(tier)setTimeout(()=>tier===3?angler():tier===2?cheer(level):bubbleBurst(),tier===1?250:500)};
+function bubbleBurst(){
+  SFX.fizz(); if(reduce)return;
+  const wrap=$('boardwrap'); wrap.querySelector('.cheer')?.remove();
+  const c=document.createElement('div'); c.className='cheer'; wrap.appendChild(c);
+  for(let i=0;i<16;i++){
+    const b=document.createElement('div'), r=3+Math.random()*6, x=8+Math.random()*84, rise=40+Math.random()*50, sway=(Math.random()-.5)*16;
+    b.className='bub'; Object.assign(b.style,{width:r+'%',height:r+'%',left:x-r/2+'%',top:'100%'}); c.appendChild(b);
+    b.animate([{transform:'translate(0,0) scale(.4)',opacity:0},{transform:`translate(${sway*.5}%,-${rise*2}%) scale(1)`,opacity:1,offset:.25},
+      {transform:`translate(${-sway}%,-${rise*8}%) scale(1.05)`,opacity:.9,offset:.8},{transform:`translate(${sway}%,-${rise*10}%) scale(1.3)`,opacity:0}],
+      {duration:1100+Math.random()*500,delay:Math.random()*250,easing:'ease-out',fill:'both'});
+  }
+  setTimeout(()=>c.remove(),2000);
+}
+function flyDumbo(){
+  if(reduce)return;
+  const f=document.createElement('div'); f.className='flyer'; f.innerHTML=art('dumbo'); document.body.appendChild(f);
+  SFX.fly();
+  f.animate(['translate(-30vw,12vh) rotate(14deg)','translate(15vw,-6vh) rotate(-10deg)','translate(50vw,9vh) rotate(10deg)',
+    'translate(85vw,-7vh) rotate(-10deg)','translate(125vw,3vh) rotate(8deg)'].map(transform=>({transform})),
+    {duration:2800,easing:'ease-in-out'}).onfinish=()=>f.remove();
+}
 // The board goes dark and an anglerfish swims through, its lure lighting up the kanji; the lure flares in the middle.
 function angler(){
   if(reduce)return;
@@ -1081,8 +1111,8 @@ function judge(pts){
 async function finish(){
   const k=cur.k, mode=cur.mode;
   board.classList.add('done-glow'); gHint.innerHTML='';
-  // Written without the guide and with no misses or hints, a kanji whose strokes are all great or better
-  // brings out its level's animal, and all near-perfect brings the anglerfish.
+  // Written without the guide and with no misses or hints, a kanji brings a burst of bubbles;
+  // with every stroke great or better its level's animal comes out instead, and all near-perfect brings the anglerfish.
   // A reading earns it for the whole word instead, in yomiKanaDone, and a level up has its own dance.
   const tier=cur.clean&&mode!=='trace'?cur.low:0;
   if(mode==='review'){const up=reviewDone(); if(!up&&R?.kind!=='yomi')reward(prog(k).s||0,tier); return}
@@ -1096,7 +1126,9 @@ async function finish(){
   const first=!p.w; p.t=1; p.w=1; enterSRS(k); save();
   coach('みないで かけた！ すごい！');
   if(!first){reward(p.s||0,tier);return}
-  await sleep(reduce?200:900);
+  // First time from memory: the メンダコ flies across, and the new friend arrives as it passes the middle.
+  setTimeout(flyDumbo,200);
+  await sleep(reduce?200:1500);
   const id=FRIEND[ORDER.indexOf(k)];
   celebrate(id,`${CRE[id].n}が なかまに なったよ！`,`「${k}」を みないで かけたね`);
   const si=SECTIONS.findIndex(s=>s.kanji.includes(k));
