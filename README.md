@@ -16,6 +16,7 @@ It covers the kanji in 光文書院 くりかえし かんじドリル 1年 上,
   Two misses on one stroke mark that kanji wrong and draw the rest of it in.
   A right answer on a kanji that is due for review counts as that review and levels it up; nothing else in a test changes levels.
   The best full-test score for each set shows on its button.
+  A perfect test sets off a chicken dance by a line of sea animals, to an original polka (tap to skip).
 - **Practice squares:** after a mistake writing a kanji from memory (in a test, a review, practice or a lesson's かく), four squares open for optional free practice, as in the drill book.
   Trace the first two over a faint outline, then write it in the other two; the ink isn't checked.
 - **Reading game (よめるかな？):** a stingray brings a kanji and you pick its reading.

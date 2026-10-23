@@ -291,6 +291,14 @@ ruby rt{font-family:var(--f-ui);font-size:.5em;font-weight:700;color:var(--sun)}
 @keyframes toothIn{0%{transform:scale(.5,0);filter:drop-shadow(0 0 0 #fff)}60%{filter:drop-shadow(0 0 8px #fff)}100%{filter:drop-shadow(0 0 0 #fff)}}
 .gulp{position:absolute;left:50%;top:50%;width:min(320px,55vw);opacity:0;translate:-50% -50%}
 
+/* 100% on a test: a line of sea animals does the chicken dance. Tap to skip. */
+.chicken{position:fixed;inset:0;z-index:18;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4vh;background:rgba(40,6,22,.55)}
+.chicken .cap{font-weight:900;font-size:clamp(36px,7vw,64px);color:var(--sun);text-shadow:0 4px 0 rgba(0,0,0,.35);min-height:1.3em}
+.chicken .line{display:flex;gap:2vw;align-items:flex-end}
+.chicken .hen{width:min(150px,17vw)}
+.chicken .hen .emo{font-size:min(130px,15vw)}
+.chicken .pop{position:absolute;font-size:34px}
+
 @media (prefers-reduced-motion: reduce){
   .swimmer,.swimmer .bob,.swimmer .face,.weed,.cele .art,.carrier.in,.carrier.out,#board .start.pulse{animation:none!important}
 }
@@ -548,21 +556,21 @@ const SFX=(()=>{
     const s=ctx.createBufferSource(); s.buffer=ctx.createBuffer(1,1,22050); s.connect(ctx.destination); s.start(0);
     return ctx;
   }
-  function tone({type='sine',f0,f1=f0,t=0,dur=.15,vol=.2,vib=0}){
+  function tone({type='sine',f0,f1=f0,t=0,dur=.15,vol=.2,vib=0,to=master}){
     const now=ctx.currentTime+t, o=ctx.createOscillator(), g=ctx.createGain();
     o.type=type; o.frequency.setValueAtTime(f0,now); o.frequency.exponentialRampToValueAtTime(f1,now+dur);
     if(vib){const l=ctx.createOscillator(),lg=ctx.createGain();l.frequency.value=vib;lg.gain.value=f0*.04;l.connect(lg).connect(o.frequency);l.start(now);l.stop(now+dur+.05)}
     g.gain.setValueAtTime(.0001,now); g.gain.exponentialRampToValueAtTime(vol,now+.012); g.gain.exponentialRampToValueAtTime(.0001,now+dur);
-    o.connect(g).connect(master); o.start(now); o.stop(now+dur+.05);
+    o.connect(g).connect(to); o.start(now); o.stop(now+dur+.05);
   }
-  function hiss({t=0,dur=.4,f0=400,f1=1600,q=1.2,vol=.15}){
+  function hiss({t=0,dur=.4,f0=400,f1=1600,q=1.2,vol=.15,to=master}){
     const now=ctx.currentTime+t, s=ctx.createBufferSource(), bp=ctx.createBiquadFilter(), g=ctx.createGain();
     s.buffer=noise; bp.type='bandpass'; bp.Q.value=q; bp.frequency.setValueAtTime(f0,now); bp.frequency.exponentialRampToValueAtTime(f1,now+dur);
     g.gain.setValueAtTime(.0001,now); g.gain.exponentialRampToValueAtTime(vol,now+dur*.3); g.gain.exponentialRampToValueAtTime(.0001,now+dur);
-    s.connect(bp).connect(g).connect(master); s.start(now); s.stop(now+dur+.05);
+    s.connect(bp).connect(g).connect(to); s.start(now); s.stop(now+dur+.05);
   }
   const bubbles=(n,t=0,gap=.07,vol=.12)=>{for(let j=0;j<n;j++){const p=450+Math.random()*500;tone({f0:p,f1:p*2.5,t:t+j*gap,dur:.1,vol})}};
-  const go=fn=>(...a)=>{if(!on||!init())return;try{fn(...a)}catch(e){}};
+  const go=fn=>(...a)=>{if(!on||!init())return;try{return fn(...a)}catch(e){}};
   const PENTA=[523,587,659,784,880,1047,1175,1319,1568,1760];
   return {
     unlock(){if(on)init()},
@@ -581,6 +589,33 @@ const SFX=(()=>{
     glow:go(()=>{tone({f0:110,f1:150,dur:2.6,vol:.12,vib:3});[1319,1568,2093,2637,3136].forEach((f,j)=>tone({f0:f,t:1.85+j*.08,dur:.45,vol:.07}));hiss({t:1.85,dur:.9,f0:3000,f1:7000,q:2,vol:.05})}),
     fizz:go(()=>bubbles(12,0,.05,.11)),
     chomp:go(()=>{tone({f0:180,f1:55,dur:.22,vol:.32});tone({f0:110,f1:45,t:.04,dur:.25,vol:.2});hiss({dur:.16,f0:1200,f1:300,q:1,vol:.2})}),
+    // The chicken dance tune: an original oom-pah polka (the real one is still in copyright), one eighth note = CD_E.
+    // Four moves of 8 eighths each (4 hits with their sound and melody, then an answer), then 16 eighths of swinging round.
+    // Returns a function that stops it.
+    chickenDance:go(()=>{
+      const out=ctx.createGain(), e=CD_E, T=o=>tone({...o,to:out}), H=o=>hiss({...o,to:out});
+      out.connect(master);
+      const C=[523,659,784], G=[494,587,784], F=[523,698,880];
+      [[C,131],[G,98],[G,98],[C,131],[C,131],[F,87],[G,98],[C,131]].forEach(([ch,b],k)=>{
+        for(let q=0;q<4;q++){const t=(k*8+q*2)*e; T({f0:q%2?b*1.5:b,t,dur:.18,vol:.24}); ch.forEach(f=>T({type:'triangle',f0:f,t:t+e,dur:.09,vol:.04}))}
+      });
+      [[0,659],[1,659],[2,784],[3,784],[4,1047,2],[6,784,2],
+       [8,587],[9,587],[10,784],[11,784],[12,988,2],[14,784,2],
+       [16,698],[17,698],[18,587],[19,587],[20,494,2],[22,587,2],
+       [28,523],[29,659],[30,784],[31,1047],
+       [32,523],[33,659],[34,784],[35,1047],[36,880],[37,698],[38,523],[39,698],
+       [40,784],[41,988],[42,1175],[43,988],[44,1047,2],[46,784],[47,988]
+      ].forEach(([n,f,l=1])=>T({type:'triangle',f0:f,t:n*e,dur:l*e*.9,vol:.13}));
+      for(let i=0;i<4;i++){
+        H({t:i*e,dur:.04,f0:3000,f1:2500,q:4,vol:.22});                 // パクパク: snap
+        H({t:(8+i)*e,dur:.12,f0:600,f1:2000,q:1,vol:.13});              // パタパタ: flap
+        T({f0:330,f1:220,t:(16+i)*e,dur:.15,vol:.13,vib:14});           // フリフリ: wiggle
+        H({t:(24+i)*e,dur:.07,f0:1800,f1:1200,q:.6,vol:.4});            // パチパチ: clap
+      }
+      [1047,1319,1568,2093].forEach(f=>T({type:'triangle',f0:f,t:48*e,dur:.9,vol:.1})); T({f0:131,t:48*e,dur:.6,vol:.25});
+      bubbles(8,48*e,.06);
+      return ()=>{out.gain.setTargetAtTime(0,ctx.currentTime,.03); setTimeout(()=>out.disconnect(),400)};
+    }),
     // A new tooth: a thump and a ta-da chord, then a ringing bell, a run of sparkles and bubbles, about 1.2 seconds.
     tooth:go(()=>{
       tone({f0:196,f1:392,dur:.2,vol:.22});
@@ -892,8 +927,48 @@ function endTest(){
   if(T.done===T.n){P.test=P.test||{}; P.test[T.si]=Math.max(P.test[T.si]||0,T.score); save()}
   if(!T.done){closeWhale();return}
   afterCele=closeWhale;
-  const ups=R0.ups.length;
-  celebrate('kwhale',T.score===T.n?'ぜんぶ せいかい！':'テスト おわり！',`${T.done}もんの うち ${T.score}もん せいかい 🦷${ups?`。レベル アップ ${ups}こ`:''}`);
+  const ups=R0.ups.length, perfect=T.score===T.n;
+  const card=()=>celebrate('kwhale',perfect?'ぜんぶ せいかい！':'テスト おわり！',`${T.done}もんの うち ${T.score}もん せいかい 🦷${ups?`。レベル アップ ${ups}こ`:''}`);
+  if(perfect)chickenDance().then(card); else card();
+}
+// ---------- 100% on a test: the sea animals do a chicken dance ----------
+// The dance's four moves, four times each: snap (パクパク), flap (パタパタ), wiggle down (フリフリ) and clap (パチパチ),
+// then they swing round (くるくる). The moves follow SFX.chickenDance's beat. Tapping anywhere skips it.
+const CD_E=.2; // one eighth note, in seconds
+function chickenDance(){
+  return new Promise(done=>{
+    if(reduce)return done();
+    const st=document.createElement('div'), ids=['dumbo','kcrab','octopus','kpuffer','kclown'];
+    st.className='chicken';
+    st.innerHTML=`<div class="cap"></div><div class="line">${ids.map(id=>`<div class="hen art">${art(id)}</div>`).join('')}</div>`;
+    document.body.appendChild(st);
+    const hens=[...st.querySelectorAll('.hen')], cap=st.querySelector('.cap'), timers=[], stop=SFX.chickenDance()||(()=>{});
+    const at=(t,f)=>timers.push(setTimeout(f,t*1000));
+    const end=()=>{timers.forEach(clearTimeout); stop(); st.remove(); done()};
+    st.onclick=end;
+    const bop=(h,mid,ms=180)=>h.animate([{transform:'none'},{transform:mid},{transform:'none'}],{duration:ms,easing:'ease-out'});
+    const MOVES={
+      snap:(h)=>bop(h,'scale(.78,1.18)',160),
+      flap:(h,i)=>bop(h,`rotate(${i%2?16:-16}deg) translateY(-10px) scale(1.12,.92)`),
+      wiggle:(h,i)=>bop(h,`translateY(${10+i*7}px) rotate(${i%2?12:-12}deg) scale(1.1,.88)`,190),
+      clap:(h)=>{
+        bop(h,'translateY(-28px) scale(1.06)',190);
+        const r=h.getBoundingClientRect(), c=document.createElement('span'); c.className='pop'; c.textContent='👏';
+        c.style.left=r.left+r.width/2-17+'px'; c.style.top=r.top-30+'px'; st.appendChild(c);
+        c.animate([{transform:'scale(.5)',opacity:1},{transform:'translateY(-50px) scale(1.2)',opacity:0}],{duration:600,easing:'ease-out'}).onfinish=()=>c.remove();
+      },
+    };
+    [['snap','パクパク！'],['flap','パタパタ！'],['wiggle','フリフリ！'],['clap','パチパチ！']].forEach(([m,label],k)=>{
+      at(k*8*CD_E,()=>{cap.textContent=label; cap.animate([{transform:'scale(.4)',opacity:0},{transform:'scale(1.15)',opacity:1,offset:.6},{transform:'none',opacity:1}],{duration:300})});
+      for(let i=0;i<4;i++)at((k*8+i)*CD_E,()=>hens.forEach(h=>MOVES[m](h,i)));
+    });
+    at(32*CD_E,()=>{
+      cap.textContent='くるくる〜！';
+      hens.forEach((h,j)=>{const d=j%2?-1:1; h.animate([0,1,2,3,4].map(q=>({transform:`rotate(${d*180*q}deg) translateY(${q%2?-24:0}px)`})),{duration:16*CD_E*1000,easing:'ease-in-out'})});
+      st.querySelector('.line').animate([{transform:'none'},{transform:'translateX(-40px)'},{transform:'translateX(40px)'},{transform:'none'}],{duration:16*CD_E*1000,easing:'ease-in-out'});
+    });
+    at(48*CD_E+.9,end);
+  });
 }
 async function closeWhale(){
   const W=$('whale'); W.classList.add('busy'); closeExtra();
