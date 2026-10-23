@@ -266,8 +266,8 @@ ruby rt{font-family:var(--f-ui);font-size:.5em;font-weight:700;color:var(--sun)}
 #practice.testing .boardwrap{width:calc(min(100%,52vh,560px)*var(--bs,1))}
 @media (orientation:portrait){#practice.testing .boardwrap{width:calc(min(100%,40vh,560px)*var(--bs,1))}}
 #practice.testing .no-test{display:none!important}
-/* After a wrong test answer: optional practice squares like the drill book's, the first with a faint outline to trace. */
-.extra{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;touch-action:none}
+/* After a mistake: optional practice squares like the drill book's, the first two with a faint outline to trace. */
+.extra{display:grid;grid-template-columns:repeat(4,1fr) auto;gap:10px;align-items:center;touch-action:none}
 .extra[hidden]{display:none}
 .extra svg{display:block;width:100%;height:auto;aspect-ratio:1;border-radius:12px;background:var(--paper);box-shadow:0 4px 0 rgba(0,0,0,.25)}
 .extra .grid{stroke:var(--redline);stroke-width:.8;stroke-dasharray:2 2;fill:none}
@@ -374,7 +374,6 @@ ruby rt{font-family:var(--f-ui);font-size:.5em;font-weight:700;color:var(--sun)}
             <button class="chip no-test" id="revPeek">ちょっと みる</button>
             <button class="chip no-test" id="revGiveUp">わからない</button>
             <button class="cta" id="revNext" hidden>つぎへ</button>
-            <button class="chip" id="extraClear" hidden>けす</button>
             <button class="chip" id="revEnd">おわる</button>
           </div>
           <div class="card lesson-only">
@@ -728,7 +727,6 @@ function nextKana(){
 }
 function levelHTML(s){return `<div class="art">${art(LEVELS[s].id)}</div>${LEVELS[s].n}・${LEVELS[s].g}`}
 function nextReview(){
-  closeExtra();
   $('revNext').hidden=true; $('revGiveUp').hidden=false; $('revHint').hidden=false; $('revPeek').hidden=false;
   if(!R.pool&&!R.queue.length){
     if(R.kind==='test')return endTest();
@@ -785,12 +783,12 @@ function reviewDone(){
   if(R.extra){
     R.practiced++; const b=R.boost[k]||1;
     if(ok){R.boost[k]=Math.max(1,b/3);SFX.chime();coach('かけたね！')}
-    else{R.boost[k]=Math.min(9,b*3);SFX.bloop();coach('おしい！ また でてくるよ',true)}
+    else{R.boost[k]=Math.min(9,b*3);SFX.bloop();openExtra(k);coach('おしい！ また でてくるよ。したの ますで れんしゅう してもいいよ',true)}
   }else if(!ok){
     R.queue.shift();
     R.wrong[k]=(R.wrong[k]||0)+1;
     R.queue.splice(Math.min(R.queue.length,2+Math.floor(Math.random()*3)),0,k);
-    SFX.bloop(); coach(cur.reveal||cur.totalMiss?'おしい！ あとで もういちど かいてみよう':'ヒントを みて かけたね！ あとで もういちど かいてみよう',true);
+    SFX.bloop(); openExtra(k); coach((cur.reveal||cur.totalMiss?'おしい！ あとで もういちど。':'ヒントを みて かけたね！ あとで もういちど。')+'したの ますで れんしゅう してもいいよ',true);
   }else{
     R.queue.shift();
     const before=p.s, inc=R.wrong[k]||0;
@@ -880,31 +878,6 @@ function testDone(){
   $('revNext').hidden=false; $('revNext').focus();
   return true;
 }
-// After a wrong answer, four squares open under the coach for optional practice, like the drill book:
-// trace the first over a faint outline, then write it in the others. The ink isn't checked and doesn't count.
-function openExtra(k){
-  const box=$('extraSq'); box.innerHTML=''; box.hidden=false; $('extraClear').hidden=false; $('practice').classList.add('extra-on');
-  for(let i=0;i<4;i++){
-    const sq=document.createElementNS(NS,'svg'); sq.setAttribute('viewBox','0 0 109 109');
-    sq.innerHTML='<path class="grid" d="M54.5 3V106M3 54.5H106"/>'+(i?'':STROKES[k].map(d=>`<path class="ghost" d="${d}"/>`).join(''));
-    box.appendChild(sq);
-  }
-}
-function closeExtra(){$('extraSq').hidden=true; $('extraSq').innerHTML=''; $('extraClear').hidden=true; $('practice').classList.remove('extra-on')}
-let sqPen=null;
-const sqPt=(sq,e)=>{const r=sq.getBoundingClientRect(),k=109/r.width;return{x:(e.clientX-r.left)*k,y:(e.clientY-r.top)*k}};
-const sqDraw=()=>sqPen.p.setAttribute('d',pathD(sqPen.pts.length>1?sqPen.pts:[sqPen.pts[0],sqPen.pts[0]])); // a tap leaves a dot
-$('extraSq').addEventListener('pointerdown',e=>{
-  const sq=e.target.closest('svg'); if(!sq||sqPen)return;
-  if(e.pointerType==='pen')penSeen=true; else if(penSeen&&e.pointerType==='touch')return;
-  e.preventDefault(); try{sq.setPointerCapture(e.pointerId)}catch(err){}
-  const p=document.createElementNS(NS,'path'); p.setAttribute('class','ink'); sq.appendChild(p);
-  sqPen={id:e.pointerId,sq,p,pts:[sqPt(sq,e)]}; sqDraw(); SFX.penDown();
-});
-$('extraSq').addEventListener('pointermove',e=>{if(sqPen&&e.pointerId===sqPen.id){sqPen.pts.push(sqPt(sqPen.sq,e));sqDraw()}});
-for(const ev of ['pointerup','pointercancel','lostpointercapture'])$('extraSq').addEventListener(ev,e=>{if(sqPen&&e.pointerId===sqPen.id)sqPen=null});
-for(const ev of ['touchstart','touchmove'])$('extraSq').addEventListener(ev,e=>e.preventDefault(),{passive:false});
-$('extraClear').onclick=()=>$('extraSq').querySelectorAll('.ink').forEach(p=>p.remove());
 // Two misses on one stroke and that kanji is wrong: the rest of it draws itself in so she sees how it goes.
 async function showAnswer(){
   const run=cur.run, from=cur.idx;
@@ -1056,6 +1029,33 @@ function num(layer,pt,n){const t=document.createElementNS(NS,'text');t.setAttrib
 function splash(pt){if(reduce)return;for(let i=0;i<3;i++){const c=dot(gHint,{x:pt.x+(i-1)*4,y:pt.y-i*3},'pop',1.6+i*.6);c.style.animationDelay=i*80+'ms';setTimeout(()=>c.remove(),900)}}
 function coach(msg,wig){const b=$('coachMsg');b.textContent=msg;b.classList.remove('wiggle');if(wig){void b.offsetWidth;b.classList.add('wiggle')}}
 
+// After a mistake writing a kanji from memory (a test, a review, practice or a lesson's かく), four squares open
+// under the coach for optional practice, like the drill book: trace the first two over a faint outline,
+// then write it in the other two. The ink isn't checked and doesn't count. They close with the next kanji.
+function openExtra(k){
+  const box=$('extraSq'); box.innerHTML=''; box.hidden=false; $('practice').classList.add('extra-on');
+  for(let i=0;i<4;i++){
+    const sq=document.createElementNS(NS,'svg'); sq.setAttribute('viewBox','0 0 109 109');
+    sq.innerHTML='<path class="grid" d="M54.5 3V106M3 54.5H106"/>'+(i>1?'':STROKES[k].map(d=>`<path class="ghost" d="${d}"/>`).join(''));
+    box.appendChild(sq);
+  }
+  const c=document.createElement('button'); c.className='chip'; c.textContent='けす';
+  c.onclick=()=>box.querySelectorAll('.ink').forEach(p=>p.remove()); box.appendChild(c);
+}
+function closeExtra(){$('extraSq').hidden=true; $('extraSq').innerHTML=''; $('practice').classList.remove('extra-on')}
+let sqPen=null;
+const sqPt=(sq,e)=>{const r=sq.getBoundingClientRect(),k=109/r.width;return{x:(e.clientX-r.left)*k,y:(e.clientY-r.top)*k}};
+const sqDraw=()=>sqPen.p.setAttribute('d',pathD(sqPen.pts.length>1?sqPen.pts:[sqPen.pts[0],sqPen.pts[0]])); // a tap leaves a dot
+$('extraSq').addEventListener('pointerdown',e=>{
+  const sq=e.target.closest('svg'); if(!sq||sqPen)return;
+  if(e.pointerType==='pen')penSeen=true; else if(penSeen&&e.pointerType==='touch')return;
+  e.preventDefault(); try{sq.setPointerCapture(e.pointerId)}catch(err){}
+  const p=document.createElementNS(NS,'path'); p.setAttribute('class','ink'); sq.appendChild(p);
+  sqPen={id:e.pointerId,sq,p,pts:[sqPt(sq,e)]}; sqDraw(); SFX.penDown();
+});
+$('extraSq').addEventListener('pointermove',e=>{if(sqPen&&e.pointerId===sqPen.id){sqPen.pts.push(sqPt(sqPen.sq,e));sqDraw()}});
+for(const ev of ['pointerup','pointercancel','lostpointercapture'])$('extraSq').addEventListener(ev,e=>{if(sqPen&&e.pointerId===sqPen.id)sqPen=null});
+for(const ev of ['touchstart','touchmove'])$('extraSq').addEventListener(ev,e=>e.preventDefault(),{passive:false});
 function openKanji(k,mode){
   cur.k=k; const info=INFO[k];
   $('bigK').textContent=k;
@@ -1067,7 +1067,7 @@ function openKanji(k,mode){
   setMode(mode||(p.t?'write':'watch'));
 }
 function resetBoard(mode){
-  $('boardwrap').querySelector('.cheer')?.remove();
+  $('boardwrap').querySelector('.cheer')?.remove(); closeExtra();
   cur.mode=mode; cur.clean=true; cur.low=3; cur.idx=0; cur.miss=0; cur.totalMiss=0; cur.hinted=false; cur.reveal=false; cur.run++;
   board.classList.toggle('memory',mode!=='trace'); board.classList.remove('done-glow');
   gGhost.innerHTML=''; gInk.innerHTML=''; gHint.innerHTML=''; live.setAttribute('d','');
@@ -1311,7 +1311,7 @@ async function finish(){
     return;
   }
   const first=!p.w; p.t=1; p.w=1; enterSRS(k); save();
-  coach('みないで かけた！ すごい！');
+  if(cur.clean)coach('みないで かけた！ すごい！'); else{openExtra(k);coach('みないで かけたね！ したの ますで れんしゅう してもいいよ')}
   if(!first){reward(p.s||0,tier);return}
   // First time from memory: the メンダコ flies across, and the new friend arrives as it passes the middle.
   setTimeout(flyDumbo,200);
