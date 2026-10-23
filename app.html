@@ -797,7 +797,9 @@ function endReview(){
 
 // ---------- test: each kanji of one set once, no hints, inside a whale's mouth ----------
 // Right means written with no misses at all, and each right answer grows a tooth.
-// A test never changes levels; her best full-test score for each set shows on its button.
+// A right answer on a kanji that is due counts as its review and levels it up, since a test is the same
+// as a review: written from memory with no hints. Nothing else in a test changes levels, so a wrong answer
+// just leaves it due for ふくしゅう. Her best full-test score for each set shows on its button.
 const TOOTH='<svg viewBox="0 0 20 28"><path d="M1 0H19Q19 13 11.5 26.5Q10 28.5 8.5 26.5Q1 13 1 0Z" fill="#fffaf0" stroke="#e3d6c0" stroke-width="1.2"/><path d="M5 3Q6 11 8.5 17" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>';
 let TEETH=[];
 // One socket per kanji, along the arc of each lip; teeth fill top, bottom, top, … from left to right.
@@ -844,7 +846,15 @@ async function startTest(si){
 }
 function testDone(){
   const T=R.test, ok=cur.clean; R.queue.shift(); T.done++;
-  if(ok){TEETH[T.score++].classList.add('on'); SFX.tooth(); coach(pick(['せいかい！ はが はえたよ','ばっちり！ ピカピカの は！','すごい！ また はが ふえた！']))}
+  if(ok){
+    TEETH[T.score++].classList.add('on'); SFX.tooth();
+    const p=prog(cur.k);
+    if(p.s&&p.s<BURNED&&p.due<=Date.now()){
+      p.s++; p.due=p.s>=BURNED?null:hourFloor(Date.now()+SRS_INT[p.s]); save(); R.ups.push(p.s);
+      const run=cur.run, s=p.s; setTimeout(()=>{if(cur.run===run)danceParty(s)},500);
+      coach(`せいかい！ ふくしゅうも できて、${LEVELS[s].n}に レベル アップ！`);
+    }else coach(pick(['せいかい！ はが はえたよ','ばっちり！ ピカピカの は！','すごい！ また はが ふえた！']));
+  }
   else{SFX.bloop(); coach(cur.idx<cur.targets.length?'ざんねん！ こう かくんだよ':'かけたね！ でも まちがいが あったね',true)}
   $('revNext').hidden=false; $('revNext').focus();
   return true;
@@ -859,11 +869,12 @@ async function showAnswer(){
   }
 }
 function endTest(){
-  const T=R.test; R=null;
+  const R0=R, T=R.test; R=null;
   if(T.done===T.n){P.test=P.test||{}; P.test[T.si]=Math.max(P.test[T.si]||0,T.score); save()}
   if(!T.done){closeWhale();return}
   afterCele=closeWhale;
-  celebrate('kwhale',T.score===T.n?'ぜんぶ せいかい！':'テスト おわり！',`${T.done}もんの うち ${T.score}もん せいかい 🦷`);
+  const ups=R0.ups.length;
+  celebrate('kwhale',T.score===T.n?'ぜんぶ せいかい！':'テスト おわり！',`${T.done}もんの うち ${T.score}もん せいかい 🦷${ups?`。レベル アップ ${ups}こ`:''}`);
 }
 async function closeWhale(){
   const W=$('whale'); W.classList.add('busy');
