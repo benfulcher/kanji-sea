@@ -11,6 +11,7 @@ It covers the kanji in 光文書院 くりかえし かんじドリル 1年 上,
 - **Writing in sentences (ぶんで かく):** practice where every prompt is one of those sentences.
 - **Writing readings (よみを かく):** the kanji sits in a sentence and you write its reading in hiragana, one kana at a time, each checked stroke by stroke.
 - **Tests (🐳 テスト):** each set has a test that goes through its kanji once each, with no hints, inside a whale's mouth.
+  Strokes stay as she wrote them rather than snapping to the model, but each still has to fit to count.
   A kanji written with no misses grows a tooth on the whale's jaws, so the teeth are the score.
   Two misses on one stroke mark that kanji wrong and draw the rest of it in.
   A right answer on a kanji that is due for review counts as that review and levels it up; nothing else in a test changes levels.

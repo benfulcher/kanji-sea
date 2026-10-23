@@ -1275,10 +1275,12 @@ function judge(pts){
     live.setAttribute('d','');
     const guided=cur.mode==='trace'||cur.reveal;
     if(!guided)gHint.innerHTML='';
-    const d=STROKES[cur.k][cur.idx], g=grade(fits.last);
-    if(g===3)addPath(gInk,d,'halo',reduce?0:220);
-    addPath(gInk,d,g>1?'ink blue':'ink',reduce?0:220);
-    splash(t.pts[N-1]);
+    // In a test her own stroke stays on the board, as on paper; elsewhere it snaps to the model stroke.
+    // Either way it only counts if it fits.
+    const own=!!R?.test, d=own?pathD(pts.length>1?pts:[pts[0],pts[0]]):STROKES[cur.k][cur.idx], g=grade(fits.last);
+    if(g===3)addPath(gInk,d,'halo',reduce||own?0:220);
+    addPath(gInk,d,g>1?'ink blue':'ink',reduce||own?0:220);
+    splash(own?u.pts[N-1]:t.pts[N-1]);
     if(g===3){SFX.kira(cur.idx);sparkle(d)}else SFX.stroke(cur.idx);
     cur.low=Math.min(cur.low,g); cur.idx++; cur.miss=0;
     if(cur.idx>=T.length){finish();return}
