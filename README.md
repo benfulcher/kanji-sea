@@ -5,7 +5,8 @@ It covers the kanji in 光文書院 くりかえし かんじドリル 1年 上,
 
 - **Practice:** watch the stroke order (みる), trace it (なぞる), then write it from memory (かく), with every stroke checked for shape, direction and order.
 - **Reviews (ふくしゅう):** WaniKani-style spaced repetition, where every review is writing from memory and each level is a sea creature.
-  A session goes through every kanji that is due, brings misses back later in the session, and ends once each one has been written with no misses or hints.
+  A session goes through each kanji that is due once and then ends.
+  Writing it with no misses or hints levels it up; a miss or hint drops it a level (two from じょうず up) instead of asking it again in the same session.
   Each set's ▶ れんしゅう button gives free practice on that set instead, which picks low-level kanji most often and never changes levels.
   Half the prompts put the word in a short book-style sentence, with the reading over the box to write in.
 - **Writing in sentences (ぶんで かく):** practice where every prompt is one of those sentences.
@@ -19,7 +20,8 @@ It covers the kanji in 光文書院 くりかえし かんじドリル 1年 上,
   A perfect test sets off a chicken dance by a line of sea animals, to an original polka (tap to skip).
 - **Practice squares:** after a mistake writing a kanji from memory (in a test, a review, practice or a lesson's かく), four squares open for optional free practice, as in the drill book.
   Trace the first two over a faint outline, then write it in the other two; the ink isn't checked.
-- **Reading game (よめるかな？):** a stingray brings a kanji and you pick its reading.
+- **Reading game (よめるかな？):** a stingray brings a kanji, and you find its reading in a fish tank and tap it.
+  Each reading rides on a creature's back: a fish cruising or dashing about near the top, a turtle, sea snake or jellyfish in the middle, and on the sand a ワニ plodding along, a scuttling crab, a チンアナゴ popping in and out of its holes, or an octopus peeking out from behind a rock.
 
 ## Build
 

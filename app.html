@@ -199,8 +199,8 @@ ruby rt{font-family:var(--f-ui);font-size:.5em;font-weight:700;color:var(--sun)}
 .dots{display:flex;gap:8px}
 .dots i{width:16px;height:16px;border-radius:50%;background:rgba(236,248,245,.25)}
 .dots i.ok{background:var(--kelp)}.dots i.miss{background:var(--coral)}.dots i.now{box-shadow:0 0 0 3px var(--sun)}
-.qstage{position:relative;height:clamp(220px,36vh,320px)}
-.carrier{position:absolute;left:50%;top:50%;width:min(340px,80%);transform:translate(-50%,-50%)}
+.qstage{position:relative;height:clamp(160px,26vh,250px)}
+.carrier{position:absolute;left:50%;top:50%;width:min(280px,70%);transform:translate(-50%,-50%)}
 .carrier .art{width:100%}
 .qcard{position:absolute;left:50%;top:38%;transform:translate(-50%,-50%);padding:8px 18px;border-radius:18px;background:var(--paper);
   color:var(--ink);font-family:var(--f-kanji);font-weight:600;font-size:clamp(48px,9vw,72px);line-height:1.15;white-space:nowrap;box-shadow:0 6px 0 rgba(0,0,0,.25)}
@@ -209,11 +209,29 @@ ruby rt{font-family:var(--f-ui);font-size:.5em;font-weight:700;color:var(--sun)}
 @keyframes glide{from{transform:translate(-160%,-30%) rotate(-12deg)}to{transform:translate(-50%,-50%)}}
 @keyframes flyoff{30%{transform:translate(-50%,-62%) rotate(6deg)}to{transform:translate(120%,-140%) rotate(18deg)}}
 .qhint{position:absolute;left:0;right:0;bottom:0;text-align:center;font-size:30px;min-height:36px}
-.opts{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-.opt{aspect-ratio:1;max-width:100%;border-radius:50%;font-weight:900;font-size:clamp(22px,4.4vw,34px);color:var(--ink);
-  background:radial-gradient(circle at 32% 28%,#fff 0 14%,#d9f3f7 15% 55%,#9fd8e6 100%);box-shadow:inset 0 -6px 0 rgba(23,96,126,.25)}
-.opt.no{animation:shake .45s;opacity:.35}
-.opt.yes{background:radial-gradient(circle at 32% 28%,#fff 0 14%,#c9f5df 15% 55%,var(--kelp) 100%)}
+/* The options swim in a tank, each reading on a tag on a creature's back. Only painted parts and tags take taps. */
+#qPlay{width:100%}
+.qtank{height:clamp(300px,46vh,460px);flex:none}
+.qtank .sand{bottom:0;height:60px;border-radius:50% 50% 0 0/12px 12px 0 0}
+.qtank .weed{bottom:34px}
+#qOpts,#qTags{position:absolute;inset:0;pointer-events:none}
+.critter{position:absolute;left:0;top:0;padding:0;pointer-events:none}
+.critter .body{width:100%;height:100%;transform-origin:50% 90%}
+.critter svg{display:block;width:100%;height:100%;pointer-events:none}
+.critter svg *{pointer-events:visiblePainted}
+.qtank .clip{position:absolute;left:0;top:0;overflow:hidden;pointer-events:none}
+.qtank .rock,.qtank .hole{position:absolute;left:0;top:0;pointer-events:none}
+.qtank .hole{border-radius:50%;background:radial-gradient(ellipse at 50% 40%,#3d2a12 0 45%,rgba(61,42,18,.5) 70%,transparent 72%)}
+.tag{position:absolute;left:0;top:0;padding:2px 12px 4px;border-radius:14px;background:var(--paper);color:var(--ink);
+  font-weight:900;font-size:clamp(22px,3.2vw,30px);line-height:1.25;white-space:nowrap;pointer-events:auto;cursor:pointer;
+  box-shadow:0 4px 0 rgba(0,0,0,.25)}
+.tag.hid{visibility:hidden}
+.critter.no,.tag.no,.critter.gone,.tag.gone{opacity:.3;transition:opacity .5s}
+.critter.gone,.tag.gone{opacity:0}
+.critter.no *,.tag.no,.critter.gone *,.tag.gone{pointer-events:none!important}
+.tag.no{background:#ffd5cc;text-decoration:line-through}
+.tag.yes{background:var(--kelp);color:#06301f}
+.critter.yes svg{animation:jiggle .5s ease-out 2}
 @keyframes shake{20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
 .qmsg{text-align:center;font-weight:900;font-size:22px;min-height:34px}
 .result{display:flex;flex-direction:column;align-items:center;gap:16px;text-align:center;padding:20px}
@@ -418,7 +436,13 @@ ruby rt{font-family:var(--f-ui);font-size:.5em;font-weight:700;color:var(--sun)}
           <div class="qhint" id="qHint"></div>
         </div>
         <div class="qmsg" id="qMsg">なんて よむかな？</div>
-        <div class="opts" id="qOpts"></div>
+        <div class="tank qtank" id="qTank" aria-label="すいそう">
+          <div class="rays"></div>
+          <div id="qWeeds"></div>
+          <div class="sand"></div>
+          <div id="qOpts"></div>
+          <div id="qTags"></div>
+        </div>
       </div>
       <div class="result" id="qResult" hidden>
         <div class="art" style="width:160px" id="qResArt"></div>
@@ -480,39 +504,39 @@ const ORDER = SECTIONS.flatMap(s => [...s.kanji]);
 // Short sentences in the drill book's style: hiragana with spaces between words, and the kanji's reading in [ ].
 // ぶんで かく shows the reading over a box to write the kanji in; よみを かく shows the kanji and asks for the reading.
 const SENT = {
-  '木':['[き]の うえに ことりが いるよ。','おおきな [き]に のぼったよ。'],
-  '大':['[おお]きい くじらが およぐ。','たこの あたまは [おお]きいね。'],
-  '小':['[ちい]さい さかなが いっぱい。','かにの はさみは [ちい]さいね。'],
-  '一':['えいが [いち]ばん すき。','あめを [ひと]つ ください。'],
-  '二':['かにが [に]ひき いるよ。','おにぎりを [ふた]つ たべた。'],
-  '三':['くらげが [さん]びき ういて いる。','かいがらを [みっ]つ ひろったよ。'],
-  '四':['[し]がつに なったよ。','いるかが [よん]ひき はねた。','きのこを [よっ]つ みつけた。'],
-  '五':['たこの あしを [ご]ほん かぞえた。','いしを [いつ]つ ならべた。'],
-  '六':['[ろく]がつは あめが おおい。','あめだまを [むっ]つ もらった。'],
-  '七':['[しち]がつに うみへ いこう。','にじは [なな]いろ。','ほしが [なな]つ ひかる。'],
-  '八':['[はち]がつは なつやすみ。','いちごを [やっ]つ たべた。'],
-  '九':['[く]がつに なった。','さかなが [きゅう]ひき いるよ。','あねは [ここの]つです。'],
-  '十':['[じゅう]えんだまを ひろった。','りんごが [とお] あるよ。'],
-  '子':['いるかの [こ]どもが およぐ。','おとこの [こ]が はしる。'],
-  '空':['あおい [そら]を とりが とぶ。','[そら]に にじが でたよ。'],
-  '先':['[せん]せいに あいさつした。','がっこうの [せん]せい。'],
-  '生':['せん[せい]が わらった。','せん[せい]と うみへ いった。'],
-  '男':['[おとこ]の こが およぐ。','[おとこ]の ひとが つりを して いる。'],
-  '女':['[おんな]の こが わらう。','[おんな]の ひとが うたって いる。'],
-  '手':['[て]を あらおう。','かにと [て]を つなぐ。'],
-  '天':['きょうは いい [てん]きだね。','あしたの [てん]きは はれ。'],
-  '青':['[あお]い うみが すき。','[あお]ぞらが ひろがる。'],
-  '文':['[ぶん]を よむ。','みじかい [ぶん]を かいた。'],
-  '字':['きれいな [じ]を かこう。','ひらがなの [じ]を よむ。'],
-  '正':['[ただ]しい こたえは どれ。','しせいを [ただ]す。'],
-  '見':['すいそうの さかなを [み]る。','えを [み]せて。','しまが [み]える。'],
-  '学':['[がく]せいが あるく。','だい[がく]に いく。'],
-  '校':['がっ[こう]へ いく。','[こう]ていで あそぶ。'],
-  '山':['[やま]に のぼる。','たかい [やま]が みえる。'],
-  '水':['つめたい [みず]を のむ。','すいそうの [みず]を かえる。'],
-  '雨':['[あめ]が ふって きた。','[あめ]の ひは かさを さす。'],
-  '上':['いわの [うえ]に かにが いる。','つくえの [うえ]を みて。'],
-  '下':['いわの [した]に たこが かくれた。','[した]を みて ごらん。'],
+  '木':['[き]の うえで とかげが ひるねして いるよ。','へびが [き]に のぼったよ。'],
+  '大':['くじらは [おお]きいね。','わにの くちは [おお]きいね。'],
+  '小':['[ちい]さい かめが いっしょうけんめい はしる。','かにの はさみは [ちい]さいね。'],
+  '一':['わにの くちが [いち]ばん おおきい。','はりせんぼんに ふうせんを [ひと]つ あげたら われた。'],
+  '二':['うみへびが [に]ひき からまった。','かにの はさみは [ふた]つ。'],
+  '三':['くらげが [さん]びき おどって いる。','かめが だんごを [みっ]つ たべた。'],
+  '四':['[し]がつに かめが めを さました。','いるかが [よん]ひき くるくる まわった。','へびが たまごを [よっ]つ のみこんだ。'],
+  '五':['ひとでの うでは [ご]ほん。','かにが おにぎりを [いつ]つ かかえて いる。'],
+  '六':['かめは かけっこで [ろく]ばん だった。','やどかりが いえを [むっ]つ もって いる。'],
+  '七':['[しち]がつに さめと うみで あそぼう。','[なな]ひきの こがめが ならんで あるく。','たこが ぼうしを [なな]つ かぶって いる。'],
+  '八':['[はち]がつに うみがめの あかちゃんが うまれた。','たこが あしで あめを [やっ]つ もって いる。'],
+  '九':['[く]がつに うみへびが ひるねした。','いわしが [きゅう]ひき ならんで いるよ。','わにが いちごを [ここの]つ たべた。'],
+  '十':['かにが [じゅう]えんだまを ひろった。','ひとでが [とお] ならんで いる。'],
+  '子':['わにの [こ]どもは ちいさいね。','くじらの [こ]が しおを ふいた。'],
+  '空':['とびうおが [そら]を とんだ。','くじらが [そら]を みあげて いる。'],
+  '先':['はりせんぼんは [せん]せい じゃないよ。','たこの [せん]せいは てが はっぽん。'],
+  '生':['かめの せん[せい]は ゆっくり はなす。','せん[せい]が うみがめに のって きた。'],
+  '男':['[おとこ]の こが かにに はさまれた。','[おとこ]の ひとが へびと しゃしんを とった。'],
+  '女':['[おんな]の こが いるかと およぐ。','[おんな]の ひとが わにに あいさつした。'],
+  '手':['とかげに [て]を ふった。','かにと [て]を つなぐ。'],
+  '天':['いい [てん]きだね、と かめが いった。','[てん]きが いいと わにが ひなたぼっこする。'],
+  '青':['[あお]い とかげを みつけた。','くじらは [あお]い うみが すき。'],
+  '文':['たこが すみで [ぶん]を かいた。','かめが みじかい [ぶん]を ゆっくり よむ。'],
+  '字':['いかが すみで [じ]を かいた。','へびが からだで [じ]を つくった。'],
+  '正':['かにの [ただ]しい あるきかたは よこあるき。','へびが しせいを [ただ]す。'],
+  '見':['うみがめが つきを [み]る。','わにさん、はを [み]せて。','くじらの しっぽが [み]える。'],
+  '学':['[がく]せいが さめを みに いく。','だい[がく]で へびを しらべる。'],
+  '校':['がっ[こう]に かめが きた。','[こう]ていで とかげが ひなたぼっこして いる。'],
+  '山':['くじらは [やま]みたいに おおきい。','かめが [やま]に のぼった。'],
+  '水':['わにが [みず]から かおを だした。','[みず]の なかで たこが かくれんぼ。'],
+  '雨':['[あめ]の ひに かめが さんぽした。','[あめ]が ふっても さかなは へっちゃら。'],
+  '上':['いわの [うえ]に かにが いる。','かめの [うえ]に かめが のって いる。'],
+  '下':['いわの [した]に たこが かくれた。','ひとでの [した]に かにが いた。'],
 };
 
 
@@ -535,6 +559,7 @@ const CRE = {
   dumbo:{n:'メンダコ',svg:'dumbo',c:'#ffb3a4',s:'#ff8577'},
   kmush:{n:'キノコ',svg:'mush',c:'#ff5f57',floor:1,still:1}, kmush2:{n:'キノコサンゴ',svg:'mush',c:'#ff9ecf',floor:1,still:1},
   kmush3:{n:'あおい キノコ',svg:'mush',c:'#7aa8ff',floor:1,still:1},
+  eel:{n:'チンアナゴ',svg:'eel',c:'#f4efe2',s:'#3a2b3f'}, eel2:{n:'ニシキアナゴ',svg:'eel',c:'#ff9a3c',s:'#fff',stripe:1},
 };
 const FRIEND = ['octopus','kcrab','ray',
   'kclown','kpuffer','kturtle','kjelly','dumbo','octopus2','squid','iguana','ray3','kmush',
@@ -664,6 +689,8 @@ const KAWAII={
   angler:({c,s})=>svg(`<path d="M80 55L97 40Q93 55 97 70Z" fill="${s}"/><path d="M50 30Q60 16 72 28Z" fill="${s}"/><path d="M44 31Q36 8 17 16" stroke="${s}" stroke-width="2.6" fill="none" stroke-linecap="round"/><ellipse cx="52" cy="56" rx="32" ry="27" fill="${c}"/><ellipse cx="50" cy="68" rx="22" ry="9" fill="#fff" opacity=".3"/><ellipse cx="62" cy="62" rx="9" ry="5" fill="${s}" transform="rotate(30 62 62)"/><path d="M33 40q6-8 16-9" stroke="#fff" stroke-width="3.5" fill="none" stroke-linecap="round" opacity=".5"/><path d="M33 56l1.5 3 1.5-2.8M38.5 56.2l1.5 2.8 1.5-3" fill="#fff"/>${kface(30,44,48,4.2)}<g class="lure"><circle cx="14" cy="18" r="9" fill="#fff59d" opacity=".4"/><circle cx="14" cy="18" r="5" fill="#fffbe0"/></g>`),
   // Dumbo octopus (メンダコ): a bell-shaped body with ear fins and a scalloped skirt.
   dumbo:({c,s})=>svg(`<g class="ear l"><ellipse cx="17" cy="30" rx="13" ry="7.5" transform="rotate(-38 17 30)" fill="${s}"/></g><g class="ear r"><ellipse cx="83" cy="30" rx="13" ry="7.5" transform="rotate(38 83 30)" fill="${s}"/></g><path d="M50 12C72 12 79 30 79 50C79 62 85 72 90 80Q82 87 74 81Q67 91 58 85Q50 93 42 85Q33 91 26 81Q18 87 10 80C15 72 21 62 21 50C21 30 28 12 50 12Z" fill="${c}"/><g stroke="${s}" stroke-width="2.4" fill="none" stroke-linecap="round" opacity=".55"><path d="M36 66Q33 75 26 81"/><path d="M46 69Q45 78 42 85"/><path d="M54 69Q55 78 58 85"/><path d="M64 66Q67 75 74 81"/></g><path d="M33 26q6-8 15-9" stroke="#fff" stroke-width="3.5" fill="none" stroke-linecap="round" opacity=".6"/>${kface(41,59,44,4.4)}`),
+  // Garden eel (チンアナゴ, spotted; ニシキアナゴ, striped): a tall body standing up out of the sand, head bent to the left.
+  eel:({c,s,stripe})=>svg(`<path d="M52 104C52 80 58 62 54 46C52 36 47 30 41 28" stroke="${c}" stroke-width="15" fill="none" stroke-linecap="round"/><path d="M52 104C52 80 58 62 54 46" stroke="${s}" fill="none" ${stripe?'stroke-width="15" stroke-dasharray="5 7"':'stroke-width="5" stroke-dasharray=".1 10" stroke-linecap="round"'}/><ellipse cx="40" cy="27" rx="13" ry="11" fill="${c}"/>${kface(34,45,25,2.8)}`),
   clown:({c})=>svg(`<path d="M74 50L94 36Q90 50 94 64Z" fill="${c}"/><path d="M42 32Q54 18 66 32Z" fill="${c}"/><ellipse cx="46" cy="50" rx="30" ry="20" fill="${c}"/><g fill="#fff" stroke="#22122f" stroke-width="1.6"><ellipse cx="37" cy="50" rx="4.5" ry="19"/><ellipse cx="60" cy="50" rx="4" ry="15"/></g>${kface(19,28,46,3.3)}`),
 };
 function octoSVG(c){return `<svg viewBox="0 0 100 100" aria-hidden="true"><g fill="none" stroke="${c}" stroke-width="10" stroke-linecap="round"><path d="M30 56Q20 76 10 78"/><path d="M40 60Q34 82 26 92"/><path d="M50 62Q53 84 46 94"/><path d="M60 60Q66 82 74 92"/><path d="M70 56Q80 76 90 78"/></g><ellipse cx="50" cy="38" rx="31" ry="29" fill="${c}"/><circle cx="36" cy="21" r="4" fill="#fff" opacity=".35"/><circle cx="62" cy="17" r="3" fill="#fff" opacity=".35"/><ellipse cx="40" cy="40" rx="7" ry="8" fill="#fff"/><ellipse cx="60" cy="40" rx="7" ry="8" fill="#fff"/><circle cx="41" cy="42" r="3.6" fill="#22122f"/><circle cx="61" cy="42" r="3.6" fill="#22122f"/><circle cx="30" cy="52" r="4.5" fill="#ff5d8f" opacity=".45"/><circle cx="70" cy="52" r="4.5" fill="#ff5d8f" opacity=".45"/><path d="M45 54Q50 59 55 54" stroke="#22122f" stroke-width="2.4" fill="none" stroke-linecap="round"/></svg>`}
@@ -726,8 +753,8 @@ function renderLadder(){
 }
 
 let R=null;
-// A review session serves every due kanji (WaniKani style); misses come back later in the session,
-// and it ends once every one has been written correctly.
+// A review session serves each kanji that was due at the start once (WaniKani style), and ends when they're all done.
+// A miss is never asked again in the same session: it drops a level straight away instead.
 // Practising one set is free practice instead, until she taps おわる.
 // Practice picks at random, weighted towards low levels: each level up makes a kanji 0.6x as likely,
 // so メンダコ comes up about 8x as often as ウミガメ. The same kanji can come twice in a row.
@@ -746,7 +773,7 @@ function practicePick(){
 function startReview(pool,kind='kaku'){
   if(kind!=='kaku'){pool=ORDER.filter(k=>{const p=prog(k);return p.t||p.w||p.s}); if(pool.length<3)pool=ORDER.slice()}
   if(!pool&&!dueList().length)return;
-  R={kind,queue:pool?[]:shuffle(dueList()),wrong:{},done:0,ups:[],practiced:0,extra:false,boost:{},pool};
+  R={kind,queue:pool?[]:shuffle(dueList()),done:0,ups:[],practiced:0,extra:false,boost:{},pool};
   show('practice'); $('practice').classList.add('reviewing'); $('practice').classList.toggle('yomi',kind==='yomi'); nextReview();
 }
 const splitSent=t=>t.split(/\[|\]/); // → [before, reading, after]
@@ -763,11 +790,7 @@ function nextKana(){
 function levelHTML(s){return `<div class="art">${art(LEVELS[s].id)}</div>${LEVELS[s].n}・${LEVELS[s].g}`}
 function nextReview(){
   $('revNext').hidden=true; $('revGiveUp').hidden=false; $('revHint').hidden=false; $('revPeek').hidden=false;
-  if(!R.pool&&!R.queue.length){
-    if(R.kind==='test')return endTest();
-    R.queue=shuffle(dueList()); // any that fell due during the session
-    if(!R.queue.length)return endReview();
-  }
+  if(!R.pool&&!R.queue.length)return R.kind==='test'?endTest():endReview();
   R.extra=!!R.pool;
   const k=R.extra?practicePick():R.queue[0], p=prog(k), sent=SENT[k]&&pick(SENT[k]);
   R.k=k; $('revLevel').innerHTML=levelHTML(p.s||0); $('revPic').textContent='';
@@ -809,8 +832,8 @@ function yomiKanaDone(){
   if(SFX.on){const rd=R.parts.join(R.reading); setTimeout(()=>say(rd),600)}
   $('revNext').hidden=false; $('revGiveUp').hidden=true; $('revHint').hidden=true; $('revPeek').hidden=true; $('revNext').focus();
 }
-// Wrong answers come back later in the session; the level only changes once it's written with no misses or hints
-// (WaniKani rule: drop ceil(wrong/2) stages, doubled from じょうず up).
+// Written with no misses or hints levels it up; anything else drops it a level (two from じょうず up, WaniKani's rule
+// for one wrong answer, never below みならい 1). Either way it's done for this session and waits for its next review.
 function reviewDone(){
   if(R.kind==='yomi')return yomiKanaDone();
   if(R.kind==='test')return testDone();
@@ -819,19 +842,17 @@ function reviewDone(){
     R.practiced++; const b=R.boost[k]||1;
     if(ok){R.boost[k]=Math.max(1,b/3);SFX.chime();coach('かけたね！')}
     else{R.boost[k]=Math.min(9,b*3);SFX.bloop();openExtra(k);coach('おしい！ また でてくるよ。したの ますで れんしゅう してもいいよ',true)}
-  }else if(!ok){
-    R.queue.shift();
-    R.wrong[k]=(R.wrong[k]||0)+1;
-    R.queue.splice(Math.min(R.queue.length,2+Math.floor(Math.random()*3)),0,k);
-    SFX.bloop(); openExtra(k); coach((cur.reveal||cur.totalMiss?'おしい！ あとで もういちど。':'ヒントを みて かけたね！ あとで もういちど。')+'したの ますで れんしゅう してもいいよ',true);
   }else{
     R.queue.shift();
-    const before=p.s, inc=R.wrong[k]||0;
-    p.s=inc?Math.max(1,before-Math.ceil(inc/2)*(before>=5?2:1)):before+1;
+    const before=p.s;
+    p.s=ok?before+1:Math.max(1,before-(before>=5?2:1));
     p.due=p.s>=BURNED?null:hourFloor(Date.now()+SRS_INT[p.s]);
     save(); R.done++;
-    if(p.s>before){R.ups.push(p.s);danceParty(p.s);levelUp=true;coach(p.s===BURNED?'でんせつの クジラに なった！ もう ばっちり！':`レベル アップ！ ${LEVELS[p.s].n}に なったよ`)}
-    else{SFX.chime();coach(p.s<before?`かけたね！ レベルは ${LEVELS[p.s].n}に もどるよ`:'かけたね！')}
+    if(!ok){
+      SFX.bloop(); openExtra(k);
+      coach((cur.reveal||cur.totalMiss?'おしい！ ':'ヒントを みて かけたね！ ')+(p.s<before?`レベルは ${LEVELS[p.s].n}に もどるよ。`:'')+'したの ますで れんしゅう してもいいよ',true);
+    }else if(p.s>before){R.ups.push(p.s);danceParty(p.s);levelUp=true;coach(p.s===BURNED?'でんせつの クジラに なった！ もう ばっちり！':`レベル アップ！ ${LEVELS[p.s].n}に なったよ`)}
+    else{SFX.chime();coach('かけたね！')}
     $('revLevel').innerHTML=`<div class="art">${art(LEVELS[before].id)}</div><span class="arrow">→</span>${levelHTML(p.s)}`;
   }
   $('revNext').hidden=false; $('revGiveUp').hidden=true; $('revHint').hidden=true; $('revPeek').hidden=true; $('revNext').focus();
@@ -878,7 +899,7 @@ function jaws(from,to,dur,easing){
 }
 async function startTest(si){
   const ks=[...SECTIONS[si].kanji];
-  R={kind:'test',queue:shuffle(ks),wrong:{},done:0,ups:[],practiced:0,extra:false,boost:{},pool:null,test:{si,n:ks.length,score:0,done:0}};
+  R={kind:'test',queue:shuffle(ks),done:0,ups:[],practiced:0,extra:false,boost:{},pool:null,test:{si,n:ks.length,score:0,done:0}};
   buildTeeth(ks.length);
   const W=$('whale'), g=$('gulp'); W.hidden=false; W.classList.add('busy');
   jaws('off','off',0);
@@ -1029,11 +1050,13 @@ $('tank').addEventListener('pointerdown',e=>{
   el.classList.remove('tapped'); void el.offsetWidth; el.classList.add('tapped');
 });
 function renderWeeds(){
-  const w=$('weeds'); w.innerHTML='';
-  [[6,70],[9,46],[22,58],[58,40],[63,64],[88,52]].forEach(([x,h],i)=>{
-    const d=document.createElement('div'); d.className='weed';
-    d.style.cssText=`left:${x}%;height:${h}px;animation-delay:${-i*.9}s`; w.appendChild(d);
-  });
+  for(const w of [$('weeds'),$('qWeeds')]){
+    w.innerHTML='';
+    [[6,70],[9,46],[22,58],[58,40],[63,64],[88,52]].forEach(([x,h],i)=>{
+      const d=document.createElement('div'); d.className='weed';
+      d.style.cssText=`left:${x}%;height:${h}px;animation-delay:${-i*.9}s`; w.appendChild(d);
+    });
+  }
 }
 function renderReefs(){
   const root=$('reefs'); root.innerHTML='';
@@ -1451,32 +1474,150 @@ function nextQ(){
   Q.cur={k,ans:kana(r),miss:0};
   $('qCard').textContent=wordPlain(k,r); $('qHint').textContent=''; $('qMsg').textContent='なんて よむかな？';
   const c=$('carrier'); c.classList.remove('in','out'); void c.offsetWidth; c.classList.add('in'); SFX.swoosh();
-  const box=$('qOpts'); box.innerHTML='';
-  shuffle(opts).forEach(o=>{const b=document.createElement('button');b.className='opt';b.textContent=o;b.onclick=()=>answer(b,o);box.appendChild(b)});
+  buildTank(shuffle(opts));
 }
-async function answer(b,o){
-  if(Q.lock||b.classList.contains('no'))return;
-  if(o===Q.cur.ans){
-    Q.lock=true; b.classList.add('yes'); SFX.right(); if(SFX.on)setTimeout(()=>say(o),350);
+async function answer(a){
+  if(Q.lock||a.el.classList.contains('no'))return;
+  const mark=c=>{a.el.classList.add(c); a.tag.classList.add(c)};
+  if(a.o===Q.cur.ans){
+    Q.lock=true; mark('yes'); SFX.right(); if(SFX.on)setTimeout(()=>say(a.o),350);
+    for(const b of TK.actors)if(b!==a){b.el.classList.add('gone'); b.tag.classList.add('gone')}
     const firstTry=Q.cur.miss===0; Q.res[Q.i]=firstTry;
     if(firstTry){Q.score++; const p=prog(Q.cur.k); p.r=(p.r||0)+1; save()}
     $('qMsg').textContent=firstTry?pick(PRAISE):'できたね！';
-    await sleep(700); $('carrier').classList.add('out'); SFX.swooshUp(); await sleep(reduce?150:850);
-    Q.i++; Q.lock=false; nextQ();
+    await sleep(900); $('carrier').classList.add('out'); SFX.swooshUp(); await sleep(reduce?150:850);
+    Q.i++; Q.lock=false; if(!$('quiz').hidden)nextQ();
   }else{
-    b.classList.add('no'); Q.cur.miss++; SFX.bloop();
+    mark('no'); Q.cur.miss++; SFX.bloop();
     $('qHint').textContent=INFO[Q.cur.k].pic; $('qMsg').textContent='ちがうよ。ヒントを みてね';
   }
 }
+// The tank: one option per lane so creatures never cross. Near the top a fish cruises or rests then dashes;
+// in the middle a turtle swims, a sea snake wriggles or a jellyfish drifts; on the sand a ワニ plods, a crab
+// scuttles, a チンアナゴ pops in and out of its holes, or an octopus peeks out from behind a rock.
+const LANES={
+  top:[{move:'swim',ids:['kclown','kwhale','kpuffer2']},{move:'dart',ids:['kclown','kpuffer','kpuffer2']}],
+  mid:[{move:'swim',ids:['kturtle','kturtle2']},{move:'snake',ids:['ksnake']},{move:'jelly',ids:['kjelly','kjelly2']}],
+  low:[{move:'walk',ids:['kcroc']},{move:'crab',ids:['kcrab']},{move:'eel',ids:['eel','eel2']},{move:'hide',ids:['octopus','octopus2','octopus3','dumbo']}],
+};
+// Where the tag sits on each creature's back, as a fraction of its box, facing left.
+const BACK={kclown:[.55,.34],kpuffer:[.52,.2],kpuffer2:[.52,.2],kwhale:[.5,.32],kturtle:[.6,.33],kturtle2:[.6,.33],
+  ksnake:[.6,.56],kjelly:[.5,.2],kjelly2:[.5,.2],kcroc:[.58,.46],kcrab:[.5,.22],eel:[.42,.18],eel2:[.42,.18],
+  octopus:[.5,.11],octopus2:[.5,.11],octopus3:[.5,.11],dumbo:[.5,.14]};
+const ROCK='<svg viewBox="0 0 120 60" aria-hidden="true"><path d="M2 60Q0 34 20 24Q30 8 56 10Q80 2 98 18Q120 26 118 60Z" fill="#56677f"/><path d="M22 28Q34 15 54 16" stroke="#fff" stroke-width="4" fill="none" opacity=".22" stroke-linecap="round"/><ellipse cx="82" cy="40" rx="11" ry="6" fill="#45546a"/><ellipse cx="38" cy="46" rx="7" ry="4" fill="#45546a"/><path d="M96 20q4-12 0-18M100 22q8-8 8-16" stroke="#ff9ecf" stroke-width="4" fill="none" stroke-linecap="round"/></svg>';
+let TK=null;
+function stopTank(){if(TK)cancelAnimationFrame(TK.raf); TK=null}
+function buildTank(opts){
+  stopTank();
+  const tank=$('qTank'), box=$('qOpts'), tags=$('qTags'); box.innerHTML=''; tags.innerHTML='';
+  const S=Math.round(Math.max(96,Math.min(150,tank.clientWidth*.17)));
+  TK={actors:[],S,W:tank.clientWidth,H:tank.clientHeight,last:0,raf:0};
+  const add=(cls,html)=>{const d=document.createElement('div'); d.className=cls; if(html)d.innerHTML=html; box.appendChild(d); return d};
+  const starts=shuffle([.06,.46,.86]);
+  opts.forEach((o,i)=>{
+    const lane=['top','mid','low'][i], kind=pick(LANES[lane]), id=pick(kind.ids), [ax,ay]=BACK[id];
+    const el=document.createElement('button'); el.className='critter'; el.setAttribute('aria-label',o);
+    el.innerHTML=`<div class="body">${art(id)}</div>`; el.style.width=el.style.height=S+'px';
+    const tag=document.createElement('span'); tag.className='tag'; tag.textContent=o; tags.appendChild(tag);
+    const a={o,id,lane,move:kind.move,el,body:el.firstChild,tag,ax,ay,fx:starts[i],x:0,y:0,rot:0,
+      face:kind.move==='crab'||kind.move==='jelly'?-1:pick([-1,1]),dir:pick([-1,1]),ph:Math.random()*6,state:'',until:0,up:1};
+    if(a.move==='eel'||a.move==='hide'){
+      if(a.move==='eel'){a.holes=shuffle([.1,.3,.5,.7,.9]).slice(0,3); a.hole=0; a.holeEls=a.holes.map(()=>add('hole'))}
+      else{a.rx=.15+Math.random()*.7; a.face=-1}
+      a.clip=add('clip'); a.clip.appendChild(el);
+      if(a.move==='hide')a.rock=add('rock',ROCK);
+      a.state='up'; a.until=1+Math.random()*2;
+    }else box.appendChild(el);
+    const go=e=>{e.preventDefault(); SFX.unlock(); answer(a)};
+    el.addEventListener('pointerdown',go); tag.addEventListener('pointerdown',go); el.onclick=()=>answer(a);
+    TK.actors.push(a);
+  });
+  if(reduce)for(const a of TK.actors)a.until=Infinity;
+  layoutTank(); frame(performance.now());
+}
+// Fixed scenery (holes and rocks) and each creature's starting place, from the tank's current size.
+function layoutTank(){
+  const {S,W,H}=TK, G=H-44;
+  for(const a of TK.actors){
+    if(a.move==='eel'){
+      a.holeEls.forEach((h,j)=>{const w=S*.42; h.style.width=w+'px'; h.style.height='14px';
+        h.style.transform=`translate(${a.holes[j]*(W-S)+S/2-w/2}px,${G-2}px)`});
+      a.clipH=S; a.cy=G+5-S; a.clip.style.width=S+'px'; a.clip.style.height=S+'px';
+    }else if(a.move==='hide'){
+      const rw=S*1.3, rh=S*.62, rl=a.rx*(W-rw), rt=G+18-rh;
+      a.rock.style.width=rw+'px'; a.rock.style.transform=`translate(${rl}px,${rt}px)`;
+      a.clipH=S*1.1; a.cx=rl+(rw-S)/2; a.cy=rt+rh*.55-a.clipH;
+      a.clip.style.width=S+'px'; a.clip.style.height=a.clipH+'px';
+    }else if(!a.placed){a.x=a.fx*(W-S); a.placed=true}
+  }
+}
+addEventListener('resize',()=>{if(!TK)return; const t=$('qTank'); TK.W=t.clientWidth; TK.H=t.clientHeight; layoutTank()});
+const ease=k=>1-(1-Math.min(1,Math.max(0,k)))**3;
+function frame(now){
+  if(!TK)return;
+  const t=now/1000, dt=TK.last?Math.min(.05,t-TK.last):0; TK.last=t;
+  const {S,W,H}=TK, G=H-44, max=W-S-4;
+  for(const a of TK.actors){
+    const lift=a.lane==='top'?52-a.ay*S:H*.47-a.ay*S;
+    // Back and forth across the tank, turning round at each wall.
+    const cruise=(v,flip=true)=>{a.x+=a.dir*v*dt; if(a.x<4){a.x=4;a.dir=1} if(a.x>max){a.x=max;a.dir=-1} if(flip)a.face=a.dir};
+    const next=(state,lo,hi)=>{a.state=state; a.t0=t; a.until=t+lo+Math.random()*(hi-lo)};
+    switch(a.move){
+      case 'swim': cruise(S*(a.lane==='top'?.38:.24)); a.y=lift+Math.sin(t*1.7+a.ph)*5; a.rot=Math.sin(t*1.7+a.ph+1)*3; break;
+      case 'dart':
+        if(t>=a.until){
+          if(a.state!=='rest')next('rest',1.2,2.8);
+          else{let to; do to=4+Math.random()*(max-4); while(Math.abs(to-a.x)<(max-4)*.3);
+            a.from=a.x; a.to=to; a.face=Math.sign(to-a.x); next('go',.45,.45)}
+        }
+        if(a.state==='go')a.x=a.from+(a.to-a.from)*ease((t-a.t0)/.45);
+        a.y=lift+Math.sin(t*2+a.ph)*4; a.rot=a.state==='go'?-a.face*4:0; break;
+      case 'snake': cruise(S*.28); a.y=lift+Math.sin(a.x*.04)*10; a.rot=Math.cos(a.x*.04)*7; break;
+      case 'jelly': cruise(S*.12,false); a.y=lift+Math.sin(t*1.4+a.ph)*14; a.rot=Math.sin(t*.9+a.ph)*5; break;
+      case 'walk':
+        if(t>=a.until){if(a.state==='walk'){next('stop',.8,1.8); if(Math.random()<.3)a.dir*=-1}else next('walk',2,4.5)}
+        if(a.state==='walk')cruise(S*.18);
+        a.face=a.dir; a.y=G-.8*S-(a.state==='walk'?Math.abs(Math.sin(t*7))*3:0); a.rot=a.state==='walk'?Math.sin(t*7)*2:0; break;
+      case 'crab':
+        if(t>=a.until){if(a.state==='run')next('stop',.5,1.2); else{next('run',.6,1.3); a.dir=pick([-1,1])}}
+        if(a.state==='run')cruise(S*.6,false);
+        a.y=G-.86*S; a.rot=a.state==='run'?Math.sin(t*28)*4:0; break;
+      case 'eel': case 'hide':{
+        // Pop out (fast for the eel, slower for a peeking octopus), stay a while, then duck back down.
+        const eel=a.move==='eel', rise=eel?.28:.6, sink=eel?.2:.45;
+        if(t>=a.until){
+          if(a.state==='up')next('sink',sink,sink);
+          else if(a.state==='sink')next('down',eel?.4:.7,eel?.9:1.4);
+          else if(a.state==='down'){next('rise',rise,rise); if(eel){a.hole=(a.hole+1+(Math.random()<.5))%3; a.face=pick([-1,1])}}
+          else next('up',eel?2.4:2.6,eel?3.8:3.8);
+        }
+        a.up=a.state==='rise'?ease((t-a.t0)/rise):a.state==='sink'?1-ease((t-a.t0)/sink):a.state==='down'?0:1;
+        if(eel)a.cx=a.holes[a.hole]*(W-S);
+        a.dy=eel?(1-a.up)*S*1.02:a.clipH-S*.85*a.up;
+        a.sx=eel?0:Math.sin(t*1.6+a.ph)*S*.06*a.up; a.rot=Math.sin(t*2+a.ph)*5*a.up; break;
+      }
+    }
+    const flip=a.face>0?' scaleX(-1)':'';
+    a.body.style.transform=`rotate(${a.rot.toFixed(2)}deg)${flip}`;
+    const tx=a.face>0?1-a.ax:a.ax;
+    let px,py;
+    if(a.clip){
+      a.clip.style.transform=`translate(${a.cx}px,${a.cy}px)`; a.el.style.transform=`translate(${a.sx}px,${a.dy}px)`;
+      px=a.cx+a.sx; py=a.cy+a.dy; a.tag.classList.toggle('hid',a.up<.7);
+    }else{a.el.style.transform=`translate(${a.x}px,${a.y}px)`; px=a.x; py=a.y}
+    a.tag.style.transform=`translate(${px+tx*S}px,${py+a.ay*S+4}px) translate(-50%,-100%)`;
+  }
+  if(!reduce)TK.raf=requestAnimationFrame(frame);
+}
 function endQuiz(){
-  dots(); $('qPlay').hidden=true; $('qResult').hidden=false;
+  stopTank(); dots(); $('qPlay').hidden=true; $('qResult').hidden=false;
   $('qResArt').innerHTML=art(Q.score>=5?'ray2':'ray');
   $('qScore').textContent=`${Q.score} / ${ROUND}`;
   if(Q.score>=4)SFX.fanfare(); else SFX.chime();
   $('qResText').textContent=Q.score===ROUND?'ぜんぶ せいかい！ エイも おおよろこび':Q.score>=4?'よく よめたね！':'もういちど あそんで みよう';
 }
 $('playQuiz').onclick=startQuiz; $('qAgain').onclick=startQuiz;
-$('qHome').onclick=renderHome; $('backHome2').onclick=renderHome;
+$('qHome').onclick=$('backHome2').onclick=()=>{stopTank(); renderHome()};
 
 // ---------- backup (for grown-ups) ----------
 // Progress lives only in this browser's storage, so a grown-up can save it as a small file
@@ -1532,7 +1673,7 @@ function setSize(i){
 $('sizes').addEventListener('click',e=>{const b=e.target.closest('button');if(b)setSize(+b.dataset.i)});
 {let i=0;try{i=+localStorage.getItem('kanjiSea.boardSize')||0}catch(e){} setSize(SIZES[i]?i:0)}
 for(const ev of ['pointerdown','touchend','click'])document.addEventListener(ev,()=>SFX.unlock(),{capture:true});
-document.addEventListener('click',e=>{const b=e.target.closest('button');if(b&&!b.classList.contains('opt')&&b.id!=='soundBtn')SFX.pop()},true);
+document.addEventListener('click',e=>{const b=e.target.closest('button');if(b&&!b.classList.contains('critter')&&b.id!=='soundBtn')SFX.pop()},true);
 $('ctaRay').innerHTML=art('ray'); $('ctaYomi').innerHTML=art('dumbo'); $('ctaBun').innerHTML=art('kturtle'); $('ctaOcto').innerHTML=art('octopus'); $('qRay').innerHTML=raySVG('#9cc0cf');
 renderWeeds(); renderHome();
 </script>
