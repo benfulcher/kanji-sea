@@ -317,6 +317,36 @@ ruby rt{font-family:var(--f-ui);font-size:.5em;font-weight:700;color:var(--sun)}
 .chicken .hen .emo{font-size:min(130px,15vw)}
 .chicken .pop{position:absolute;font-size:34px}
 
+/* Then a fossil to dig up: rub off the loose sand and the rock under it. Fossils go on the home screen's museum shelf. */
+.dig{position:fixed;inset:0;z-index:19;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2.4vh;
+  padding:16px;background:radial-gradient(120% 90% at 50% 40%,#4a3522 0%,#2a1c10 70%,#160e07 100%)}
+.dig .cap{font-weight:900;font-size:clamp(30px,5.5vw,52px);color:var(--sun);text-shadow:0 4px 0 rgba(0,0,0,.35);text-align:center;text-wrap:balance}
+.dig .hint{margin:0;min-height:2.8em;max-width:640px;font-weight:700;font-size:clamp(18px,2.6vw,24px);text-align:center;color:var(--foam);text-wrap:balance}
+.slab{position:relative;width:min(100%,calc(62vh*4/3),680px);aspect-ratio:4/3;border-radius:28px;overflow:hidden;touch-action:none;
+  background:radial-gradient(circle at 30% 25%,rgba(255,255,255,.12),transparent 60%),
+    radial-gradient(circle at 22% 70%,#9a835f 0 1.5px,transparent 2.5px) 0 0/23px 19px,#ae9874;
+  box-shadow:0 10px 0 rgba(0,0,0,.35),inset 0 0 0 4px rgba(0,0,0,.18)}
+.slab canvas{position:absolute;inset:0;width:100%;height:100%;transition:opacity .9s ease-in}
+.slab.clear canvas{opacity:0}
+.slab .fos{position:absolute;left:50%;top:50%;width:69%;translate:-50% -50%}
+.slab.clear .fos{animation:fosGlow 1.6s ease-out}
+@keyframes fosGlow{0%{filter:drop-shadow(0 0 0 #fff6c8)}40%{filter:drop-shadow(0 0 18px #fff6c8);transform:scale(1.06)}100%{filter:drop-shadow(0 0 0 #fff6c8)}}
+.slab .finger{position:absolute;left:50%;top:55%;font-size:64px;pointer-events:none;animation:rub 1.1s ease-in-out infinite alternate}
+@keyframes rub{from{transform:translate(-90%,0) rotate(-12deg)}to{transform:translate(10%,8px) rotate(10deg)}}
+.slab .bit{position:absolute;left:0;top:0;width:7px;height:6px;border-radius:2px;pointer-events:none}
+.slab .twinkle{position:absolute;font-size:30px;pointer-events:none}
+.fos svg,.fslot svg,.plaque svg{display:block;width:100%;height:auto}
+.dig .cta[hidden]{display:none}
+.museum .shelf{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+@media (min-width:960px){.museum .shelf{grid-template-columns:repeat(12,minmax(0,1fr))}}
+.fslot{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;aspect-ratio:1;padding:6px;border-radius:18px;
+  background:radial-gradient(circle at 30% 25%,rgba(255,255,255,.12),transparent 60%),#8f7a58;box-shadow:inset 0 0 0 3px rgba(0,0,0,.15);
+  font-weight:900;font-size:30px;color:rgba(236,248,245,.35)}
+.fslot.none{background:rgba(6,25,42,.42)}
+.fslot svg{width:76%}
+.fslot small{font-size:10px;font-weight:700;color:#fff3d6;line-height:1.2;text-align:center}
+.plaque{width:100%;aspect-ratio:1;padding:8%;border-radius:50%;background:radial-gradient(circle at 30% 25%,rgba(255,255,255,.14),transparent 60%),#9c865f}
+
 @media (prefers-reduced-motion: reduce){
   .swimmer,.swimmer .bob,.swimmer .face,.weed,.cele .art,.carrier.in,.carrier.out,#board .start.pulse{animation:none!important}
 }
@@ -352,6 +382,7 @@ ruby rt{font-family:var(--f-ui);font-size:.5em;font-weight:700;color:var(--sun)}
         <span><i style="background:#2d9bc4"></i>みないで かけた</span>
         <span><i style="background:#e6a817"></i>よめた</span>
       </div>
+      <section class="reef museum" id="museum" aria-label="かせきの はくぶつかん"></section>
       <div id="reefs" class="wrap" style="gap:16px"></div>
       <div class="grownups">
         <b>おとなの かたへ</b>
@@ -669,6 +700,14 @@ const SFX=(()=>{
       puff:()=>{hiss({dur:.35,f0:300,f1:1500,q:1,vol:.15});tone({f0:500,f1:1400,t:.3,dur:.1,vol:.15})},
     })[v]()),
     right:go(()=>{tone({type:'triangle',f0:784,dur:.15,vol:.15});tone({type:'triangle',f0:1175,t:.1,dur:.3,vol:.15});bubbles(4,.15)}),
+    // Digging: a gritty scrape for each rub, now and then a clink on the rock.
+    scrape:go(rock=>{hiss({dur:.09,f0:600+Math.random()*900,f1:350,q:.7,vol:.12});if(rock&&Math.random()<.25)tone({type:'triangle',f0:1900+Math.random()*900,dur:.06,vol:.05})}),
+    // The fossil comes out: a crumble, a thump, then a rising ta-da with sparkles.
+    found:go(()=>{
+      hiss({dur:.5,f0:500,f1:150,q:.6,vol:.18}); tone({f0:150,f1:300,t:.15,dur:.3,vol:.22});
+      [523,659,784,1047,1319,1568].forEach((f,j)=>tone({type:'triangle',f0:f,t:.35+j*.09,dur:j===5?.9:.25,vol:.14}));
+      [2093,2637,3136,4186,3136,4186].forEach((f,j)=>tone({f0:f,t:.9+j*.07,dur:.3,vol:.06})); hiss({t:.9,dur:.9,f0:3000,f1:8000,q:2,vol:.05});
+    }),
   };
 })();
 
@@ -695,6 +734,142 @@ const KAWAII={
 };
 function octoSVG(c){return `<svg viewBox="0 0 100 100" aria-hidden="true"><g fill="none" stroke="${c}" stroke-width="10" stroke-linecap="round"><path d="M30 56Q20 76 10 78"/><path d="M40 60Q34 82 26 92"/><path d="M50 62Q53 84 46 94"/><path d="M60 60Q66 82 74 92"/><path d="M70 56Q80 76 90 78"/></g><ellipse cx="50" cy="38" rx="31" ry="29" fill="${c}"/><circle cx="36" cy="21" r="4" fill="#fff" opacity=".35"/><circle cx="62" cy="17" r="3" fill="#fff" opacity=".35"/><ellipse cx="40" cy="40" rx="7" ry="8" fill="#fff"/><ellipse cx="60" cy="40" rx="7" ry="8" fill="#fff"/><circle cx="41" cy="42" r="3.6" fill="#22122f"/><circle cx="61" cy="42" r="3.6" fill="#22122f"/><circle cx="30" cy="52" r="4.5" fill="#ff5d8f" opacity=".45"/><circle cx="70" cy="52" r="4.5" fill="#ff5d8f" opacity=".45"/><path d="M45 54Q50 59 55 54" stroke="#22122f" stroke-width="2.4" fill="none" stroke-linecap="round"/></svg>`}
 function raySVG(c,spots){return `<svg viewBox="0 0 120 100" aria-hidden="true"><path d="M60 66Q63 84 80 96" stroke="${c}" stroke-width="3.5" fill="none" stroke-linecap="round"/><path d="M60 12C76 14 104 36 116 50C100 56 80 62 60 70C40 62 20 56 4 50C16 36 44 14 60 12Z" fill="${c}"/>${spots?'<g fill="#fff" opacity=".6"><circle cx="38" cy="38" r="2.6"/><circle cx="82" cy="38" r="2.6"/><circle cx="26" cy="46" r="2"/><circle cx="94" cy="46" r="2"/><circle cx="60" cy="26" r="2.4"/></g>':''}<ellipse cx="60" cy="47" rx="19" ry="13" fill="#fff" opacity=".3"/><ellipse cx="53" cy="43" rx="2.6" ry="3.4" fill="#22122f"/><ellipse cx="67" cy="43" rx="2.6" ry="3.4" fill="#22122f"/><path d="M53 52Q60 58 67 52" stroke="#22122f" stroke-width="2.2" fill="none" stroke-linecap="round"/><circle cx="46" cy="50" r="3" fill="#ff5d8f" opacity=".35"/><circle cx="74" cy="50" r="3" fill="#ff5d8f" opacity=".35"/></svg>`}
+// ---------- fossils (かせき): ancient sea animals in bone on stone, one dug up for each perfect test ----------
+const FB='#f3e4c2', FS='#cdb184', FL='#6e5030';
+const fsvg=b=>`<svg viewBox="0 0 100 100" aria-hidden="true"><g stroke="${FL}" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">${b}</g></svg>`;
+const f1=v=>v.toFixed(1);
+const bez=(p,t)=>{const u=1-t;return p.length===3?[0,1].map(i=>u*u*p[0][i]+2*u*t*p[1][i]+t*t*p[2][i]):
+  [0,1].map(i=>u*u*u*p[0][i]+3*u*u*t*p[1][i]+3*u*t*t*p[2][i]+t*t*t*p[3][i])};
+// Bones along a curve: circles shrinking from r0 to r1.
+const spine=(p,n,r0,r1)=>Array.from({length:n},(_,i)=>{const [x,y]=bez(p,i/(n-1));return `<circle cx="${f1(x)}" cy="${f1(y)}" r="${f1(r0+(r1-r0)*i/(n-1))}" fill="${FB}"/>`}).join('');
+// A leaf-shaped flipper or fin from base (x1,y1) to tip (x2,y2).
+const leaf=(x1,y1,x2,y2,w,fill=FB)=>{const mx=(x1+x2)/2,my=(y1+y2)/2,dx=x2-x1,dy=y2-y1,L=Math.hypot(dx,dy),nx=-dy/L*w,ny=dx/L*w;
+  return `<path d="M${x1} ${y1}Q${f1(mx+nx)} ${f1(my+ny)} ${x2} ${y2}Q${f1(mx-nx)} ${f1(my-ny)} ${x1} ${y1}Z" fill="${fill}"/>`};
+const FOSSIL_ART={
+  // Ammonite: a coiled shell with ribs across each whorl.
+  ammo(){
+    const R=t=>45*Math.pow(.6,t/(2*Math.PI)), at=(t,r)=>`${f1(50+r*Math.cos(t))} ${f1(52+r*Math.sin(t))}`;
+    let out='M'+at(0,R(0)), coil='M'+at(2*Math.PI,R(2*Math.PI)), ribs='';
+    for(let t=.1;t<=2*Math.PI+.01;t+=.1)out+='L'+at(t,R(t));
+    for(let t=2*Math.PI;t<=10*Math.PI;t+=.1)coil+='L'+at(t,R(t));
+    for(let t=.2;t<8.5*Math.PI;t+=.3)ribs+=`M${at(t,R(t+2*Math.PI))}L${at(t,R(t))}`;
+    return fsvg(`<path d="${out}Z" fill="${FB}"/><path d="${ribs}" fill="none" stroke-width="1.1" opacity=".55"/><path d="${coil}" fill="none"/>`);
+  },
+  // Trilobite: a head shield with spines, a three-lobed segmented body and a round tail.
+  trilo(){
+    let seg='', ax='';
+    for(let i=0;i<9;i++){const y=38+i*5.2,w=32-i*1.7; seg+=`<rect x="${f1(50-w)}" y="${y}" width="${f1(2*w)}" height="4.8" rx="2.4" fill="${FB}"/>`; ax+=`M43 ${f1(y+5)}H57`}
+    const yl=38+9*5.2, wl=32-9*1.7;
+    return fsvg(`<path d="M17 37L11 62L24 39ZM83 37L89 62L76 39Z" fill="${FB}"/>${seg}<path d="M${f1(50-wl)} ${f1(yl-1)}Q50 ${f1(yl+20)} ${f1(50+wl)} ${f1(yl-1)}Z" fill="${FB}"/>`+
+      `<rect x="43" y="37" width="14" height="${f1(yl-37)}" rx="6" fill="${FS}"/><path d="${ax}" fill="none" stroke-width="1.1"/>`+
+      `<path d="M15 38Q13 8 50 8Q87 8 85 38Z" fill="${FB}"/><path d="M42 37Q39 14 50 12Q61 14 58 37Z" fill="${FS}"/><path d="M27 27q4-6 9 0M64 27q4-6 9 0" fill="none" stroke-width="2.2"/>`);
+  },
+  // Megalodon tooth: a huge serrated triangle with a dark root.
+  tooth(){
+    let ser='M24 34'; for(let i=1;i<=12;i++){const t=i/12; ser+=`L${f1(24+26*t+(i%2?1.6:0))} ${f1(34+60*t)}`}
+    let ser2='M76 34'; for(let i=1;i<=12;i++){const t=i/12; ser2+=`L${f1(76-26*t-(i%2?1.6:0))} ${f1(34+60*t)}`}
+    return fsvg(`<path d="M22 32Q50 22 78 32Q74 46 66 62Q58 80 50 95Q42 80 34 62Q26 46 22 32Z" fill="#efe4c8"/><path d="${ser}M${ser2.slice(1)}" fill="none" stroke-width="1" opacity=".5"/>`+
+      `<path d="M16 31Q50 10 84 31L79 38Q50 26 21 38Z" fill="#9c7a4c"/><path d="M38 42Q41 64 48 84" stroke="#fff" stroke-width="3.5" fill="none" opacity=".7"/>`);
+  },
+  // Anomalocaris (top view): flaps down both sides, stalked eyes, two curled grabbing arms and a tail fan.
+  anom(){
+    let flaps='', segs='';
+    for(let i=0;i<11;i++){const x=30+i*5.2,s=1-Math.abs(i-3)/11,h=17*s;
+      flaps+=`<path d="M${f1(x-3)} 46Q${f1(x+1)} ${f1(46-h)} ${f1(x+6)} 46Z" fill="${FS}"/><path d="M${f1(x-3)} 54Q${f1(x+1)} ${f1(54+h)} ${f1(x+6)} 54Z" fill="${FS}"/>`; segs+=`M${f1(x+5)} 44V56`}
+    const arm=s=>{const y=v=>f1(50+s*(v-50));
+      return `<path d="M17 ${y(46)}Q3 ${y(43)} 4 ${y(32)}Q6 ${y(23)} 14 ${y(26)}" fill="none" stroke-width="6"/><path d="M17 ${y(46)}Q3 ${y(43)} 4 ${y(32)}Q6 ${y(23)} 14 ${y(26)}" fill="none" stroke="${FB}" stroke-width="3.4"/>`+
+        `<path d="M9 ${y(42)}l4 ${s*-3}M5 ${y(36)}l5 ${s*-1}M6 ${y(30)}l5 ${s*2}" fill="none" stroke-width="1.2"/>`};
+    return fsvg(`<path d="M84 50L98 37L94 50L98 63Z" fill="${FB}"/>${flaps}<ellipse cx="57" cy="50" rx="30" ry="7" fill="${FB}"/><path d="${segs}" fill="none" stroke-width="1"/>`+
+      `${arm(1)}${arm(-1)}<path d="M22 44L17 34M22 56L17 66" fill="none" stroke-width="2.4"/><circle cx="16" cy="32" r="4.5" fill="${FB}"/><circle cx="16" cy="68" r="4.5" fill="${FB}"/><ellipse cx="24" cy="50" rx="9" ry="8" fill="${FB}"/>`);
+  },
+  // Coelacanth: a fish with fleshy lobed fins and a three-part tail, its backbone and ribs showing.
+  coel(){
+    let ribs=''; for(let x=28;x<=74;x+=4.6){const y=bez([[22,51],[52,45],[86,50]],(x-22)/64)[1]; ribs+=`M${f1(x)} ${f1(y)}l3 ${f1(13-(x-28)*.08)}M${f1(x)} ${f1(y)}l3 -${f1(12-(x-28)*.08)}`}
+    return fsvg(`<path d="M80 50L95 35Q91 50 95 65Z" fill="${FB}"/><path d="M86 50L99 45L99 55Z" fill="${FB}"/>`+
+      `<path d="M56 34Q58 23 67 19Q67 30 63 37Z" fill="${FS}"/><path d="M41 33L47 20L52 33Z" fill="${FS}"/><path d="M66 63Q70 73 77 76Q75 66 71 60Z" fill="${FS}"/>`+
+      `<path d="M8 52Q13 33 40 32Q66 30 82 46L84 50L82 54Q66 70 40 68Q13 67 8 52Z" fill="${FB}"/>`+
+      `<path d="${ribs}" fill="none" stroke="${FS}" stroke-width="1.6"/><path d="M22 51Q52 45 86 50" fill="none" stroke="${FS}" stroke-width="2.6"/>`+
+      `<path d="M28 38Q33 52 28 64" fill="none" stroke-width="1.3"/><circle cx="18" cy="46" r="5" fill="${FS}"/>`+
+      `<path d="M37 60Q35 72 24 79Q38 79 43 64Z" fill="${FS}"/><path d="M55 65Q55 76 47 83Q59 81 61 67Z" fill="${FS}"/>`);
+  },
+  // Plesiosaur skeleton (top view): a little head on a long bendy neck, four paddles and a short tail.
+  plesio(){
+    const neck=[[18,19],[40,22],[26,50],[48,53]], tail=[[74,62],[84,66],[88,72],[95,82]];
+    let ribs=''; for(let i=0;i<7;i++){const x=49+i*4.2,y=50+i*1.7; ribs+=`M${f1(x)} ${f1(y)}q-5 -9 1 -12M${f1(x)} ${f1(y)}q5 9 -1 12`}
+    return fsvg(`${leaf(54,48,46,26,6)}${leaf(52,62,40,80,6)}${leaf(70,52,84,36,5)}${leaf(68,65,80,84,5)}`+
+      `<ellipse cx="61" cy="57" rx="17" ry="10" transform="rotate(20 61 57)" fill="${FS}"/><path d="${ribs}" fill="none" stroke-width="1.4"/>`+
+      `${spine(neck,13,2.4,3)}${spine([[48,53],[62,57],[74,62]],6,3.1,3.1)}${spine(tail,7,2.8,1.4)}`+
+      `<ellipse cx="13" cy="15" rx="8" ry="5" transform="rotate(40 13 15)" fill="${FB}"/><circle cx="14" cy="13" r="1.6" fill="${FL}" stroke="none"/>`);
+  },
+  // Ichthyosaur: a dolphin-shaped sea reptile with a long toothy snout, huge eye and a crescent tail.
+  ichthy(){
+    const sp=[[34,49],[58,45],[76,51],[88,60]];
+    let ribs=''; for(let i=0;i<9;i++){const [x,y]=bez(sp,.06+i*.075); ribs+=`M${f1(x)} ${f1(y)}q2 8 -2 13M${f1(x)} ${f1(y)}q2 -7 -1 -10`}
+    return fsvg(`<path d="M86 58Q95 44 97 32Q96 50 91 61Q98 70 96 86Q89 72 85 63Z" fill="${FS}"/><path d="M52 45Q58 33 68 44" fill="none" stroke-dasharray="3 3"/>`+
+      `${leaf(40,56,30,72,5)}${leaf(64,56,60,70,4)}<path d="${ribs}" fill="none" stroke-width="1.4"/>${spine(sp,16,2.5,1.6)}`+
+      `<path d="M2 51L25 44Q35 42 36 49Q35 57 25 56Z" fill="${FB}"/><path d="M5 51L22 51" fill="none" stroke-width="1" stroke-dasharray="1.5 1.5"/><circle cx="27" cy="49" r="5.2" fill="${FS}"/><circle cx="27" cy="49" r="2" fill="${FB}"/>`);
+  },
+  // Sea scorpion (eurypterid, top view): a head plate, a long segmented body, swimming paddles and a spiky tail.
+  scorp(){
+    let seg='', y=30;
+    for(let i=0;i<12;i++){const w=i<6?20-i*.3:18-(i-6)*2.6; seg+=`<rect x="${f1(50-w)}" y="${f1(y)}" width="${f1(2*w)}" height="5" rx="2.5" fill="${FB}"/>`; y+=4.8}
+    const paddle=s=>{const x=v=>f1(50+s*(v-50));
+      return `<path d="M${x(31)} 26Q${x(18)} 30 ${x(14)} 42" fill="none" stroke-width="5"/><path d="M${x(31)} 26Q${x(18)} 30 ${x(14)} 42" fill="none" stroke="${FB}" stroke-width="2.8"/><ellipse cx="${x(12)}" cy="50" rx="6" ry="10" fill="${FB}" transform="rotate(${s*12} ${x(12)} 50)"/>`+
+        `<path d="M${x(31)} 14L${x(20)} 6M${x(31)} 19L${x(17)} 14M${x(31)} 23L${x(18)} 22" fill="none" stroke-width="2"/>`};
+    return fsvg(`${paddle(1)}${paddle(-1)}<path d="M46 ${f1(y)}L50 98L54 ${f1(y)}Z" fill="${FB}"/>${seg}`+
+      `<path d="M29 13Q30 6 50 6Q70 6 71 13L73 31Q50 35 27 31Z" fill="${FB}"/><ellipse cx="39" cy="15" rx="3.5" ry="2.4" fill="${FS}"/><ellipse cx="61" cy="15" rx="3.5" ry="2.4" fill="${FS}"/>`);
+  },
+  // Crinoid (sea lily): a jointed stalk holding a cup of feathery arms.
+  crin(){
+    const stalk=[[56,98],[60,72],[50,44]];
+    let joints=''; for(let i=0;i<=18;i++){const [x,y]=bez(stalk,i/18); joints+=`M${f1(x-3.2)} ${f1(y)}H${f1(x+3.2)}`}
+    let arms='';
+    for(let i=0;i<8;i++){
+      const a=(-160+i*20)*Math.PI/180, b=[44+i*1.7,33], tip=[50+42*Math.cos(a),33+40*Math.sin(a)], c=[b[0]+(tip[0]-b[0])*.5+(i<4?-6:6),b[1]+(tip[1]-b[1])*.5-8], p=[b,c,tip];
+      let pin=''; for(let j=1;j<10;j++){const [x,y]=bez(p,j/10),d=j%2?1:-1; pin+=`M${f1(x)} ${f1(y)}l${f1(d*3.2)} -2.4`}
+      arms+=`<path d="M${b[0]} ${b[1]}Q${f1(c[0])} ${f1(c[1])} ${f1(tip[0])} ${f1(tip[1])}" fill="none" stroke-width="4.4"/><path d="M${b[0]} ${b[1]}Q${f1(c[0])} ${f1(c[1])} ${f1(tip[0])} ${f1(tip[1])}" fill="none" stroke="${FB}" stroke-width="2.4"/><path d="${pin}" fill="none" stroke-width="1.1"/>`;
+    }
+    return fsvg(`<path d="M56 98Q60 72 50 44" fill="none" stroke-width="7"/><path d="M56 98Q60 72 50 44" fill="none" stroke="${FB}" stroke-width="4.6"/><path d="${joints}" fill="none" stroke-width="1"/>${arms}<path d="M41 45L59 45L57 32L43 32Z" fill="${FB}"/>`);
+  },
+  // Horseshoe crab (top view): a domed shield, a spiny hinged body and a long tail spike.
+  kabuto(){
+    let sp=''; for(let k=0;k<5;k++){const y=55+k*3.6; sp+=`M${f1(31.5+k*1.2)} ${f1(y)}l-6 1.6l${f1(6.4)} 1.6ZM${f1(68.5-k*1.2)} ${f1(y)}l6 1.6l-${f1(6.4)} 1.6Z`}
+    return fsvg(`<path d="M48 73L50 99L52 73Z" fill="${FB}"/><path d="${sp}" fill="${FB}"/><path d="M30 51L70 51L64 73Q50 77 36 73Z" fill="${FS}"/><path d="M50 53V72M42 54L43 71M58 54L57 71" fill="none" stroke-width="1"/>`+
+      `<path d="M50 7Q89 7 91 52Q77 47 66 51L50 53L34 51Q23 47 9 52Q11 7 50 7Z" fill="${FB}"/><path d="M50 11V50M33 17Q29 35 34 50M67 17Q71 35 66 50" fill="none" stroke-width="1.2"/>`+
+      `<ellipse cx="31" cy="27" rx="2.6" ry="4" fill="${FS}"/><ellipse cx="69" cy="27" rx="2.6" ry="4" fill="${FS}"/>`);
+  },
+  // Mosasaur skull: long jaws full of pointed teeth, a big eye socket and a nostril.
+  mosa(){
+    let teeth=''; for(let x=13;x<=63;x+=5.5){teeth+=`M${f1(x)} 51l2.2 6.5l2.2 -6.5ZM${f1(x+2.6)} 57l2.2 -6.5l2.2 6.5Z`}
+    return fsvg(`<path d="M6 57L62 56L86 58Q92 65 82 71Q60 72 14 63Z" fill="${FS}"/><path d="${teeth}" fill="#fffaf0"/>`+
+      `<path d="M3 49Q30 36 62 33Q84 32 95 44Q97 53 88 55L62 52L5 52Z" fill="${FB}"/><ellipse cx="72" cy="42" rx="7.5" ry="5.2" fill="${FS}"/><ellipse cx="30" cy="43.5" rx="7" ry="2" transform="rotate(-8 30 43.5)" fill="${FS}"/><ellipse cx="87" cy="48" rx="4" ry="3" fill="${FS}"/>`+
+      `<path d="M30 74Q54 82 80 76" fill="none" stroke="${FS}" stroke-width="1.4" stroke-dasharray="2 2"/>`);
+  },
+  // Dunkleosteus: the armoured head of a giant fish with bony blade jaws; its soft body left only a faint outline.
+  dunkl(){
+    return fsvg(`<path d="M60 35Q84 38 92 51Q84 63 60 69M92 51L99 39M92 51L99 63" fill="none" stroke="${FS}" stroke-dasharray="3 3"/>`+
+      `<path d="M6 57Q4 30 30 24Q54 21 63 34L65 69Q42 77 20 72Q6 68 6 57Z" fill="${FB}"/><path d="M32 25Q36 44 27 58M46 23Q50 44 44 73M63 34Q52 47 47 70" fill="none" stroke-width="1.2"/>`+
+      `<circle cx="22" cy="40" r="6.5" fill="${FS}"/><circle cx="22" cy="40" r="2.6" fill="${FB}"/>`+
+      `<path d="M8 60L41 62L41 70Q23 75 12 68Z" fill="${FS}"/><path d="M6 55L11 62L14 53ZM9 61L14 54L16 61Z" fill="#fffaf0"/>`);
+  },
+};
+// Dug up in this order, best known first. n is said aloud; t is a word about it for the reveal and the museum.
+const FOSSILS={
+  ammo:{n:'アンモナイト',t:'うずまきの からを もった、イカや タコの なかま'},
+  tooth:{n:'メガロドン',t:'でんせつの おおきな サメの は。きみの てより おおきい！'},
+  trilo:{n:'サンヨウチュウ',t:'からだが 3つに わかれた、むかしの うみの むし'},
+  plesio:{n:'クビナガリュウ',t:'くびが ながーい うみの はちゅうるい'},
+  anom:{n:'アノマロカリス',t:'むかしの うみで いちばん つよかった いきもの'},
+  coel:{n:'シーラカンス',t:'いまも ふかい うみで いきて いる さかな'},
+  kabuto:{n:'カブトガニ',t:'いまも いきて いる。カニじゃなくて クモの なかま'},
+  ichthy:{n:'ギョリュウ',t:'イルカみたいな かたちの うみの はちゅうるい。めが おおきい！'},
+  scorp:{n:'ウミサソリ',t:'サソリの なかまで、うみを およいで いた'},
+  mosa:{n:'モササウルス',t:'うみの おおきな トカゲの なかま。はが いっぱい！'},
+  crin:{n:'ウミユリ',t:'はなみたいだけど、ヒトデの なかまの どうぶつ'},
+  dunkl:{n:'ダンクルオステウス',t:'よろいの あたまを もった、おおきな さかな'},
+};
+const FOSSIL_ORDER=Object.keys(FOSSILS);
+const fossilArt=id=>FOSSIL_ART[id]();
 function art(id){const c=CRE[id]; if(c.svg==='octo') return octoSVG(c.c); if(c.svg==='ray') return raySVG(c.c,c.spots); if(c.svg) return KAWAII[c.svg](c); return `<span class="emo">${c.e}</span>`}
 
 // ---------- progress (saved on this device) ----------
@@ -952,7 +1127,90 @@ function endTest(){
   afterCele=closeWhale;
   const ups=R0.ups.length, perfect=T.score===T.n;
   const card=()=>celebrate('kwhale',perfect?'ぜんぶ せいかい！':'テスト おわり！',`${T.done}もんの うち ${T.score}もん せいかい 🦷${ups?`。レベル アップ ${ups}こ`:''}`);
-  if(perfect)chickenDance().then(card); else card();
+  if(perfect)chickenDance().then(digFossil).then(card); else card();
+}
+// ---------- 100% on a test: then dig up a fossil ----------
+// Each perfect test digs up the next fossil in FOSSILS; once she has them all, a random one comes up again.
+// It counts as found as soon as the dig opens. Two layers cover it: loose sand that one rub clears,
+// and rock under it that takes about three. Once most of the middle is clear, the rest crumbles away.
+function digFossil(){
+  return new Promise(done=>{
+    const n=P.dig||0, again=n>=FOSSIL_ORDER.length, id=again?pick(FOSSIL_ORDER):FOSSIL_ORDER[n], F=FOSSILS[id];
+    P.dig=n+1; save();
+    const st=document.createElement('div'); st.className='dig';
+    st.innerHTML=`<div class="cap">なにか うまってる！</div><div class="slab"><div class="fos">${fossilArt(id)}</div><canvas></canvas><canvas></canvas>${reduce?'':'<div class="finger">👆</div>'}</div>`+
+      `<p class="hint">ゆびで こすって ほりだそう</p><button class="cta" hidden>はくぶつかんに かざる</button>`;
+    document.body.appendChild(st);
+    const slab=st.querySelector('.slab'), [rock,sand]=st.querySelectorAll('canvas'), cap=st.querySelector('.cap'), hint=st.querySelector('.hint'), btn=st.querySelector('.cta');
+    const W=slab.clientWidth, H=slab.clientHeight, dpr=Math.min(2,devicePixelRatio||1), r=seeded(id+n);
+    // The rock is painted on base. Where her finger has been in the last quarter second is drawn on mask,
+    // and the rock canvas shows base with mask taking 35% off, so the rock wears away by time spent rubbing,
+    // however many pointer events arrive. Every quarter second (and when she lifts her finger) that's kept in base.
+    const base=document.createElement('canvas'), mask=document.createElement('canvas');
+    const ctx=[base,sand,mask].map(c=>{c.width=W*dpr; c.height=H*dpr; const x=c.getContext('2d'); x.scale(dpr,dpr); return x});
+    rock.width=W*dpr; rock.height=H*dpr; const rx=rock.getContext('2d');
+    const dots=(x,cols,k,r0,r1)=>{for(let i=0;i<k;i++){x.fillStyle=cols[i%cols.length]; x.beginPath(); x.arc(r()*W,r()*H,r0+r()*(r1-r0),0,7); x.fill()}};
+    let x=ctx[0]; x.fillStyle='#86643f'; x.fillRect(0,0,W,H);
+    for(let i=0;i<7;i++){x.fillStyle=i%2?'rgba(60,40,20,.22)':'rgba(255,230,190,.12)'; const y=H*(i+r())/7; x.beginPath(); x.moveTo(0,y);
+      for(let j=1;j<=6;j++)x.quadraticCurveTo(W*(j-.5)/6,y+(r()-.5)*24,W*j/6,y+(r()-.5)*12); x.lineTo(W,y+H/14); x.lineTo(0,y+H/14); x.fill()}
+    dots(x,['#5f4529','#a5835a','#4f3a24','#b9996f'],90,1.5,6);
+    x=ctx[1]; x.fillStyle='#dcbb82'; x.fillRect(0,0,W,H);
+    dots(x,['#c9a465','#efd9aa','#b8925a','#e6c891'],900,.6,1.8); dots(x,['#cfae72','#c49f60'],14,10,26);
+    rx.drawImage(base,0,0);
+    const R0=W*.055; let last={}, found=false, lastSound=0, lastBit=0, lastKeep=0, rubbed=false;
+    // How much of the middle (where the fossil lies) is clear of rock, checked on a small copy of the rock layer.
+    const sm=document.createElement('canvas'); sm.width=48; sm.height=36; const smx=sm.getContext('2d',{willReadFrequently:true});
+    function cleared(){
+      smx.clearRect(0,0,48,36); smx.drawImage(rock,0,0,48,36); const d=smx.getImageData(0,0,48,36).data; let n=0,c=0;
+      for(let j=0;j<36;j++)for(let i=0;i<48;i++){if(((i-23.5)/17)**2+((j-17.5)/16)**2>1)continue; n++; if(d[(j*48+i)*4+3]<90)c++}
+      return c/n;
+    }
+    const line=(c,a,b,rad)=>{c.lineWidth=rad*2; c.lineCap='round'; c.beginPath(); c.moveTo(a.x,a.y); c.lineTo(b.x+.01,b.y); c.stroke()};
+    ctx[1].globalCompositeOperation='destination-out'; ctx[2].strokeStyle='#000';
+    function rub(a,b){
+      line(ctx[1],a,b,R0*1.3); line(ctx[2],a,b,R0); rubbed=true;
+      rx.globalCompositeOperation='copy'; rx.globalAlpha=1; rx.drawImage(base,0,0);
+      rx.globalCompositeOperation='destination-out'; rx.globalAlpha=.35; rx.drawImage(mask,0,0);
+      const now=performance.now();
+      if(now-lastSound>80){lastSound=now; SFX.scrape(true)}
+      if(!reduce&&now-lastBit>45){lastBit=now; bits(b.x,b.y,2)}
+      if(now-lastKeep>250)keep();
+    }
+    function keep(){
+      lastKeep=performance.now(); if(!rubbed)return; rubbed=false;
+      const b=base.getContext('2d'); b.save(); b.setTransform(1,0,0,1,0,0); b.globalCompositeOperation='copy'; b.drawImage(rock,0,0); b.restore();
+      ctx[2].save(); ctx[2].setTransform(1,0,0,1,0,0); ctx[2].clearRect(0,0,mask.width,mask.height); ctx[2].restore();
+      if(cleared()>.62)reveal();
+    }
+    // Crumbs of sand and rock flicked off by her finger.
+    function bits(px,py,k,spread=1){
+      for(let i=0;i<k;i++){
+        const e=document.createElement('span'); e.className='bit'; e.style.background=pick(['#dcbb82','#c9a465','#86643f','#5f4529']);
+        slab.appendChild(e); const dx=(Math.random()-.5)*70*spread, dy=40+Math.random()*80*spread;
+        e.animate([{transform:`translate(${px}px,${py}px)`,opacity:1},{transform:`translate(${px+dx*.6}px,${py-20*spread}px) rotate(90deg)`,opacity:1,offset:.3},
+          {transform:`translate(${px+dx}px,${py+dy}px) rotate(260deg)`,opacity:0}],{duration:650,easing:'ease-out'}).onfinish=()=>e.remove();
+      }
+    }
+    const pt=e=>{const b=slab.getBoundingClientRect(); return {x:(e.clientX-b.left)*W/b.width,y:(e.clientY-b.top)*H/b.height}};
+    slab.onpointerdown=e=>{if(found)return; e.preventDefault(); slab.setPointerCapture(e.pointerId); st.querySelector('.finger')?.remove(); const p=pt(e); last[e.pointerId]=p; rub(p,p)};
+    slab.onpointermove=e=>{const a=last[e.pointerId]; if(!a||found)return; const p=pt(e); rub(a,p); last[e.pointerId]=p};
+    slab.onpointerup=slab.onpointercancel=e=>{delete last[e.pointerId]; if(!found)keep()};
+    function reveal(){
+      if(found)return; found=true; last={};
+      slab.classList.add('clear'); SFX.found();
+      if(!reduce){
+        for(let i=0;i<14;i++)bits(W*(.15+.7*Math.random()),H*(.15+.7*Math.random()),1,1.6);
+        for(let i=0;i<8;i++){const s=document.createElement('span'); s.className='twinkle'; s.textContent='✨';
+          s.style.left=W*(.1+.8*Math.random())-15+'px'; s.style.top=H*(.1+.8*Math.random())-15+'px'; slab.appendChild(s);
+          s.animate([{transform:'scale(0)',opacity:1},{transform:'scale(1.3) rotate(60deg)',opacity:1,offset:.5},{transform:'scale(.4) rotate(120deg)',opacity:0}],{duration:1100,delay:200+i*90,fill:'both'}).onfinish=()=>s.remove()}
+      }
+      cap.textContent=`${again?'また ':''}${F.n}の かせきだ！`; hint.textContent=F.t;
+      cap.animate([{transform:'scale(.4)',opacity:0},{transform:'scale(1.12)',opacity:1,offset:.6},{transform:'none',opacity:1}],{duration:reduce?0:400});
+      if(SFX.on)setTimeout(()=>say(`${F.n}の かせき`),900);
+      setTimeout(()=>{btn.hidden=false; btn.focus()},reduce?0:1200);
+    }
+    btn.onclick=()=>{st.remove(); done()};
+  });
 }
 // ---------- 100% on a test: the sea animals do a chicken dance ----------
 // The dance's four moves, four times each: snap (パクパク), flap (パタパタ), wiggle down (フリフリ) and clap (パチパチ),
@@ -1081,7 +1339,15 @@ function renderReefs(){
     sec.appendChild(tiles); root.appendChild(sec);
   });
 }
-function renderHome(){renderTank();renderLadder();renderReefs();renderBackup();show('home')}
+// The fossil museum: a shelf of every fossil dug up so far, with a ？ for each still in the ground.
+function renderMuseum(){
+  const got=Math.min(P.dig||0,FOSSIL_ORDER.length);
+  $('museum').innerHTML=`<div class="reef-head"><div><h2>🦴 かせきの はくぶつかん</h2>${got?'':'<p class="book">テストで ぜんぶ せいかい すると、かせきが ほれるよ</p>'}</div><span class="pill">${got} / ${FOSSIL_ORDER.length}</span></div>`+
+    `<div class="shelf">${FOSSIL_ORDER.map((id,i)=>i<got?`<button class="fslot" data-id="${id}" aria-label="${FOSSILS[id].n}">${fossilArt(id)}<small>${FOSSILS[id].n}</small></button>`:'<div class="fslot none">？</div>').join('')}</div>`;
+}
+$('museum').addEventListener('click',e=>{const b=e.target.closest('.fslot[data-id]'); if(!b)return; const F=FOSSILS[b.dataset.id];
+  celebrate(b.dataset.id,`${F.n}の かせき`,F.t); if(SFX.on)say(F.n)});
+function renderHome(){renderTank();renderLadder();renderMuseum();renderReefs();renderBackup();show('home')}
 
 // ---------- practice board ----------
 const board=$('board'), gGhost=$('gGhost'), gInk=$('gInk'), gHint=$('gHint'), live=$('live');
@@ -1429,9 +1695,9 @@ async function finish(){
 }
 let pendingCele=null, afterCele=null;
 function celebrate(id,title,text){
-  $('celeArt').innerHTML=art(id); $('celeTitle').textContent=title; $('celeText').textContent=text;
+  $('celeArt').innerHTML=FOSSILS[id]?`<div class="plaque">${fossilArt(id)}</div>`:art(id); $('celeTitle').textContent=title; $('celeText').textContent=text;
   $('cele').hidden=false; $('celeBtn').focus();
-  if(id==='manta')SFX.whale(); else SFX.fanfare();
+  if(id==='manta')SFX.whale(); else if(FOSSILS[id])SFX.chime(); else SFX.fanfare();
 }
 $('celeBtn').onclick=()=>{
   if(pendingCele){const c=pendingCele;pendingCele=null;celebrate(...c);return}
