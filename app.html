@@ -48,8 +48,8 @@ h1 small{display:block;font-size:13px;font-weight:700;letter-spacing:.14em;color
 .swimmer.still,.swimmer.still .face{animation:none}
 .swimmer.still .bob{transform-origin:bottom center;animation:wobble 2.6s ease-in-out infinite alternate}
 .tank .deco{position:absolute;left:14%;bottom:12px;width:44px}
-.tank .swimmer,.tank .deco,.tank .mascot{cursor:pointer;-webkit-tap-highlight-color:transparent}
-.swimmer.tapped .face>*,.deco.tapped>*,.mascot.tapped>*{animation:jiggle .5s ease-out}
+.tank .swimmer,.tank .deco,.tank .host{cursor:pointer;-webkit-tap-highlight-color:transparent}
+.swimmer.tapped .face>*,.deco.tapped>*{animation:jiggle .5s ease-out}
 @keyframes jiggle{0%,100%{transform:scale(1)}30%{transform:scale(1.25,.8)}60%{transform:scale(.9,1.12)}}
 @keyframes wobble{from{transform:rotate(-4deg)}to{transform:rotate(4deg)}}
 @keyframes swim{0%,100%{left:var(--a)}50%{left:var(--b)}}
@@ -59,7 +59,22 @@ h1 small{display:block;font-size:13px;font-weight:700;letter-spacing:.14em;color
 .art svg{display:block;width:100%;height:auto}
 .tank-empty{position:absolute;left:50%;top:38%;transform:translate(-50%,-50%);width:min(80%,420px);text-align:center;
   font-weight:700;font-size:18px;line-height:1.6;color:var(--foam);text-wrap:balance}
-.tank .mascot{position:absolute;right:4%;bottom:18px;width:84px}
+/* The host, a タカアシガニ, walks sideways along the sand and talks in a bubble over its head (it stops to talk). */
+.host{position:absolute;bottom:4px;width:150px;z-index:2;animation:crabwalk 30s ease-in-out infinite alternate}
+@keyframes crabwalk{from{left:50%}to{left:calc(97% - 150px)}}
+.host .legs{transform-box:view-box;transform-origin:80px 50px;animation:step .5s ease-in-out infinite alternate}
+.host .legs.b{animation-direction:alternate-reverse}
+.host.talking,.host.talking .legs{animation-play-state:paused}
+.host.happy .tk{animation:hop .3s ease-out 6 alternate}
+.host.tapped .tk{animation:jiggle .5s ease-out}
+@keyframes step{from{transform:rotate(-3deg)}to{transform:rotate(3deg)}}
+@keyframes hop{to{transform:translateY(-14px)}}
+.host .say{position:absolute;right:30px;bottom:92%;width:max-content;max-width:min(340px,72vw);padding:10px 14px;border-radius:18px 18px 4px 18px;
+  background:var(--foam);color:var(--ink);font-weight:700;font-size:17px;line-height:1.5;white-space:pre-line;text-align:left;
+  opacity:0;transform:translateY(8px) scale(.9);transform-origin:bottom right;transition:opacity .25s,transform .25s;pointer-events:none}
+.host.talking .say{opacity:1;transform:none}
+.tank-empty{transition:opacity .25s}
+.tank:has(.host.talking) .tank-empty{opacity:0}
 
 .play{display:flex;gap:12px;flex-wrap:wrap}
 .cta{display:inline-flex;align-items:center;gap:10px;padding:14px 22px;border-radius:999px;font-weight:900;font-size:20px;
@@ -344,7 +359,7 @@ ruby rt{font-family:var(--f-ui);font-size:.5em;font-weight:700;color:var(--sun)}
 .plaque{width:100%;aspect-ratio:1;padding:8%;border-radius:50%;background:radial-gradient(circle at 30% 25%,rgba(255,255,255,.14),transparent 60%),#9c865f}
 
 @media (prefers-reduced-motion: reduce){
-  .swimmer,.swimmer .bob,.swimmer .face,.weed,.cele .art,.carrier.in,.carrier.out,#board .start.pulse{animation:none!important}
+  .swimmer,.swimmer .bob,.swimmer .face,.weed,.host,.host .legs,.host .tk,.cele .art,.carrier.in,.carrier.out,#board .start.pulse{animation:none!important}
 }
 </style>
 
@@ -362,7 +377,7 @@ ruby rt{font-family:var(--f-ui);font-size:.5em;font-weight:700;color:var(--sun)}
         <div class="sand"></div>
         <div class="deco art" id="deco"></div>
         <div id="swimmers"></div>
-        <div class="mascot art" id="mascot"></div>
+        <div class="host" id="host"><div class="say" id="hostSay"></div><div class="tk art" id="hostArt"></div></div>
         <p class="tank-empty" id="tankEmpty" hidden>かんじを みないで かけたら、<br>うみの なかまが ふえるよ！</p>
       </div>
       <div class="play">
@@ -728,6 +743,20 @@ const KAWAII={
   eel:({c,s,stripe})=>svg(`<path d="M52 104C52 80 58 62 54 46C52 36 47 30 41 28" stroke="${c}" stroke-width="15" fill="none" stroke-linecap="round"/><path d="M52 104C52 80 58 62 54 46" stroke="${s}" fill="none" ${stripe?'stroke-width="15" stroke-dasharray="5 7"':'stroke-width="5" stroke-dasharray=".1 10" stroke-linecap="round"'}/><ellipse cx="40" cy="27" rx="13" ry="11" fill="${c}"/>${kface(34,45,25,2.8)}`),
   clown:({c})=>svg(`<path d="M74 50L94 36Q90 50 94 64Z" fill="${c}"/><path d="M42 32Q54 18 66 32Z" fill="${c}"/><ellipse cx="46" cy="50" rx="30" ry="20" fill="${c}"/><g fill="#fff" stroke="#22122f" stroke-width="1.6"><ellipse cx="37" cy="50" rx="4.5" ry="19"/><ellipse cx="60" cy="50" rx="4" ry="15"/></g>${kface(19,28,46,3.3)}`),
 };
+// Japanese spider crab (タカアシガニ): a small round shell with a kawaii face on very long jointed legs.
+// Legs are in two groups (.legs.a and .legs.b) that rock against each other as it walks.
+function takaSVG(){
+  const C='#f47a45', D='#a8452a', leg=(pts,w=4.2)=>{const d='M'+pts.map(q=>q.join(' ')).join('L');
+    return `<path d="${d}" stroke="${D}" stroke-width="${w+2.2}" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="${d}" stroke="${C}" stroke-width="${w}" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`+
+      pts.slice(1,-1).map(([x,y])=>`<circle cx="${x}" cy="${y}" r="2.3" fill="#fff3e6"/>`).join('')};
+  const L=[[[62,44],[38,6],[6,98]],[[59,51],[24,20],[20,106]],[[59,58],[14,40],[34,107]],[[63,64],[26,62],[48,105]]];
+  const side=(m)=>L.map(l=>l.map(([x,y])=>[m?160-x:x,y]));
+  const [l,r]=[side(0),side(1)];
+  return `<svg viewBox="0 0 160 110" aria-hidden="true"><g class="legs a">${[l[0],l[2],r[1],r[3]].map(q=>leg(q)).join('')}</g><g class="legs b">${[l[1],l[3],r[0],r[2]].map(q=>leg(q)).join('')}</g>`+
+    `${leg([[68,68],[58,82],[64,96]],5)}${leg([[92,68],[102,82],[96,96]],5)}<path d="M60 94q4 8 9 2M100 94q-4 8 -9 2" stroke="${D}" stroke-width="2.4" fill="#fff3e6" stroke-linecap="round"/>`+
+    `<path d="M80 26Q106 26 107 50Q106 74 80 76Q54 74 53 50Q54 26 80 26Z" fill="${C}" stroke="${D}" stroke-width="2"/><path d="M76 26l4-7 4 7" fill="${C}" stroke="${D}" stroke-width="2" stroke-linejoin="round"/>`+
+    `<g fill="#ffd2b8"><circle cx="66" cy="36" r="3"/><circle cx="96" cy="38" r="2.4"/><circle cx="62" cy="62" r="2"/><circle cx="99" cy="63" r="2.6"/><circle cx="80" cy="69" r="2"/></g>${kface(72,88,47,4.2)}</svg>`;
+}
 function octoSVG(c){return `<svg viewBox="0 0 100 100" aria-hidden="true"><g fill="none" stroke="${c}" stroke-width="10" stroke-linecap="round"><path d="M30 56Q20 76 10 78"/><path d="M40 60Q34 82 26 92"/><path d="M50 62Q53 84 46 94"/><path d="M60 60Q66 82 74 92"/><path d="M70 56Q80 76 90 78"/></g><ellipse cx="50" cy="38" rx="31" ry="29" fill="${c}"/><circle cx="36" cy="21" r="4" fill="#fff" opacity=".35"/><circle cx="62" cy="17" r="3" fill="#fff" opacity=".35"/><ellipse cx="40" cy="40" rx="7" ry="8" fill="#fff"/><ellipse cx="60" cy="40" rx="7" ry="8" fill="#fff"/><circle cx="41" cy="42" r="3.6" fill="#22122f"/><circle cx="61" cy="42" r="3.6" fill="#22122f"/><circle cx="30" cy="52" r="4.5" fill="#ff5d8f" opacity=".45"/><circle cx="70" cy="52" r="4.5" fill="#ff5d8f" opacity=".45"/><path d="M45 54Q50 59 55 54" stroke="#22122f" stroke-width="2.4" fill="none" stroke-linecap="round"/></svg>`}
 function raySVG(c,spots){return `<svg viewBox="0 0 120 100" aria-hidden="true"><path d="M60 66Q63 84 80 96" stroke="${c}" stroke-width="3.5" fill="none" stroke-linecap="round"/><path d="M60 12C76 14 104 36 116 50C100 56 80 62 60 70C40 62 20 56 4 50C16 36 44 14 60 12Z" fill="${c}"/>${spots?'<g fill="#fff" opacity=".6"><circle cx="38" cy="38" r="2.6"/><circle cx="82" cy="38" r="2.6"/><circle cx="26" cy="46" r="2"/><circle cx="94" cy="46" r="2"/><circle cx="60" cy="26" r="2.4"/></g>':''}<ellipse cx="60" cy="47" rx="19" ry="13" fill="#fff" opacity=".3"/><ellipse cx="53" cy="43" rx="2.6" ry="3.4" fill="#22122f"/><ellipse cx="67" cy="43" rx="2.6" ry="3.4" fill="#22122f"/><path d="M53 52Q60 58 67 52" stroke="#22122f" stroke-width="2.2" fill="none" stroke-linecap="round"/><circle cx="46" cy="50" r="3" fill="#ff5d8f" opacity=".35"/><circle cx="74" cy="50" r="3" fill="#ff5d8f" opacity=".35"/></svg>`}
 // ---------- fossils (かせき): ancient sea animals in bone on stone, one dug up for each perfect test ----------
@@ -1032,6 +1061,7 @@ function reviewDone(){
 }
 function endReview(){
   const best=R.ups.length?Math.max(...R.ups):0, done=R.done, ups=R.ups.length, pr=R.practiced;
+  GOOD.ups+=ups; GOOD.work+=done+pr;
   R=null; $('practice').classList.remove('reviewing','yomi');
   if(!done&&!pr){renderHome();return}
   afterCele=renderHome;
@@ -1121,6 +1151,7 @@ function endTest(){
   if(!T.done){closeWhale();return}
   afterCele=closeWhale;
   const ups=R0.ups.length, perfect=T.score===T.n;
+  GOOD.ups+=ups; GOOD.work++; if(perfect)GOOD.perfect++;
   const card=()=>celebrate('kwhale',perfect?'ぜんぶ せいかい！':'テスト おわり！',`${T.done}もんの うち ${T.score}もん せいかい 🦷${ups?`。レベル アップ ${ups}こ`:''}`);
   if(perfect)chickenDance().then(()=>digFossil(T.si)).then(card); else card();
 }
@@ -1131,7 +1162,7 @@ function endTest(){
 function digFossil(si){
   return new Promise(done=>{
     const id=SECTIONS[si].fossil, F=FOSSILS[id], fos=P.fos=P.fos||{}, again=!!fos[si];
-    fos[si]=1; save();
+    fos[si]=1; save(); if(!again)GOOD.fossil=F.n;
     const st=document.createElement('div'); st.className='dig';
     st.innerHTML=`<div class="cap">なにか うまってる！</div><div class="slab"><div class="fos">${fossilArt(id)}</div><canvas></canvas><canvas></canvas>${reduce?'':'<div class="finger">👆</div>'}</div>`+
       `<p class="hint">ゆびで こすって ほりだそう</p><button class="cta" hidden>やったー！</button>`;
@@ -1300,9 +1331,51 @@ function renderTank(){
 const voice=id=>/puffer/.test(id)?'puff':/crab|lobster|shell|shrimp/.test(id)?'click':
   /whale|shark|turtle|croc|manta|ray|iguana|snake/.test(id)?'deep':/dolphin|seal|otter|fish|clown/.test(id)?'squeak':'boing';
 $('tank').addEventListener('pointerdown',e=>{
-  const el=e.target.closest('.swimmer,.deco,.mascot'); if(!el)return;
-  SFX.unlock(); SFX.critter(voice(el.dataset.id||(el.id==='deco'?'kmush':'octopus')));
+  const el=e.target.closest('.swimmer,.deco'); if(!el)return;
+  SFX.unlock(); SFX.critter(voice(el.dataset.id||'kmush'));
   el.classList.remove('tapped'); void el.offsetWidth; el.classList.add('tapped');
+});
+
+// ---------- the host: a タカアシガニ on the home screen ----------
+// It says hello when she opens the app or comes back to it after a while, and well done when she comes
+// home after doing something good. GOOD collects what she did while away from the home screen.
+const GOOD={ups:0,friends:0,perfect:0,fossil:null,quiz:0,work:0};
+let hostTimer=0;
+function hostSay(text,happy){
+  const h=$('host'); $('hostSay').textContent=text; h.classList.remove('happy'); void h.offsetWidth;
+  h.classList.add('talking'); if(happy)h.classList.add('happy');
+  clearTimeout(hostTimer); hostTimer=setTimeout(()=>h.classList.remove('talking','happy'),Math.max(4500,text.length*190));
+  if(SFX.on)setTimeout(()=>say(text),350);
+}
+const VKEY='kanjiSea.lastVisit';
+function welcome(){
+  let last=0; try{last=+localStorage.getItem(VKEY)||0; localStorage.setItem(VKEY,Date.now())}catch(e){}
+  const h=new Date().getHours(), n=dueList().length;
+  const hi=!last?'はじめまして！ ぼく、タカアシガニ。':Date.now()-last>3*24*HOUR?'ひさしぶり！ あいたかったよ。':
+    `${h>=5&&h<11?'おはよう':h>=11&&h<17?'こんにちは':'こんばんは'}！ おかえり！`;
+  const next=n?`ふくしゅうが ${n}こ まってるよ`:ORDER.some(k=>prog(k).w)?'きょうは なにを する？':'かんじを かいて みよう！';
+  hostSay(`${hi}\n${next}`);
+}
+function praise(){
+  const g=GOOD, big=[];
+  if(g.fossil)big.push(`${g.fossil}の かせき、かっこいい！`);
+  if(g.perfect)big.push('テスト まんてん！');
+  if(g.friends)big.push(`なかまが ${g.friends}ひき ふえたね！`);
+  if(g.ups)big.push(`レベル アップ ${g.ups}こ！`);
+  if(g.quiz)big.push('かんじが たくさん よめたね！');
+  const any=big.length||g.work;
+  Object.assign(GOOD,{ups:0,friends:0,perfect:0,fossil:null,quiz:0,work:0});
+  if(any)hostSay(big.length?big.slice(0,2).join('\n')+'\nよく できたね！':'よく がんばったね！',true);
+}
+// Back after 20 minutes or more away: say hello again (only on the home screen).
+let hiddenAt=0;
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){hiddenAt=Date.now(); try{localStorage.setItem(VKEY,Date.now())}catch(e){} return}
+  if(hiddenAt&&Date.now()-hiddenAt>20*60e3&&!$('home').hidden)welcome();
+});
+$('host').addEventListener('pointerdown',()=>{
+  SFX.unlock(); SFX.critter('click'); const h=$('host'); h.classList.remove('tapped'); void h.offsetWidth; h.classList.add('tapped');
+  hostSay(pick(['ぼくの あしは ながーいよ！','タカアシガニは せかいで いちばん おおきな カニだよ','ふかい うみから きたよ','きょうも かんじ がんばろう！','ぼくも かんじ かけるかな？']));
 });
 function renderWeeds(){
   for(const w of [$('weeds'),$('qWeeds')]){
@@ -1336,7 +1409,7 @@ function renderReefs(){
     sec.appendChild(tiles); root.appendChild(sec);
   });
 }
-function renderHome(){renderTank();renderLadder();renderReefs();renderBackup();show('home')}
+function renderHome(){renderTank();renderLadder();renderReefs();renderBackup();show('home'); setTimeout(praise,1300)}
 
 // ---------- practice board ----------
 const board=$('board'), gGhost=$('gGhost'), gInk=$('gInk'), gHint=$('gHint'), live=$('live');
@@ -1664,11 +1737,11 @@ async function finish(){
   const p=prog(k);
   SFX.chime(); if(SFX.on)setTimeout(()=>say(kana(INFO[k].r[0])),700);
   if(mode==='trace'){
-    const first=!p.t; p.t=1; save();
+    const first=!p.t; p.t=1; save(); GOOD.work++;
     coach(first?'なぞれたね！ こんどは「かく」で みないで かいてみよう':'じょうずに なぞれたね！');
     return;
   }
-  const first=!p.w; p.t=1; p.w=1; enterSRS(k); save();
+  const first=!p.w; p.t=1; p.w=1; enterSRS(k); save(); GOOD.work++; if(first)GOOD.friends++;
   if(cur.clean)coach('みないで かけた！ すごい！'); else{openExtra(k);coach('みないで かけたね！ したの ますで れんしゅう してもいいよ')}
   if(!first){reward(p.s||0,tier);return}
   // First time from memory: the メンダコ flies across, and the new friend arrives as it passes the middle.
@@ -1872,6 +1945,7 @@ function endQuiz(){
   $('qResArt').innerHTML=art(Q.score>=5?'ray2':'ray');
   $('qScore').textContent=`${Q.score} / ${ROUND}`;
   if(Q.score>=4)SFX.fanfare(); else SFX.chime();
+  GOOD.work++; if(Q.score>=4)GOOD.quiz++;
   $('qResText').textContent=Q.score===ROUND?'ぜんぶ せいかい！ エイも おおよろこび':Q.score>=4?'よく よめたね！':'もういちど あそんで みよう';
 }
 $('playQuiz').onclick=startQuiz; $('qAgain').onclick=startQuiz;
@@ -1918,7 +1992,7 @@ $('backupLoad').onclick=()=>$('backupFile').click();
 $('backupFile').onchange=e=>{const f=e.target.files[0]; e.target.value=''; if(f)backupLoad(f)};
 
 // ---------- boot ----------
-$('mascot').innerHTML=art('octopus'); $('coachArt').innerHTML=art('octopus'); $('deco').innerHTML=art('kmush');
+$('hostArt').innerHTML=takaSVG(); $('coachArt').innerHTML=art('octopus'); $('deco').innerHTML=art('kmush');
 const soundLabel=()=>{$('soundBtn').textContent=SFX.on?'おと ON':'おと OFF';$('soundBtn').setAttribute('aria-pressed',SFX.on)};
 $('soundBtn').onclick=()=>{SFX.toggle();soundLabel()}; soundLabel();
 // Writing board size (large, medium, small), remembered on this device like the sound setting.
@@ -1933,5 +2007,5 @@ $('sizes').addEventListener('click',e=>{const b=e.target.closest('button');if(b)
 for(const ev of ['pointerdown','touchend','click'])document.addEventListener(ev,()=>SFX.unlock(),{capture:true});
 document.addEventListener('click',e=>{const b=e.target.closest('button');if(b&&!b.classList.contains('critter')&&b.id!=='soundBtn')SFX.pop()},true);
 $('ctaRay').innerHTML=art('ray'); $('ctaYomi').innerHTML=art('dumbo'); $('ctaBun').innerHTML=art('kturtle'); $('ctaOcto').innerHTML=art('octopus'); $('qRay').innerHTML=raySVG('#9cc0cf');
-renderWeeds(); renderHome();
+renderWeeds(); renderHome(); setTimeout(welcome,900);
 </script>
