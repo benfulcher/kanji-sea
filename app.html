@@ -353,7 +353,7 @@ ruby rt{font-family:var(--f-ui);font-size:.5em;font-weight:700;color:var(--sun)}
   box-shadow:0 10px 0 rgba(0,0,0,.35),inset 0 0 0 4px rgba(0,0,0,.18)}
 .slab canvas{position:absolute;inset:0;width:100%;height:100%;transition:opacity .9s ease-in}
 .slab.clear canvas{opacity:0}
-.slab .fos{position:absolute;left:50%;top:50%;width:69%;translate:-50% -50%}
+.slab .fos{position:absolute;left:50%;top:50%;width:36%;translate:-50% -50%}
 .slab.clear .fos{animation:fosGlow 1.6s ease-out}
 @keyframes fosGlow{0%{filter:drop-shadow(0 0 0 #fff6c8)}40%{filter:drop-shadow(0 0 18px #fff6c8);transform:scale(1.06)}100%{filter:drop-shadow(0 0 0 #fff6c8)}}
 .slab .finger{position:absolute;left:50%;top:55%;font-size:64px;pointer-events:none;animation:rub 1.1s ease-in-out infinite alternate}
@@ -1168,18 +1168,23 @@ function endTest(){
 }
 // ---------- 100% on a test: then dig up a fossil ----------
 // Each set has its own fossil. The first perfect test on a set digs it up and puts it by the set;
-// a perfect test after that digs up the same fossil again, just for fun. It counts as found as soon as the dig opens. Two layers cover it: loose sand that one rub clears,
-// and rock under it that takes about three. Once most of the middle is clear, the rest crumbles away.
+// a perfect test after that digs up the same fossil again, just for fun. It counts as found as soon as the dig opens.
+// The fossil is small and hidden somewhere different each time, so most of the slab is empty and she has to hunt for it.
+// Two layers cover it: loose sand that one rub clears, and rock under it that takes about three.
+// Once most of the fossil's own patch is clear, the rest crumbles away.
 function digFossil(si){
   return new Promise(done=>{
     const id=SECTIONS[si].fossil, F=FOSSILS[id], fos=P.fos=P.fos||{}, again=!!fos[si];
     fos[si]=1; save(); if(!again)GOOD.fossil=F.n;
     const st=document.createElement('div'); st.className='dig';
-    st.innerHTML=`<div class="cap">なにか うまってる！</div><div class="slab"><div class="fos">${fossilArt(id)}</div><canvas></canvas><canvas></canvas>${reduce?'':'<div class="finger">👆</div>'}</div>`+
-      `<p class="hint">ゆびで こすって ほりだそう</p><button class="cta" hidden>やったー！</button>`;
+    st.innerHTML=`<div class="cap">どこかに なにか うまってる！</div><div class="slab"><div class="fos">${fossilArt(id)}</div><canvas></canvas><canvas></canvas>${reduce?'':'<div class="finger">👆</div>'}</div>`+
+      `<p class="hint">ゆびで こすって さがそう</p><button class="cta" hidden>やったー！</button>`;
     document.body.appendChild(st);
     const slab=st.querySelector('.slab'), [rock,sand]=st.querySelectorAll('canvas'), cap=st.querySelector('.cap'), hint=st.querySelector('.hint'), btn=st.querySelector('.cta');
     const W=slab.clientWidth, H=slab.clientHeight, dpr=Math.min(2,devicePixelRatio||1), r=seeded(id+Date.now());
+    // Where the fossil lies: its square patch fw across, centred at (fx,fy), anywhere at least 5% in from the edges.
+    const fw=W*.36, fx=fw/2+W*.05+Math.random()*(W*.9-fw), fy=fw/2+H*.05+Math.random()*(H*.9-fw), fe=st.querySelector('.fos');
+    fe.style.left=fx+'px'; fe.style.top=fy+'px';
     // The rock is painted on base. Where her finger has been in the last quarter second is drawn on mask,
     // and the rock canvas shows base with mask taking 35% off, so the rock wears away by time spent rubbing,
     // however many pointer events arrive. Every quarter second (and when she lifts her finger) that's kept in base.
@@ -1194,18 +1199,19 @@ function digFossil(si){
     x=ctx[1]; x.fillStyle='#dcbb82'; x.fillRect(0,0,W,H);
     dots(x,['#c9a465','#efd9aa','#b8925a','#e6c891'],900,.6,1.8); dots(x,['#cfae72','#c49f60'],14,10,26);
     rx.drawImage(base,0,0);
-    const R0=W*.055; let last={}, found=false, lastSound=0, lastBit=0, lastKeep=0, rubbed=false;
-    // How much of the middle (where the fossil lies) is clear of rock, checked on a small copy of the rock layer.
+    const R0=W*.032; let last={}, found=false, lastSound=0, lastBit=0, lastKeep=0, rubbed=false;
+    // How much of the fossil's patch is clear of rock, checked on a small copy of the rock layer.
     const sm=document.createElement('canvas'); sm.width=48; sm.height=36; const smx=sm.getContext('2d',{willReadFrequently:true});
     function cleared(){
       smx.clearRect(0,0,48,36); smx.drawImage(rock,0,0,48,36); const d=smx.getImageData(0,0,48,36).data; let n=0,c=0;
-      for(let j=0;j<36;j++)for(let i=0;i<48;i++){if(((i-23.5)/17)**2+((j-17.5)/16)**2>1)continue; n++; if(d[(j*48+i)*4+3]<90)c++}
+      const ci=fx/W*48-.5, cj=fy/H*36-.5, ri=fw*.42/W*48, rj=fw*.42/H*36;
+      for(let j=0;j<36;j++)for(let i=0;i<48;i++){if(((i-ci)/ri)**2+((j-cj)/rj)**2>1)continue; n++; if(d[(j*48+i)*4+3]<90)c++}
       return c/n;
     }
     const line=(c,a,b,rad)=>{c.lineWidth=rad*2; c.lineCap='round'; c.beginPath(); c.moveTo(a.x,a.y); c.lineTo(b.x+.01,b.y); c.stroke()};
     ctx[1].globalCompositeOperation='destination-out'; ctx[2].strokeStyle='#000';
     function rub(a,b){
-      line(ctx[1],a,b,R0*1.3); line(ctx[2],a,b,R0); rubbed=true;
+      line(ctx[1],a,b,R0*1.35); line(ctx[2],a,b,R0); rubbed=true;
       rx.globalCompositeOperation='copy'; rx.globalAlpha=1; rx.drawImage(base,0,0);
       rx.globalCompositeOperation='destination-out'; rx.globalAlpha=.35; rx.drawImage(mask,0,0);
       const now=performance.now();

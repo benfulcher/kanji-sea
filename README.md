@@ -28,7 +28,8 @@ It covers the kanji in 光文書院 くりかえし かんじドリル 1年 上,
   The best full-test score for each set shows on its button.
   A perfect test sets off a chicken dance by a line of sea animals, to an original polka (tap to skip).
 - **Fossil dig (かせき):** after the chicken dance, a perfect test digs up that set's fossil of an ancient sea animal.
-  She rubs away loose sand and then harder rock with her finger, and once most of the middle is clear the rest crumbles away and the fossil is named.
+  The fossil is small and hidden at a random spot, so most of the slab is empty and she has to hunt for it.
+  She rubs away loose sand and then harder rock with a fingertip-sized scraper, and once most of the fossil is uncovered the rest crumbles away and the fossil is named.
   Each set has its own fossil (しおだまり an アンモナイト, さんごしょう a サンヨウチュウ, くじらの うみ a クビナガリュウ, ふかい うみ a シーラカンス, こんぶの もり a ウミユリ), shown next to the set's manta: a ？ until it's dug up, then the fossil, which she can tap to see bigger with a line about it.
   Another perfect test on the same set digs up the same fossil again, just for fun.
   Seven more fossils are drawn and ready for sets added later.
