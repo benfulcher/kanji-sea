@@ -306,13 +306,17 @@ ruby rt{font-family:var(--f-ui);font-size:.5em;font-weight:700;color:var(--sun)}
 @media (orientation:portrait){#practice.testing .boardwrap{width:calc(min(100%,40vh,560px)*var(--bs,1))}}
 #practice.testing .no-test{display:none!important}
 /* After a mistake: optional practice squares like the drill book's, the first two with a faint outline to trace. */
-.extra{display:grid;grid-template-columns:repeat(4,1fr) auto;gap:10px;align-items:center;touch-action:none}
+.extra{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;align-items:center;touch-action:none}
+.extra .chip{grid-column:1/-1;justify-self:end;padding:6px 16px}
+/* While the squares are open the panel may grow wider, so they come out bigger. */
+#practice.extra-on .panel{max-width:540px}
 .extra[hidden]{display:none}
 .extra svg{display:block;width:100%;height:auto;aspect-ratio:1;border-radius:12px;background:var(--paper);box-shadow:0 4px 0 rgba(0,0,0,.25)}
 .extra .grid{stroke:var(--redline);stroke-width:.8;stroke-dasharray:2 2;fill:none}
 .extra .ghost{stroke:var(--ghost);stroke-width:6.5;fill:none;stroke-linecap:round;stroke-linejoin:round}
 .extra .ink{stroke:var(--ink);stroke-width:6;fill:none;stroke-linecap:round;stroke-linejoin:round}
-@media (orientation:portrait){#practice.testing.extra-on .boardwrap{width:calc(min(100%,30vh,560px)*var(--bs,1))}}
+@media (orientation:portrait){#practice.testing.extra-on .boardwrap{width:calc(min(100%,30vh,560px)*var(--bs,1))}
+  #practice.testing .extra{grid-template-columns:repeat(2,1fr);max-width:360px}}
 .whale{position:fixed;inset:0;z-index:15;pointer-events:none;overflow:hidden}
 .whale.busy{pointer-events:auto}
 /* Each jaw reaches 50vh past the screen edge, so closed they meet in the middle with no gaps. Its lip is one wide arc. */
