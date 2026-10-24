@@ -317,7 +317,7 @@ ruby rt{font-family:var(--f-ui);font-size:.5em;font-weight:700;color:var(--sun)}
 .chicken .hen .emo{font-size:min(130px,15vw)}
 .chicken .pop{position:absolute;font-size:34px}
 
-/* Then a fossil to dig up: rub off the loose sand and the rock under it. Fossils go on the home screen's museum shelf. */
+/* Then a fossil to dig up: rub off the loose sand and the rock under it. Each set has its own fossil, shown next to the set. */
 .dig{position:fixed;inset:0;z-index:19;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2.4vh;
   padding:16px;background:radial-gradient(120% 90% at 50% 40%,#4a3522 0%,#2a1c10 70%,#160e07 100%)}
 .dig .cap{font-weight:900;font-size:clamp(30px,5.5vw,52px);color:var(--sun);text-shadow:0 4px 0 rgba(0,0,0,.35);text-align:center;text-wrap:balance}
@@ -335,16 +335,12 @@ ruby rt{font-family:var(--f-ui);font-size:.5em;font-weight:700;color:var(--sun)}
 @keyframes rub{from{transform:translate(-90%,0) rotate(-12deg)}to{transform:translate(10%,8px) rotate(10deg)}}
 .slab .bit{position:absolute;left:0;top:0;width:7px;height:6px;border-radius:2px;pointer-events:none}
 .slab .twinkle{position:absolute;font-size:30px;pointer-events:none}
-.fos svg,.fslot svg,.plaque svg{display:block;width:100%;height:auto}
+.fos svg,.plaque svg{display:block;width:100%;height:auto}
 .dig .cta[hidden]{display:none}
-.museum .shelf{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
-@media (min-width:960px){.museum .shelf{grid-template-columns:repeat(12,minmax(0,1fr))}}
-.fslot{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;aspect-ratio:1;padding:6px;border-radius:18px;
-  background:radial-gradient(circle at 30% 25%,rgba(255,255,255,.12),transparent 60%),#8f7a58;box-shadow:inset 0 0 0 3px rgba(0,0,0,.15);
-  font-weight:900;font-size:30px;color:rgba(236,248,245,.35)}
-.fslot.none{background:rgba(6,25,42,.42)}
-.fslot svg{width:76%}
-.fslot small{font-size:10px;font-weight:700;color:#fff3d6;line-height:1.2;text-align:center}
+/* Each set's fossil sits by its manta: a ？ stone until a perfect test digs it up. */
+.reward.fosr{width:84px}
+.reward.fosr .plaque{width:58px;margin:0 auto 2px}
+.reward.fosr:not(.got) .plaque{display:grid;place-items:center;background:rgba(6,25,42,.5);color:var(--mist);font-size:26px;font-weight:900}
 .plaque{width:100%;aspect-ratio:1;padding:8%;border-radius:50%;background:radial-gradient(circle at 30% 25%,rgba(255,255,255,.14),transparent 60%),#9c865f}
 
 @media (prefers-reduced-motion: reduce){
@@ -382,7 +378,6 @@ ruby rt{font-family:var(--f-ui);font-size:.5em;font-weight:700;color:var(--sun)}
         <span><i style="background:#2d9bc4"></i>みないで かけた</span>
         <span><i style="background:#e6a817"></i>よめた</span>
       </div>
-      <section class="reef museum" id="museum" aria-label="かせきの はくぶつかん"></section>
       <div id="reefs" class="wrap" style="gap:16px"></div>
       <div class="grownups">
         <b>おとなの かたへ</b>
@@ -508,12 +503,13 @@ ruby rt{font-family:var(--f-ui);font-size:.5em;font-weight:700;color:var(--sun)}
 const STROKES = /*__STROKES__*/null;
 
 // Book order (光文書院 くりかえし かんじドリル 1年 上). Lesson numbers are the drill's own.
+// Each set has a fossil (one of FOSSILS) to dig up with a perfect test; sets added later can take the unused ones.
 const SECTIONS = [
-  {zone:'しおだまり', book:'やくそく・うみの かくれんぼ', lessons:'5〜8', kanji:'木大小'},
-  {zone:'さんごしょう', book:'かずと かんじ', lessons:'9〜14', kanji:'一二三四五六七八九十'},
-  {zone:'くじらの うみ', book:'くじらぐも', lessons:'15〜20', kanji:'子空先生男女手天青'},
-  {zone:'ふかい うみ', book:'しらせたいな、見せたいな', lessons:'21〜26', kanji:'文字正見学校'},
-  {zone:'こんぶの もり', book:'つぎの ページ', lessons:'', kanji:'山水雨上下'},
+  {zone:'しおだまり', book:'やくそく・うみの かくれんぼ', lessons:'5〜8', kanji:'木大小', fossil:'ammo'},
+  {zone:'さんごしょう', book:'かずと かんじ', lessons:'9〜14', kanji:'一二三四五六七八九十', fossil:'trilo'},
+  {zone:'くじらの うみ', book:'くじらぐも', lessons:'15〜20', kanji:'子空先生男女手天青', fossil:'plesio'},
+  {zone:'ふかい うみ', book:'しらせたいな、見せたいな', lessons:'21〜26', kanji:'文字正見学校', fossil:'coel'},
+  {zone:'こんぶの もり', book:'つぎの ページ', lessons:'', kanji:'山水雨上下', fossil:'crin'},
 ];
 // Readings as printed in the book. "|" splits kanji reading from okurigana; "*" = not used in the game.
 const fish = n => '🐠'.repeat(n);
@@ -853,7 +849,7 @@ const FOSSIL_ART={
       `<path d="M8 60L41 62L41 70Q23 75 12 68Z" fill="${FS}"/><path d="M6 55L11 62L14 53ZM9 61L14 54L16 61Z" fill="#fffaf0"/>`);
   },
 };
-// Dug up in this order, best known first. n is said aloud; t is a word about it for the reveal and the museum.
+// n is said aloud; t is a word about it for the reveal and when she taps it by its set.
 const FOSSILS={
   ammo:{n:'アンモナイト',t:'うずまきの からを もった、イカや タコの なかま'},
   tooth:{n:'メガロドン',t:'でんせつの おおきな サメの は。きみの てより おおきい！'},
@@ -868,7 +864,6 @@ const FOSSILS={
   crin:{n:'ウミユリ',t:'はなみたいだけど、ヒトデの なかまの どうぶつ'},
   dunkl:{n:'ダンクルオステウス',t:'よろいの あたまを もった、おおきな さかな'},
 };
-const FOSSIL_ORDER=Object.keys(FOSSILS);
 const fossilArt=id=>FOSSIL_ART[id]();
 function art(id){const c=CRE[id]; if(c.svg==='octo') return octoSVG(c.c); if(c.svg==='ray') return raySVG(c.c,c.spots); if(c.svg) return KAWAII[c.svg](c); return `<span class="emo">${c.e}</span>`}
 
@@ -1127,22 +1122,22 @@ function endTest(){
   afterCele=closeWhale;
   const ups=R0.ups.length, perfect=T.score===T.n;
   const card=()=>celebrate('kwhale',perfect?'ぜんぶ せいかい！':'テスト おわり！',`${T.done}もんの うち ${T.score}もん せいかい 🦷${ups?`。レベル アップ ${ups}こ`:''}`);
-  if(perfect)chickenDance().then(digFossil).then(card); else card();
+  if(perfect)chickenDance().then(()=>digFossil(T.si)).then(card); else card();
 }
 // ---------- 100% on a test: then dig up a fossil ----------
-// Each perfect test digs up the next fossil in FOSSILS; once she has them all, a random one comes up again.
-// It counts as found as soon as the dig opens. Two layers cover it: loose sand that one rub clears,
+// Each set has its own fossil. The first perfect test on a set digs it up and puts it by the set;
+// a perfect test after that digs up the same fossil again, just for fun. It counts as found as soon as the dig opens. Two layers cover it: loose sand that one rub clears,
 // and rock under it that takes about three. Once most of the middle is clear, the rest crumbles away.
-function digFossil(){
+function digFossil(si){
   return new Promise(done=>{
-    const n=P.dig||0, again=n>=FOSSIL_ORDER.length, id=again?pick(FOSSIL_ORDER):FOSSIL_ORDER[n], F=FOSSILS[id];
-    P.dig=n+1; save();
+    const id=SECTIONS[si].fossil, F=FOSSILS[id], fos=P.fos=P.fos||{}, again=!!fos[si];
+    fos[si]=1; save();
     const st=document.createElement('div'); st.className='dig';
     st.innerHTML=`<div class="cap">なにか うまってる！</div><div class="slab"><div class="fos">${fossilArt(id)}</div><canvas></canvas><canvas></canvas>${reduce?'':'<div class="finger">👆</div>'}</div>`+
-      `<p class="hint">ゆびで こすって ほりだそう</p><button class="cta" hidden>はくぶつかんに かざる</button>`;
+      `<p class="hint">ゆびで こすって ほりだそう</p><button class="cta" hidden>やったー！</button>`;
     document.body.appendChild(st);
     const slab=st.querySelector('.slab'), [rock,sand]=st.querySelectorAll('canvas'), cap=st.querySelector('.cap'), hint=st.querySelector('.hint'), btn=st.querySelector('.cta');
-    const W=slab.clientWidth, H=slab.clientHeight, dpr=Math.min(2,devicePixelRatio||1), r=seeded(id+n);
+    const W=slab.clientWidth, H=slab.clientHeight, dpr=Math.min(2,devicePixelRatio||1), r=seeded(id+Date.now());
     // The rock is painted on base. Where her finger has been in the last quarter second is drawn on mask,
     // and the rock canvas shows base with mask taking 35% off, so the rock wears away by time spent rubbing,
     // however many pointer events arrive. Every quarter second (and when she lifts her finger) that's kept in base.
@@ -1322,12 +1317,14 @@ function renderReefs(){
   const root=$('reefs'); root.innerHTML='';
   SECTIONS.forEach((s,si)=>{
     const sec=document.createElement('section'); sec.className='reef';
-    const got=!!P.sec[si], best=P.test?.[si];
+    const got=!!P.sec[si], best=P.test?.[si], F=FOSSILS[s.fossil], dug=!!P.fos?.[si];
     sec.innerHTML=`<div class="reef-head"><div><h2>${s.zone}</h2><p class="book">${s.lessons?`<b>${s.lessons}</b>　`:''}${s.book}</p></div>
       <div class="right"><button class="setgo">▶ れんしゅう</button><button class="setgo test">🐳 テスト${best==null?'':` <small>🦷${best}/${s.kanji.length}</small>`}</button>
-      <div class="reward${got?' got':''}"><div class="art">${art('manta')}</div>${got?'マンタ！':'ぜんぶ かくと…'}</div></div></div>`;
+      <div class="reward${got?' got':''}"><div class="art">${art('manta')}</div>${got?'マンタ！':'ぜんぶ かくと…'}</div>
+      <${dug?'button':'div'} class="reward fosr${dug?' got':''}"><div class="plaque">${dug?fossilArt(s.fossil):'？'}</div>${dug?F.n:'テストが<br>まんてんだと…'}</${dug?'button':'div'}></div></div>`;
     sec.querySelector('.setgo').onclick=()=>startReview([...s.kanji]);
     sec.querySelector('.setgo.test').onclick=()=>startTest(si);
+    if(dug)sec.querySelector('.fosr').onclick=()=>{celebrate(s.fossil,`${F.n}の かせき`,F.t); if(SFX.on)say(F.n)};
     const tiles=document.createElement('div'); tiles.className='tiles';
     for(const k of s.kanji){
       const p=prog(k), b=document.createElement('button'); b.className='tile';
@@ -1339,15 +1336,7 @@ function renderReefs(){
     sec.appendChild(tiles); root.appendChild(sec);
   });
 }
-// The fossil museum: a shelf of every fossil dug up so far, with a ？ for each still in the ground.
-function renderMuseum(){
-  const got=Math.min(P.dig||0,FOSSIL_ORDER.length);
-  $('museum').innerHTML=`<div class="reef-head"><div><h2>🦴 かせきの はくぶつかん</h2>${got?'':'<p class="book">テストで ぜんぶ せいかい すると、かせきが ほれるよ</p>'}</div><span class="pill">${got} / ${FOSSIL_ORDER.length}</span></div>`+
-    `<div class="shelf">${FOSSIL_ORDER.map((id,i)=>i<got?`<button class="fslot" data-id="${id}" aria-label="${FOSSILS[id].n}">${fossilArt(id)}<small>${FOSSILS[id].n}</small></button>`:'<div class="fslot none">？</div>').join('')}</div>`;
-}
-$('museum').addEventListener('click',e=>{const b=e.target.closest('.fslot[data-id]'); if(!b)return; const F=FOSSILS[b.dataset.id];
-  celebrate(b.dataset.id,`${F.n}の かせき`,F.t); if(SFX.on)say(F.n)});
-function renderHome(){renderTank();renderLadder();renderMuseum();renderReefs();renderBackup();show('home')}
+function renderHome(){renderTank();renderLadder();renderReefs();renderBackup();show('home')}
 
 // ---------- practice board ----------
 const board=$('board'), gGhost=$('gGhost'), gInk=$('gInk'), gHint=$('gHint'), live=$('live');

@@ -21,10 +21,11 @@ It covers the kanji in 光文書院 くりかえし かんじドリル 1年 上,
   A right answer on a kanji that is due for review counts as that review and levels it up; nothing else in a test changes levels.
   The best full-test score for each set shows on its button.
   A perfect test sets off a chicken dance by a line of sea animals, to an original polka (tap to skip).
-- **Fossil dig (かせき):** after the chicken dance, a perfect test digs up a fossil of an ancient sea animal.
+- **Fossil dig (かせき):** after the chicken dance, a perfect test digs up that set's fossil of an ancient sea animal.
   She rubs away loose sand and then harder rock with her finger, and once most of the middle is clear the rest crumbles away and the fossil is named.
-  There are twelve, from アンモナイト to ダンクルオステウス, each dug up once in a fixed order; after that a random one comes up again.
-  Found fossils go on the かせきの はくぶつかん shelf on the home screen, and tapping one shows its name and a line about it.
+  Each set has its own fossil (しおだまり an アンモナイト, さんごしょう a サンヨウチュウ, くじらの うみ a クビナガリュウ, ふかい うみ a シーラカンス, こんぶの もり a ウミユリ), shown next to the set's manta: a ？ until it's dug up, then the fossil, which she can tap to see bigger with a line about it.
+  Another perfect test on the same set digs up the same fossil again, just for fun.
+  Seven more fossils are drawn and ready for sets added later.
 - **Practice squares:** after a mistake writing a kanji from memory (in a test, a review, practice or a lesson's かく), four squares open for optional free practice, as in the drill book.
   Trace the first two over a faint outline, then write it in the other two; the ink isn't checked.
 - **Reading game (よめるかな？):** a stingray brings a kanji, and you find its reading in a fish tank and tap it.
