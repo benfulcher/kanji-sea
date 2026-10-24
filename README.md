@@ -8,6 +8,7 @@ It covers the kanji in 光文書院 くりかえし かんじドリル 1年 上,
   It says hello when the app opens, or when she comes back after 20 minutes or more away, with how many reviews are waiting.
   When she comes back to the home screen after doing something good (a level up, a new sea friend, a perfect test, a new fossil, a good reading game) it hops and says what she did and よく できたね！; after other practice it says よく がんばったね！.
   Its words are read aloud when the sound is on, and tapping it gets a fact or a cheer.
+  She can drag it up the tank (its legs dangle and it squeals わあっ！); let go and it falls back to the sand with a bounce and a puff of sand, then walks on.
   The octopus stays as the writing coach.
 - **Reviews (ふくしゅう):** WaniKani-style spaced repetition, where every review is writing from memory and each level is a sea creature.
   A session goes through each kanji that is due once and then ends.

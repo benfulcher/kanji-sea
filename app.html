@@ -59,12 +59,14 @@ h1 small{display:block;font-size:13px;font-weight:700;letter-spacing:.14em;color
 .art svg{display:block;width:100%;height:auto}
 .tank-empty{position:absolute;left:50%;top:38%;transform:translate(-50%,-50%);width:min(80%,420px);text-align:center;
   font-weight:700;font-size:18px;line-height:1.6;color:var(--foam);text-wrap:balance}
-/* The host, a タカアシガニ, walks sideways along the sand and talks in a bubble over its head (it stops to talk). */
-.host{position:absolute;bottom:4px;width:150px;z-index:2;animation:crabwalk 30s ease-in-out infinite alternate}
-@keyframes crabwalk{from{left:50%}to{left:calc(97% - 150px)}}
-.host .legs{transform-box:view-box;transform-origin:80px 50px;animation:step .5s ease-in-out infinite alternate}
+/* The host, a タカアシガニ, walks sideways along the sand and talks in a bubble over its head (it stops to talk).
+   She can drag it up the tank; let go and it falls back to the sand. hostLoop moves it, so it has no CSS walk. */
+.host{position:absolute;left:60%;bottom:4px;width:clamp(160px,17vw,200px);z-index:2;touch-action:none}
+.host .legs{transform-box:view-box;transform-origin:80px 50px;animation:step .5s ease-in-out infinite alternate;animation-play-state:paused}
 .host .legs.b{animation-direction:alternate-reverse}
-.host.talking,.host.talking .legs{animation-play-state:paused}
+.host.walking .legs{animation-play-state:running}
+.host.held .legs{animation-duration:.12s;animation-play-state:running}
+.puff{position:absolute;width:24px;height:12px;border-radius:50%;background:var(--sand);pointer-events:none}
 .host.happy .tk{animation:hop .3s ease-out 6 alternate}
 .host.tapped .tk{animation:jiggle .5s ease-out}
 @keyframes step{from{transform:rotate(-3deg)}to{transform:rotate(3deg)}}
@@ -73,6 +75,10 @@ h1 small{display:block;font-size:13px;font-weight:700;letter-spacing:.14em;color
   background:var(--foam);color:var(--ink);font-weight:700;font-size:17px;line-height:1.5;white-space:pre-line;text-align:left;
   opacity:0;transform:translateY(8px) scale(.9);transform-origin:bottom right;transition:opacity .25s,transform .25s;pointer-events:none}
 .host.talking .say{opacity:1;transform:none}
+/* Near the top of the tank the bubble goes under the crab, and near the left wall it opens to the right. */
+.host.under .say{bottom:auto;top:92%;border-radius:4px 18px 18px 18px;transform-origin:top right}
+.host.lefty .say{right:auto;left:30px;border-radius:18px 18px 18px 4px;transform-origin:bottom left}
+.host.under.lefty .say{border-radius:18px 4px 18px 18px;transform-origin:top left}
 .tank-empty{transition:opacity .25s}
 .tank:has(.host.talking) .tank-empty{opacity:0}
 
@@ -359,7 +365,7 @@ ruby rt{font-family:var(--f-ui);font-size:.5em;font-weight:700;color:var(--sun)}
 .plaque{width:100%;aspect-ratio:1;padding:8%;border-radius:50%;background:radial-gradient(circle at 30% 25%,rgba(255,255,255,.14),transparent 60%),#9c865f}
 
 @media (prefers-reduced-motion: reduce){
-  .swimmer,.swimmer .bob,.swimmer .face,.weed,.host,.host .legs,.host .tk,.cele .art,.carrier.in,.carrier.out,#board .start.pulse{animation:none!important}
+  .swimmer,.swimmer .bob,.swimmer .face,.weed,.host .legs,.host .tk,.cele .art,.carrier.in,.carrier.out,#board .start.pulse{animation:none!important}
 }
 </style>
 
@@ -710,6 +716,7 @@ const SFX=(()=>{
       click:()=>{for(let j=0;j<4;j++)hiss({t:j*.07,dur:.04,f0:3200,f1:2600,q:4,vol:.25})},
       puff:()=>{hiss({dur:.35,f0:300,f1:1500,q:1,vol:.15});tone({f0:500,f1:1400,t:.3,dur:.1,vol:.15})},
     })[v]()),
+    thud:go(()=>{tone({f0:150,f1:55,dur:.22,vol:.28});hiss({dur:.25,f0:700,f1:200,q:.8,vol:.12})}),
     right:go(()=>{tone({type:'triangle',f0:784,dur:.15,vol:.15});tone({type:'triangle',f0:1175,t:.1,dur:.3,vol:.15});bubbles(4,.15)}),
     // Digging: a gritty scrape for each rub, now and then a clink on the rock.
     scrape:go(rock=>{hiss({dur:.09,f0:600+Math.random()*900,f1:350,q:.7,vol:.12});if(rock&&Math.random()<.25)tone({type:'triangle',f0:1900+Math.random()*900,dur:.06,vol:.05})}),
@@ -1373,10 +1380,70 @@ document.addEventListener('visibilitychange',()=>{
   if(document.hidden){hiddenAt=Date.now(); try{localStorage.setItem(VKEY,Date.now())}catch(e){} return}
   if(hiddenAt&&Date.now()-hiddenAt>20*60e3&&!$('home').hidden)welcome();
 });
-$('host').addEventListener('pointerdown',()=>{
-  SFX.unlock(); SFX.critter('click'); const h=$('host'); h.classList.remove('tapped'); void h.offsetWidth; h.classList.add('tapped');
-  hostSay(pick(['ぼくの あしは ながーいよ！','タカアシガニは せかいで いちばん おおきな カニだよ','ふかい うみから きたよ','きょうも かんじ がんばろう！','ぼくも かんじ かけるかな？']));
-});
+// It walks to and fro along the sand (x is its left edge, y its height above the sand, both in px in the tank).
+// A tap gets a fact or a cheer. Dragged, it dangles its legs; let go, it falls with gravity, bounces and walks on.
+const HOST={x:null,y:0,vy:0,dir:-1,mode:'walk',last:0,drag:null};
+function hostLoop(t){
+  requestAnimationFrame(hostLoop);
+  const dt=Math.min(.05,(t-(HOST.last||t))/1000); HOST.last=t;
+  if($('home').hidden)return;
+  const h=$('host'), W=$('tank').clientWidth, TH=$('tank').clientHeight, w=h.offsetWidth, hh=h.offsetHeight;
+  if(HOST.x==null)HOST.x=W*.62;
+  const lo=W*.25, hi=W-w-W*.02, talking=h.classList.contains('talking');
+  if(HOST.mode==='walk'){
+    if(!talking&&!reduce){HOST.x+=HOST.dir*W*.012*dt; if(HOST.x>hi)HOST.dir=-1; if(HOST.x<lo)HOST.dir=1}
+    HOST.x=Math.min(Math.max(HOST.x,0),Math.max(0,W-w));
+  }else if(HOST.mode==='fall'){
+    HOST.vy+=2600*dt; HOST.y-=HOST.vy*dt;
+    if(HOST.y<=0){
+      HOST.y=0;
+      if(HOST.vy>260){if(!HOST.landed)land(HOST.vy); HOST.landed=true; HOST.vy*=-.35}
+      else{HOST.vy=0; HOST.mode='walk'}
+    }
+  }
+  h.classList.toggle('walking',HOST.mode==='walk'&&!talking&&!reduce);
+  const say=$('hostSay');
+  h.classList.toggle('under',HOST.y+hh*.92+say.offsetHeight+6>TH);
+  h.classList.toggle('lefty',HOST.x+w-30-say.offsetWidth<0);
+  h.style.left=HOST.x+'px'; h.style.bottom=4+HOST.y+'px';
+}
+// Landing: a thump, a puff of sand either side, and a word if it fell from high up.
+function land(v){
+  SFX.thud(); const h=$('host'), tank=$('tank');
+  if(!reduce)for(const s of [-1,1]){
+    const p=document.createElement('div'); p.className='puff'; tank.appendChild(p);
+    const x=HOST.x+h.offsetWidth/2-12, y=tank.clientHeight-20;
+    p.animate([{transform:`translate(${x}px,${y}px) scale(.4)`,opacity:.9},{transform:`translate(${x+s*h.offsetWidth*.55}px,${y-14}px) scale(1.6)`,opacity:0}],{duration:550,easing:'ease-out'}).onfinish=()=>p.remove();
+  }
+  if(v>600)hostSay(pick(['ドスン！ びっくりした〜','ふう、ただいま！','もう いっかい！']));
+}
+{
+  const h=$('host');
+  h.addEventListener('pointerdown',e=>{
+    SFX.unlock(); e.preventDefault(); h.setPointerCapture(e.pointerId);
+    const r=h.getBoundingClientRect(); HOST.drag={id:e.pointerId,sx:e.clientX,sy:e.clientY,ox:e.clientX-r.left,oy:r.bottom-e.clientY,moved:false};
+  });
+  h.addEventListener('pointermove',e=>{
+    const d=HOST.drag; if(!d||e.pointerId!==d.id)return;
+    if(!d.moved){
+      if(Math.hypot(e.clientX-d.sx,e.clientY-d.sy)<8)return;
+      d.moved=true; HOST.mode='held'; HOST.vy=0; h.classList.add('held'); SFX.critter('click');
+      hostSay(pick(['わあっ！','たかーい！','おろしてー！','とんでる みたい！']));
+    }
+    const t=$('tank').getBoundingClientRect(), w=h.offsetWidth, hh=h.offsetHeight;
+    HOST.x=Math.min(Math.max(e.clientX-d.ox-t.left,0),t.width-w);
+    HOST.y=Math.min(Math.max(t.bottom-4-(e.clientY+d.oy),0),Math.max(0,t.height-hh-8));
+  });
+  const up=e=>{
+    const d=HOST.drag; if(!d||e.pointerId!==d.id)return; HOST.drag=null;
+    if(d.moved){h.classList.remove('held'); HOST.mode=reduce?'walk':'fall'; HOST.vy=0; HOST.landed=false; if(reduce)HOST.y=0; return}
+    if(e.type==='pointercancel')return;
+    SFX.critter('click'); h.classList.remove('tapped'); void h.offsetWidth; h.classList.add('tapped');
+    hostSay(pick(['ぼくの あしは ながーいよ！','タカアシガニは せかいで いちばん おおきな カニだよ','ふかい うみから きたよ','きょうも かんじ がんばろう！','ぼくも かんじ かけるかな？','もちあげて みて！']));
+  };
+  h.addEventListener('pointerup',up); h.addEventListener('pointercancel',up);
+}
+requestAnimationFrame(hostLoop);
 function renderWeeds(){
   for(const w of [$('weeds'),$('qWeeds')]){
     w.innerHTML='';
