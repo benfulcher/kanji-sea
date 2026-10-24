@@ -6,7 +6,10 @@ It covers the kanji in 光文書院 くりかえし かんじドリル 1年 上,
 - **Practice:** watch the stroke order (みる), trace it (なぞる), then write it from memory (かく), with every stroke checked for shape, direction and order.
 - **Reviews (ふくしゅう):** WaniKani-style spaced repetition, where every review is writing from memory and each level is a sea creature.
   A session goes through each kanji that is due once and then ends.
-  Writing it with no misses or hints levels it up; a miss or hint drops it a level (two from じょうず up) instead of asking it again in the same session.
+  A missed kanji is never asked again in the same session; its level is settled straight away instead.
+  Writing it with no misses or hints levels it up.
+  Small slips (missed strokes where no stroke was shown, or the picture hint) keep its level and restart its wait.
+  Any stroke shown (after two misses on it, or one drawn backwards), ちょっと みる or わからない drops it a level (two from じょうず up).
   Each set's ▶ れんしゅう button gives free practice on that set instead, which picks low-level kanji most often and never changes levels.
   Half the prompts put the word in a short book-style sentence, with the reading over the box to write in.
 - **Writing in sentences (ぶんで かく):** practice where every prompt is one of those sentences.

@@ -754,7 +754,7 @@ function renderLadder(){
 
 let R=null;
 // A review session serves each kanji that was due at the start once (WaniKani style), and ends when they're all done.
-// A miss is never asked again in the same session: it drops a level straight away instead.
+// A miss is never asked again in the same session; reviewDone settles its level straight away instead.
 // Practising one set is free practice instead, until she taps おわる.
 // Practice picks at random, weighted towards low levels: each level up makes a kanji 0.6x as likely,
 // so メンダコ comes up about 8x as often as ウミガメ. The same kanji can come twice in a row.
@@ -832,8 +832,10 @@ function yomiKanaDone(){
   if(SFX.on){const rd=R.parts.join(R.reading); setTimeout(()=>say(rd),600)}
   $('revNext').hidden=false; $('revGiveUp').hidden=true; $('revHint').hidden=true; $('revPeek').hidden=true; $('revNext').focus();
 }
-// Written with no misses or hints levels it up; anything else drops it a level (two from じょうず up, WaniKani's rule
-// for one wrong answer, never below みならい 1). Either way it's done for this session and waits for its next review.
+// Written with no misses or hints levels it up. Small slips (missed strokes where the octopus never showed one,
+// or the picture hint) keep its level and restart its wait. Any stroke shown (after two misses, or one backwards),
+// ちょっと みる or わからない drops it a level (two from じょうず up, never below みならい 1).
+// Either way it's done for this session and waits for its next review.
 function reviewDone(){
   if(R.kind==='yomi')return yomiKanaDone();
   if(R.kind==='test')return testDone();
@@ -845,15 +847,15 @@ function reviewDone(){
   }else{
     R.queue.shift();
     const before=p.s;
-    p.s=ok?before+1:Math.max(1,before-(before>=5?2:1));
+    p.s=ok?before+1:cur.hinted||cur.shown?Math.max(1,before-(before>=5?2:1)):before;
     p.due=p.s>=BURNED?null:hourFloor(Date.now()+SRS_INT[p.s]);
     save(); R.done++;
     if(!ok){
       SFX.bloop(); openExtra(k);
-      coach((cur.reveal||cur.totalMiss?'おしい！ ':'ヒントを みて かけたね！ ')+(p.s<before?`レベルは ${LEVELS[p.s].n}に もどるよ。`:'')+'したの ますで れんしゅう してもいいよ',true);
+      coach((cur.reveal||cur.totalMiss?'おしい！ ':'ヒントを みて かけたね！ ')+(p.s<before?`レベルは ${LEVELS[p.s].n}に もどるよ。`:'レベルは そのままだよ。')+'したの ますで れんしゅう してもいいよ',true);
     }else if(p.s>before){R.ups.push(p.s);danceParty(p.s);levelUp=true;coach(p.s===BURNED?'でんせつの クジラに なった！ もう ばっちり！':`レベル アップ！ ${LEVELS[p.s].n}に なったよ`)}
     else{SFX.chime();coach('かけたね！')}
-    $('revLevel').innerHTML=`<div class="art">${art(LEVELS[before].id)}</div><span class="arrow">→</span>${levelHTML(p.s)}`;
+    $('revLevel').innerHTML=p.s===before?levelHTML(p.s):`<div class="art">${art(LEVELS[before].id)}</div><span class="arrow">→</span>${levelHTML(p.s)}`;
   }
   $('revNext').hidden=false; $('revGiveUp').hidden=true; $('revHint').hidden=true; $('revPeek').hidden=true; $('revNext').focus();
   return levelUp;
@@ -1166,7 +1168,7 @@ function openKanji(k,mode){
 }
 function resetBoard(mode){
   $('boardwrap').querySelector('.cheer')?.remove(); closeExtra();
-  cur.mode=mode; cur.clean=true; cur.low=3; cur.idx=0; cur.miss=0; cur.totalMiss=0; cur.hinted=false; cur.reveal=false; cur.run++;
+  cur.mode=mode; cur.clean=true; cur.low=3; cur.idx=0; cur.miss=0; cur.totalMiss=0; cur.hinted=false; cur.shown=false; cur.reveal=false; cur.run++;
   board.classList.toggle('memory',mode!=='trace'); board.classList.remove('done-glow');
   gGhost.innerHTML=''; gInk.innerHTML=''; gHint.innerHTML=''; live.setAttribute('d','');
   cur.targets=STROKES[cur.k].map(d=>sampleEl(addPath(gGhost,d,'ghost')));
@@ -1200,6 +1202,7 @@ function markNext(){
 function showHint(){
   gHint.innerHTML='';
   if(cur.mode==='review'&&cur.miss>=2)cur.hinted=true;
+  cur.shown=true;
   const t=cur.targets[cur.idx];
   addPath(gHint,STROKES[cur.k][cur.idx],'hint',700);
   dot(gHint,t.pts[0],'start pulse'); num(gHint,t.pts[0],cur.idx+1);
