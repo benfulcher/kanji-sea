@@ -50,6 +50,11 @@ It covers the kanji in 光文書院 くりかえし かんじドリル 1年 上,
   A wrong chest greys out and shows the picture hint, and the second kanji's chest stays shut (まだだよ！) until the first has been found.
   A right one opens with a pearl, and its kanji is written into the sentence in place of the reading.
   Each kanji found with no wrong chest on the way counts as a reading of it.
+- **Race (レース):** a Mario Kart–style race along the sea floor, with the タカアシガニ in a kart against an octopus, a jellyfish and a pufferfish.
+  It's two laps, and the karts drive themselves, so ◀ ▶ (or the arrow keys) only steer.
+  A few seconds before each row of three kanji bubbles across the road, a word is called out and shown at the top (「やま」は どれ？).
+  Driving into the right bubble pops it and gives a speed boost, and counts as a reading; the wrong one spins her round and shows which kanji it was.
+  There are eight words in a race, and her place at the finish depends mostly on how many she found.
 - **Practice squares:** after a mistake writing a kanji from memory (in a test, a review, practice or a lesson's かく), four squares open for optional free practice, as in the drill book.
   Trace the first two over a faint outline, then write it in the other two; the ink isn't checked.
 - **Reading game (よめるかな？):** a stingray brings a kanji, and you find its reading in a fish tank and tap it.
