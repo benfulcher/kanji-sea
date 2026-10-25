@@ -853,6 +853,8 @@ const SFX=(()=>{
     swoosh:go(()=>{hiss({dur:.7,f0:300,f1:1400,q:1.5,vol:.14});bubbles(3,.4)}),
     rocket:go(()=>{hiss({dur:1.6,f0:250,f1:900,q:.6,vol:.22});tone({type:'sawtooth',f0:70,f1:180,dur:.7,vol:.05});bubbles(5,.5,.09)}),
     swooshUp:go(()=>hiss({dur:.6,f0:700,f1:2800,q:1.5,vol:.12})),
+    squirt:go(()=>{hiss({dur:.45,f0:2200,f1:500,q:1.2,vol:.16});tone({f0:240,f1:90,t:.35,dur:.25,vol:.14})}),
+    splat:go(()=>{tone({f0:160,f1:55,dur:.35,vol:.22,vib:6});hiss({dur:.4,f0:900,f1:250,q:.7,vol:.16});bubbles(3,.2,.08)}),
     // Anglerfish: a low deep-sea hum, then a twinkle as the lure flares.
     glow:go(()=>{tone({f0:110,f1:150,dur:2.6,vol:.12,vib:3});[1319,1568,2093,2637,3136].forEach((f,j)=>tone({f0:f,t:1.85+j*.08,dur:.45,vol:.07}));hiss({t:1.85,dur:.9,f0:3000,f1:7000,q:2,vol:.05})}),
     fizz:go(()=>bubbles(12,0,.05,.11)),
@@ -2635,6 +2637,9 @@ const FLAG='<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M8 4V38" stroke
   '<path d="M9 5h6.5v6H9zM22 5h6.5v6H22zM15.5 11H22v6h-6.5zM28.5 11H35v6h-6.5zM9 17h6.5v6H9zM22 17h6.5v6H22z" fill="#22122f"/></svg>';
 const RV={seg:200,road:2000,camH:1000,depth:1/Math.tan(40*Math.PI/180),draw:170,speed:4500,boost:1.6,laps:2,steer:1.7,cent:.06,lanes:[-.62,0,.62],call:115};
 RV.pz=RV.camH*RV.depth; // how far ahead of the camera her kart is
+// The kanji are pressed into the sand in their lanes, starting `mark` segments before the bubbles and `markLen` long.
+// Octopus ink: squirted `see` segments ahead of her, `len` long, with `t` seconds of slow, slippery wheels if she hits it.
+Object.assign(RV,{mark:56,markLen:36,ink:{see:66,len:12,t:2.2,w:.3}});
 // The track: [ease in, hold, ease out, curve, bubbles]. Each row of bubbles sits near the end of a long straight.
 const RTRACK=[[0,70,0,0],[20,40,20,2],[0,90,0,0,1],[25,50,25,-3],[0,90,0,0,1],[20,30,20,3],[20,30,20,-2],[0,90,0,0,1],
   [30,60,30,3],[0,90,0,0,1],[25,40,25,-3],[0,60,0,0]];
@@ -2669,8 +2674,14 @@ function startRace(){
       .filter(x=>x!==k&&!INFO[x].r.some(y=>kana(y)===ans)).slice(0,2);
     return {k,ans,y,oku,ks:shuffle([k,...others]),d:Math.floor(j/RGATES.length)*L+RGATES[j%RGATES.length]*RV.seg,hit:-1};
   });
-  RC={gates,gi:0,d:0,x:0,v:0,t:0,go:3,keys:new Set(),score:0,res:[],spin:0,boost:0,bgx:0,raf:0,last:0,done:false,
-    me:svgImg(takaSVG()),rivals:RRIVALS.map(r=>({...r,d:r.d*RV.seg,img:svgImg(art(r.id)),fin:0,ph:Math.random()*6}))};
+  // A few times a race an octopus pops up beside the road and squirts ink across one lane. Each one sits in a long
+  // gap between rows of bubbles, so it squirts after she has passed one row and is over before the next word is called.
+  const ends=[...gates.map(g=>g.d/RV.seg),L*RV.laps/RV.seg], gaps=[];
+  for(let j=0;j<gates.length;j++){const lo=ends[j]+RV.ink.see+5, hi=ends[j+1]-(j+1<gates.length?RV.call:0)-RV.ink.len-20; if(hi>=lo)gaps.push([lo,hi])}
+  const inks=shuffle(gaps).slice(0,3).map(([lo,hi])=>{const d=Math.round(lo+Math.random()*Math.min(hi-lo,60))*RV.seg;
+    return {d,d1:d+RV.ink.len*RV.seg,lane:-1,side:Math.random()<.5?-1:1,spray:0,hit:false,ph:Math.random()*6}}).sort((a,b)=>a.d-b.d);
+  RC={gates,inks,gi:0,d:0,x:0,xv:0,v:0,t:0,go:3,keys:new Set(),score:0,res:[],spin:0,boost:0,ink:0,bgx:0,raf:0,last:0,done:false,
+    me:svgImg(takaSVG()),tako:svgImg(art('octopus3')),rivals:RRIVALS.map(r=>({...r,d:r.d*RV.seg,img:svgImg(art(r.id)),fin:0,ph:Math.random()*6}))};
   $('rResult').hidden=true; $('rPlay').hidden=false; $('rWord').textContent=''; $('rWord').className=''; rMsg('');
   show('race'); rDots(); rLayout(); RC.raf=requestAnimationFrame(rFrame);
   // Speaking straight from the tap lets the words that come later be spoken too on an iPad.
@@ -2705,11 +2716,14 @@ function rStep(dt){
   }
   const seg=RSEGS[Math.floor(rmod(c.d,L)/RV.seg)], pct=c.v/RV.speed;
   const dir=c.done||c.spin>0?0:(c.keys.has('R')?1:0)-(c.keys.has('L')?1:0);
-  c.x+=dir*dt*RV.steer*Math.max(.6,Math.min(1,pct));
+  // With ink on her wheels the steering is slippery: it is slow to answer, and she slides about.
+  const sv=dir*RV.steer*Math.max(.6,Math.min(1,pct));
+  c.xv=c.ink>0?c.xv+(sv-c.xv)*Math.min(1,dt*1.6)+Math.sin(c.t*5.3)*dt*4:sv;
+  c.x+=c.xv*dt;
   // Curves pull her gently to the outside; the sand beside the road slows her down.
   c.x-=dt*RV.steer*pct*seg.curve*RV.cent; c.x=Math.max(-1.6,Math.min(1.6,c.x));
-  const want=c.done?RV.speed*.4:RV.speed*(c.boost>0?RV.boost:1)*(Math.abs(c.x)>1?.6:1)*(c.spin>0?.55:1);
-  c.v+=(want-c.v)*Math.min(1,dt*(c.v<want?1.1:3)); c.boost-=dt; c.spin-=dt;
+  const want=c.done?RV.speed*.4:RV.speed*(c.boost>0?RV.boost:1)*(Math.abs(c.x)>1?.6:1)*(c.spin>0?.55:1)*(c.ink>0?.65:1);
+  c.v+=(want-c.v)*Math.min(1,dt*(c.v<want?1.1:3)); c.boost-=dt; c.spin-=dt; c.ink-=dt;
   c.bgx+=seg.curve*pct*dt*.004;
   const d0=c.d; c.d+=c.v*dt;
   const g=c.gates[c.gi];
@@ -2717,6 +2731,17 @@ function rStep(dt){
     if(!g.called&&g.d-c.d<RV.call*RV.seg){g.called=true; g.again=c.t+2.4; rCall(g)}
     else if(g.again&&c.t>=g.again){g.again=0; if(SFX.on)say(g.ans)}
     if(d0<g.d&&c.d>=g.d)rGate(g);
+  }
+  for(const e of c.inks){
+    if(c.done)break;
+    // The octopus aims at her lane more often than not.
+    if(!e.spray&&e.d-c.d<RV.ink.see*RV.seg){
+      const near=RV.lanes.reduce((b,l,n)=>Math.abs(c.x-l)<Math.abs(c.x-RV.lanes[b])?n:b,0);
+      e.lane=Math.random()<.6?near:Math.floor(Math.random()*3); e.spray=c.t; SFX.squirt(); rMsg('タコの すみだ！ よけて！');
+    }
+    if(e.spray&&!e.hit&&c.d>=e.d&&d0<e.d1&&Math.abs(c.x-RV.lanes[e.lane])<RV.ink.w+.06){
+      e.hit=true; c.ink=RV.ink.t; c.xv=0; SFX.splat(); rMsg('すみで つるつる！');
+    }
   }
   for(const r of c.rivals){
     // They weave a little, and ease off when far ahead so the race stays close.
@@ -2794,8 +2819,14 @@ function rDraw(){
   // Things on and beside the road, far ones first.
   const at=(rel,wx)=>{const f=rel/SL+bp, n=Math.floor(f), q=f-n, p=P[n]; if(!p||!p.a||n<1)return null;
     const s=p.a.s+(p.b.s-p.a.s)*q; return {n,s,k:s*W/2,X:p.a.X+(p.b.X-p.a.X)*q+s*wx*RV.road*W/2,Y:p.a.Y+(p.b.Y-p.a.Y)*q}};
+  // Flat on the road: the kanji pressed into the sand ahead of each row of bubbles, and puddles of ink.
+  for(const gt of c.gates){const r0=gt.d-RV.mark*SL-cam; if(r0+RV.markLen*SL<SL||r0>(RV.draw-2)*SL)continue;
+    RV.lanes.forEach((l,j)=>rFlat(g,at,rGlyph(gt.ks[j]),r0,RV.markLen*SL,l,.27))}
+  for(const e of c.inks)if(e.spray)rInk(g,at,e,e.d-cam);
   const items=[];
   for(let n=RV.draw-1;n>=1;n--){const p=P[n]; if(!p.a)continue; for(const d of p.sg.deco)items.push({n,q:0,f:()=>rDeco(g,d,p.a.X+p.a.s*d.x*RV.road*W/2,p.a.Y,p.a.s*W/2)})}
+  for(const e of c.inks){const rel=e.d+RV.ink.len*SL/2-cam, up=Math.min(1,((RV.ink.see+40)*SL-(e.d-c.d))/(8*SL)); if(up<=0||rel<SL*1.5||rel>(RV.draw-1)*SL)continue;
+    const o=at(rel,e.side*1.4); if(o)items.push({n:o.n,q:.3,f:()=>rTako(g,at,e,o,up,cam)})}
   for(const gt of c.gates){const rel=gt.d-cam; if(rel<SL||rel>(RV.draw-1)*SL)continue;
     const o=at(rel,0); if(o)items.push({n:o.n,q:.5,f:()=>rGateDraw(g,gt,o)})}
   for(const r of c.rivals){const rel=r.d-cam; if(rel<SL*1.5||rel>(RV.draw-1)*SL)continue;
@@ -2803,7 +2834,7 @@ function rDraw(){
   items.sort((a,b)=>b.n-a.n||a.q-b.q).forEach(it=>it.f());
   // Her kart, at the bottom of the screen.
   const k=W/2/RV.camH, bump=Math.abs(c.x)>1&&!c.done?Math.sin(c.t*40)*3:0;
-  const tilt=c.spin>0?(1-c.spin/.6)*Math.PI*2:((c.keys.has('R')?1:0)-(c.keys.has('L')?1:0))*.12;
+  const tilt=c.spin>0?(1-c.spin/.6)*Math.PI*2:((c.keys.has('R')?1:0)-(c.keys.has('L')?1:0))*.12+(c.ink>0?Math.sin(c.t*9)*.07:0);
   // A boost: speed lines streaming out from the horizon, and rocket thrusters on her kart.
   const fire=c.boost>0?Math.min(1,c.boost/.5):0;
   if(fire){
@@ -2813,9 +2844,9 @@ function rDraw(){
       g.lineWidth=2+q*4; g.beginPath(); g.moveTo(W/2+ca*r1,H/2+sa*r1); g.lineTo(W/2+ca*r2,H/2+sa*r2); g.stroke();
     }
   }
-  rKart(g,W/2,H-6-95*k+bump-fire*3*Math.abs(Math.sin(c.t*25)),k,c.me,'#ffcf4d',tilt,1,fire,c.t);
+  rKart(g,W/2,H-6-95*k+bump-fire*3*Math.abs(Math.sin(c.t*25)),k,c.me,'#ffcf4d',tilt,1,fire,c.t,Math.max(0,Math.min(1,c.ink/.5)));
 }
-function rKart(g,X,Y,k,img,col,tilt,me,fire,t){
+function rKart(g,X,Y,k,img,col,tilt,me,fire,t,ink){
   const w=380*k;
   g.save(); g.translate(X,Y); g.rotate(tilt||0);
   g.fillStyle='rgba(0,0,0,.25)'; g.beginPath(); g.ellipse(0,0,w*.6,w*.08,0,0,7); g.fill();
@@ -2825,7 +2856,80 @@ function rKart(g,X,Y,k,img,col,tilt,me,fire,t){
   g.fillStyle='rgba(255,255,255,.35)'; g.fillRect(-w*.4,-w*.4,w*.8,w*.05);
   g.fillStyle='#22122f'; g.beginPath(); g.roundRect(-w*.14,-w*.33,w*.28,w*.1,w*.03); g.fill();
   if(me)rRockets(g,w,fire||0,t||0);
+  if(ink){
+    // Ink on her wheels: glossy splotches, and drops flung off as they turn.
+    for(const s of [-1,1]){
+      const x=s*w*.42;
+      g.fillStyle=`rgba(43,23,64,${ink})`; g.beginPath(); g.ellipse(x,-w*.13,w*.15,w*.16,0,0,7); g.fill();
+      g.beginPath(); g.ellipse(x+s*w*.05,-w*.02,w*.12,w*.04,0,0,7); g.fill();
+      g.fillStyle=`rgba(255,255,255,${.35*ink})`; g.beginPath(); g.ellipse(x-w*.05,-w*.2,w*.04,w*.025,-.5,0,7); g.fill();
+      for(let i=0;i<4;i++){
+        const q=(t*2.6+i*.25+(s>0?.12:0))%1, a=Math.PI/2+s*(.5+i*.25);
+        g.fillStyle=`rgba(43,23,64,${(1-q)*ink})`; g.beginPath(); g.arc(x+Math.cos(a)*w*(.15+q*.5),-w*.1+Math.sin(a)*w*(.15+q*.5)-w*.25*q*(1-q),w*.035*(1.2-q),0,7); g.fill();
+      }
+    }
+  }
   g.restore();
+}
+// A kanji pressed into the sand: a dark groove with a lit lower edge, drawn once per kanji and kept.
+const RGLY={};
+function rGlyph(k){
+  if(RGLY[k])return RGLY[k];
+  const s=256, cv=document.createElement('canvas'), g=cv.getContext('2d'); cv.width=cv.height=s;
+  g.font=RKF.replace('%',216); g.textAlign='center'; g.textBaseline='middle'; g.lineJoin='round'; g.lineWidth=14;
+  g.fillStyle=g.strokeStyle='rgba(255,248,220,.8)'; g.strokeText(k,s/2,s/2+12); g.fillText(k,s/2,s/2+12);
+  g.fillStyle=g.strokeStyle='rgba(112,76,34,.9)'; g.strokeText(k,s/2,s/2+4); g.fillText(k,s/2,s/2+4);
+  return RGLY[k]=cv;
+}
+document.fonts?.ready.then(()=>{for(const k in RGLY)delete RGLY[k]});
+// Lays an image flat on the road, `len` long from `rel0` ahead of the camera and centred on lane `wx`, in thin
+// strips across the road so it narrows into the distance. Its top is the far end, so it reads the right way up.
+// The strips are spaced evenly in 1/distance, which is evenly down the screen, a couple of pixels each.
+function rFlat(g,at,img,rel0,len,wx,hw){
+  const zf=rel0+len, zn=Math.max(rel0,RV.seg*1.05); if(zf<=zn)return;
+  const far=at(zf,wx), near=at(zn,wx); if(!far||!near)return;
+  const S=Math.max(6,Math.min(200,Math.ceil((near.Y-far.Y)/2))), z=i=>1/(1/zf+(1/zn-1/zf)*i/S);
+  for(let i=0;i<S;i++){
+    const z0=z(i), z1=z(i+1), p=at(z0,wx), q=at(z1,wx); if(!p||!q)continue;
+    const v0=(zf-z0)/len*img.height, v1=(zf-z1)/len*img.height, w=(p.s+q.s)*hw*RV.road*RC.W/2;
+    g.globalAlpha=Math.exp(-Math.pow(p.n/RV.draw,2)*3);
+    g.drawImage(img,0,v0,img.width,Math.max(.5,v1-v0),(p.X+q.X)/2-w/2,p.Y,w,q.Y-p.Y+.6);
+  }
+  g.globalAlpha=1;
+}
+// A puddle of ink across one lane. It spreads out after the squirt lands.
+function rInk(g,at,e,rel0){
+  const grow=Math.max(0,Math.min(1,(RC.t-e.spray-.4)/.35)); if(!grow)return;
+  const len=RV.ink.len*RV.seg, lx=RV.lanes[e.lane], L=[], R=[];
+  for(let i=0;i<=12;i++){
+    const u=i/12, rel=rel0+len*(.5+(u-.5)*grow), hw=RV.ink.w*grow*(.15+.85*Math.sqrt(Math.sin(u*Math.PI)))*(1+.14*Math.sin(u*19+e.ph));
+    const a=at(rel,lx-hw), b=at(rel,lx+hw); if(a&&b){L.push(a); R.push(b)}
+  }
+  if(L.length<2)return;
+  g.globalAlpha=Math.exp(-Math.pow(L[0].n/RV.draw,2)*3);
+  g.fillStyle='#2b1740'; g.beginPath(); L.forEach((p,i)=>i?g.lineTo(p.X,p.Y):g.moveTo(p.X,p.Y)); R.reverse().forEach(p=>g.lineTo(p.X,p.Y)); g.fill();
+  // Splashes round the edge, and a shine on top.
+  for(let i=0;i<8;i++){const p=at(rel0+len*(i+.5)/8,lx+(i%2?1:-1)*(RV.ink.w+.05+.04*Math.sin(i*7+e.ph))*grow); if(p){g.beginPath(); g.ellipse(p.X,p.Y,p.s*90*RC.W/2,p.s*40*RC.W/2,0,0,7); g.fill()}}
+  const h=at(rel0+len*.6,lx-RV.ink.w*.3*grow);
+  if(h){g.fillStyle='rgba(200,170,255,.3)'; g.beginPath(); g.ellipse(h.X,h.Y,h.s*260*RC.W/2*grow,h.s*50*RC.W/2,0,0,7); g.fill()}
+  g.globalAlpha=1;
+}
+// The octopus pops up out of the sand beside the road, and squirts a jet of ink across to the puddle.
+function rTako(g,at,e,o,up,cam){
+  const img=RC.tako, w=820*o.k, t=RC.t;
+  if(img.complete&&img.naturalWidth){
+    const iw=w*(1+.05*Math.sin(t*4+e.ph)), ih=iw*img.naturalHeight/img.naturalWidth*up;
+    g.fillStyle='rgba(0,0,0,.2)'; g.beginPath(); g.ellipse(o.X,o.Y,w*.5,w*.08,0,0,7); g.fill();
+    g.drawImage(img,o.X-iw/2,o.Y-ih,iw,ih);
+  }
+  const a=e.spray?t-e.spray:-1; if(a<0||a>.8)return;
+  const p=at(e.d+RV.ink.len*RV.seg/2-cam,RV.lanes[e.lane]); if(!p)return;
+  const sx=o.X, sy=o.Y-w*.45, head=Math.min(1,a/.4), tail=Math.max(0,(a-.3)/.4);
+  g.fillStyle='#2b1740';
+  for(let i=0;i<=10;i++){
+    const u=tail+(head-tail)*i/10;
+    g.beginPath(); g.arc(sx+(p.X-sx)*u,sy+(p.Y-sy)*u-Math.sin(u*Math.PI)*w*.8,w*(.08+.04*Math.sin(i*2.3)),0,7); g.fill();
+  }
 }
 // Two rockets on the back of her kart. On a boost they blaze: a white-hot core, flames licking down and out
 // towards the camera, and sparks flying off.
