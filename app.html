@@ -300,6 +300,27 @@ ruby rt{font-family:var(--f-ui);font-size:.5em;font-weight:700;color:var(--sun)}
 .bkey{position:absolute;left:0;top:0;z-index:3;pointer-events:none;filter:drop-shadow(0 0 6px rgba(255,214,110,.8))}
 .bkey svg{width:100%;display:block}
 .bkey:not(.held) svg{animation:bob 1.2s ease-in-out infinite alternate}
+.snakebox{position:absolute;left:0;top:0;overflow:hidden;pointer-events:none;z-index:3}
+.snakebox .snake{position:absolute;inset:0;width:50%;transform:translateX(-100%)}
+.snakebox .snake.roof{width:100%}
+.snakebox .snake:not(.roof):not(.right){left:auto;right:0}
+.tell{position:absolute;left:0;top:0;pointer-events:none;z-index:1}
+.tell i{position:absolute;border-radius:50%;background:#0b111a}
+.tell svg{position:absolute;width:70%;animation:flick 1.6s steps(1) infinite}
+.tell b{position:absolute;width:12%;height:12%;border-radius:50%;background:#ffe45c;box-shadow:0 0 6px #ffe45c}
+.tell.roof i{left:-20%;top:0;width:140%;height:26%}
+.tell.roof svg{left:15%;top:8%;transform:rotate(90deg);transform-origin:20% 50%}
+.tell.roof b{top:6%}.tell.roof b:nth-of-type(1){left:22%}.tell.roof b:nth-of-type(2){left:54%}
+.tell.wall i{left:0;top:-30%;width:30%;height:110%}
+.tell.wall svg{left:12%;top:28%}
+.tell.wall b{left:6%}.tell.wall b:nth-of-type(1){top:-12%}.tell.wall b:nth-of-type(2){top:16%}
+.tell.warn svg{animation-duration:.25s}
+.tell.warn b{background:#ff4d6d;box-shadow:0 0 8px #ff4d6d}
+@keyframes flick{0%{opacity:0}55%{opacity:1}70%{opacity:0}80%{opacity:1}92%{opacity:0}}
+.bcrab .stars{position:absolute;left:50%;top:-30%;translate:-50% 0;font-size:150%;opacity:0;animation:spin 1s linear infinite}
+.bcrab.stunned .stars{opacity:1}
+.bcrab.stunned .tk{filter:saturate(.6) brightness(1.15)}
+@keyframes spin{to{rotate:360deg}}
 .sting{position:absolute;left:0;top:0;pointer-events:none}
 .sting svg{width:100%;height:100%;display:block;overflow:visible;filter:drop-shadow(0 0 5px rgba(214,150,255,.7))}
 .sting .bell{transform-box:fill-box;transform-origin:50% 100%;animation:stingPulse 1.4s ease-in-out infinite alternate}
@@ -584,7 +605,7 @@ ruby rt{font-family:var(--f-ui);font-size:.5em;font-weight:700;color:var(--sun)}
         <div class="bmid">
           <div class="pad left" id="bPadL"><button data-k="JL" class="jump" aria-label="ひだりへ ジャンプ"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M7 33Q10 10 29 11" stroke="currentColor" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M22 4l9 7-8 8" stroke="currentColor" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button><button data-k="JR" class="jump" aria-label="みぎへ ジャンプ"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M7 33Q10 10 29 11" stroke="currentColor" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M22 4l9 7-8 8" stroke="currentColor" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button><button data-k="L" aria-label="ひだり">◀</button><button data-k="R" aria-label="みぎ">▶</button></div>
           <div class="sbox" id="bBox">
-            <div class="stage" id="bStage"><canvas id="bCanvas"></canvas><div id="bChests"></div><div class="bturtle art" id="bTurtle"></div><div class="bcrab" id="bCrab"><div class="tk"></div></div><div class="bmsg" id="bMsg"></div></div>
+            <div class="stage" id="bStage"><canvas id="bCanvas"></canvas><div id="bChests"></div><div class="bturtle art" id="bTurtle"></div><div class="bcrab" id="bCrab"><div class="tk"></div><div class="stars">💫</div></div><div class="bmsg" id="bMsg"></div></div>
           </div>
           <div class="pad right" id="bPadR"><button data-k="D" aria-label="した">▼</button><button data-k="U" aria-label="ジャンプ">▲</button></div>
         </div>
@@ -749,6 +770,7 @@ const SFX=(()=>{
     toggle(){on=!on;try{localStorage.setItem('kanjiSea.sound',on?'on':'off')}catch(e){}if(on){init();bubbles(3)}return on},
     pop:go(()=>tone({f0:700,f1:1700,dur:.08,vol:.13})),
     jump:go(()=>tone({type:'triangle',f0:330,f1:760,dur:.13,vol:.1})),
+    hiss:go(()=>hiss({dur:.55,f0:5000,f1:7000,q:2.5,vol:.12})),
     zap:go(()=>{tone({type:'square',f0:880,f1:180,dur:.28,vol:.07,vib:45});hiss({dur:.25,f0:3000,f1:1200,q:.8,vol:.12})}),
     penDown:go(()=>tone({f0:650,f1:1100,dur:.06,vol:.05})),
     stroke:go(i=>{tone({type:'triangle',f0:PENTA[i%PENTA.length],dur:.3,vol:.16});bubbles(3,.05,.06,.1);hiss({dur:.3,f0:1400,f1:500,q:.9,vol:.05})}),
@@ -2130,20 +2152,20 @@ $('qHome').onclick=$('backHome2').onclick=()=>{stopTank(); renderHome()};
 // She is the タカアシガニ and hunts for the treasure chest holding the kanji for a word, with the other chests
 // in side rooms. Each maze is 20 x 13 cells: four storeys of corridors two cells high, with floors between them.
 // # stone, H kelp to climb (it passes up through the floors), X a stinging jellyfish, T a hidden trap door (two cells wide, over
-// a safe landing), S the start and a-e the five chests. Some rounds lock the way to the right chest (the capital
-// letter) with a door |, and hide its key K elsewhere.
+// a safe landing), R and W sea snakes hiding in the roof or in a wall, S the start and a-e the five chests. Some rounds
+// lock the way to the right chest (the capital letter) with a door |, and hide its key K elsewhere.
 // She goes up kelp, drops through holes, jumps stinging jellyfish and clambers over steps. It's about finding the way, not quick
 // fingers: every room has a way back up, a jump keeps going the way she was walking, a step one cell high is
 // climbed just by walking into it, and a sting sends her back to where she last stood (to the start after two).
 const BMAPS=[
   // のぼる: up from the bottom, over spikes on two storeys
-  ['####################','#..|...............#','#A.|..........#...d#','######..##TT###H####','#..............H...#','#b......X......H...#','####H######TT#######','#...H..............#','#K..H..#..........c#','#################H##','#................H.#','#S......X....e...H.#','####################'],
+  ['####################','#..|...............#','#A.|.........W#...d#','######..##TT###H####','#..............H...#','#b......X......H...#','####H######TT#######','#...H..............#','#K..H..#..........c#','#################H##','#..........R.....H.#','#S......X....e...H.#','####################'],
   // おりる: down through holes, with kelp back up on the left
-  ['####################','#..................#','#S....X.........a..#','#H#######TT..#######','#H......#..........#','#H....b.#......#d..#','###H#############..#','#..H...............#','#K.H....e...X......#','#####HTT#..#########','#....H..........|..#','#....H........X.|.C#','####################'],
+  ['####################','#..................#','#S....X.........a..#','#H#######TT..#######','#H......#..........#','#H....b.#W.....#d..#','###H#############..#','#..H...........R...#','#K.H....e...X......#','#####HTT#..#########','#....H..........|..#','#....H........X.|.C#','####################'],
   // ジグザグ: a long kelp through the middle storeys
-  ['####################','#..................#','#b.....#..........K#','####..####TT###H####','#..............H...#','#S.......X.....H..d#','####TT######..#H####','#..............H...#','#c......X...#..H...#','#####H##############','#....H......|......#','#e...H..X...|..A...#','####################'],
+  ['####################','#...........R......#','#b.....#..........K#','####..####TT###H####','#..............H...#','#S.......X.....H..d#','####TT######..#H####','#..............H...#','#c......X..W#..H...#','#####H##############','#....H......|......#','#e...H..X...|..A...#','####################'],
   // めいろ: rooms split by walls, starting in the middle of the bottom
-  ['####################','#.|................#','#B|.....X....#....d#','###H##..##TT####H###','#..H.....#......H..#','#c.H.....#......H.e#','############H#######','#...........H......#','#.....X.....H......#','##..H##TT#H####H#..#','#...H.#...H..#.H...#','#a..H.#..SH..#.H..K#','####################'],
+  ['####################','#.|................#','#B|.....X....#....d#','###H##..##TT####H###','#..H.....#......H..#','#c.H....W#......H.e#','############H#######','#........R..H......#','#.....X.....H......#','##..H##TT#H####H#..#','#...H.#...H..#.H...#','#a..H.#..SH..#.H..K#','####################'],
 ];
 const BCOLS=20, BROWS=13, BROUND=4;
 // In cells and seconds: a jump rises about a cell (under a corridor's ceiling) and carries her about three cells.
@@ -2169,6 +2191,7 @@ const CHEST='<svg viewBox="0 0 60 52" aria-hidden="true"><g class="pearl"><circl
 const KEYART='<svg viewBox="0 0 60 30" aria-hidden="true"><circle cx="14" cy="15" r="10" fill="none" stroke="#f2b632" stroke-width="6"/><path d="M24 15H54M44 15v9M51 15v7" stroke="#f2b632" stroke-width="6" stroke-linecap="round"/><circle cx="11" cy="12" r="2.5" fill="#fff6c8"/></svg>';
 const DOORART='<svg viewBox="0 0 40 80" preserveAspectRatio="none" aria-hidden="true"><rect x="2" y="0" width="36" height="80" fill="#7a4a24" stroke="#3b220e" stroke-width="3"/><path d="M14 0V80M26 0V80" stroke="#5e3716" stroke-width="2"/><path d="M2 14H38M2 66H38" stroke="#4a5568" stroke-width="5"/><rect x="11" y="34" width="18" height="16" rx="3" fill="#f2b632" stroke="#8a5a10" stroke-width="2"/><path d="M14 34v-5a6 6 0 0 1 12 0v5" stroke="#c9ced6" stroke-width="3" fill="none"/><circle cx="20" cy="40" r="2.4" fill="#3b220e"/><path d="M20 41v5" stroke="#3b220e" stroke-width="2.4"/></svg>';
 // A small jellyfish sitting on the floor, its tentacles crackling with lightning.
+const TONGUE='<i></i><svg viewBox="0 0 30 12" aria-hidden="true"><path d="M0 6H18L28 1M18 6L28 11" stroke="#ff4d6d" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg><b></b><b></b>';
 const STING='<svg viewBox="0 0 40 40" aria-hidden="true"><g class="bolt"><path d="M3 10l5 6-3 2 6 8" stroke="#ffe45c" stroke-width="2.4" fill="none" stroke-linejoin="round"/><path d="M36 27l-5-5 3-2-4-7" stroke="#ffe45c" stroke-width="2.4" fill="none" stroke-linejoin="round"/></g>'+
   '<g class="bolt b"><path d="M34 8l-4 6 3 2-5 7" stroke="#fff6a8" stroke-width="2.2" fill="none" stroke-linejoin="round"/><path d="M5 27l5-4-2-3 5-5" stroke="#fff6a8" stroke-width="2.2" fill="none" stroke-linejoin="round"/></g>'+
   '<g stroke="#e3a6ff" stroke-width="2.6" fill="none" stroke-linecap="round"><path d="M12 24q-3 4 0 8t-1 7"/><path d="M17 25q3 4 0 7t1 7"/><path d="M23 25q-3 4 0 7t-1 7"/><path d="M28 24q3 4 0 8t1 7"/></g>'+
@@ -2193,6 +2216,8 @@ function bRound(){
   if(locked){const j=slots.findIndex(s=>s.lock); ks.splice(ks.indexOf(k),1); ks.splice(j,0,k)}
   B.spikes=[]; grid.forEach((row,y)=>row.forEach((ch,x)=>{if(ch==='X')B.spikes.push({x:x+.5,y:y+1})}));
   B.traps=[]; grid.forEach((row,y)=>row.forEach((ch,x)=>{if(ch==='T'&&row[x-1]!=='T')B.traps.push({x,y,state:'shut',t0:0})}));
+  B.snakes=[]; grid.forEach((row,y)=>row.forEach((ch,x)=>{if('RW'.includes(ch)){row[x]='.';
+    B.snakes.push({x,y,roof:ch==='R',d:row[x+1]==='#'?-1:1,state:'idle',t0:0})}}));
   B.grid=grid; B.cur={k,ans,miss:0,lock:false,hits:0};
   const box=$('bChests'); box.innerHTML='';
   B.door=B.key=null;
@@ -2200,6 +2225,10 @@ function bRound(){
     if(ch==='|'&&bAt(y-1,x)!=='|'){B.door={x,y,el:document.createElement('div')}; B.door.el.className='bdoor'; B.door.el.innerHTML=`<div>${DOORART}</div>`; box.appendChild(B.door.el)}
     if(ch==='K'){row[x]='.'; B.key={x,y,el:document.createElement('div')}; B.key.el.className='bkey'; B.key.el.innerHTML=KEYART; box.appendChild(B.key.el)}
   }));
+  for(const n of B.snakes){
+    n.tell=document.createElement('div'); n.tell.className='tell '+(n.roof?'roof':'wall'); n.tell.innerHTML=TONGUE; box.appendChild(n.tell);
+    n.el=document.createElement('div'); n.el.className='snakebox'; n.el.innerHTML=`<div class="snake${n.roof?' roof':n.d>0?' right':''}">${art('ksnake')}</div>`; box.appendChild(n.el);
+  }
   for(const p of B.spikes){p.el=document.createElement('div'); p.el.className='sting'; p.el.innerHTML=STING; box.appendChild(p.el)}
   B.chests=slots.map((s,j)=>{const el=document.createElement('div'); el.className='chest'; el.innerHTML=CHEST+`<span>${ks[j]}</span>`; box.appendChild(el); return {...s,k:ks[j],el,no:false}});
   const [y,oku='']=r.replace('*','').split('|');
@@ -2220,6 +2249,13 @@ function bLayout(){
   for(const ch of B.chests){const w=1.6*T,h=w*52/60; Object.assign(ch.el.style,{width:w+'px',height:h+'px',fontSize:.66*T+'px',
     transform:`translate(${Math.min(T*BCOLS-w,Math.max(0,(ch.x+.5)*T-w/2))}px,${(ch.y+1)*T-h}px)`})}
   for(const p of B.spikes)Object.assign(p.el.style,{width:T+'px',height:T+'px',transform:`translate(${(p.x-.5)*T}px,${(p.y-1)*T}px)`});
+  // A roof snake drops through the two cells of corridor under its crack; a wall snake lunges four cells along the floor.
+  for(const n of B.snakes){
+    const e=bSnakeEdge(n);
+    Object.assign(n.tell.style,{width:.75*T+'px',height:.75*T+'px',transform:n.roof?`translate(${(n.x+.12)*T}px,${n.y*T-.12*T}px)`:`translate(${(e-(n.d>0?.12:.48))*T}px,${(n.y+.35)*T}px)${n.d<0?' scaleX(-1)':''}`});
+    Object.assign(n.el.style,n.roof?{width:2*T+'px',height:2*T+'px',transform:`translate(${(n.x-.5)*T}px,${n.y*T}px)`}:
+      {width:4*T+'px',height:2*T+'px',transform:`translate(${(n.d>0?e:e-4)*T}px,${(n.y-1)*T}px)`});
+  }
   if(B.door)Object.assign(B.door.el.style,{width:T+'px',height:2*T+'px',transform:`translate(${B.door.x*T}px,${B.door.y*T}px)`});
   const cr=$('bCrab'); cr.style.width=1.5*T+'px';
   bDraw(); bPlace();
@@ -2294,6 +2330,14 @@ function bPlace(){
     Object.assign(B.key.el.style,{width:kw+'px',transform:`translate(${(kx*T-kw/2).toFixed(1)}px,${(ky*T-kw/4).toFixed(1)}px) rotate(${c.key?-20:0}deg)`});
     B.key.el.classList.toggle('held',!!c.key)}
   if(B.door)B.door.el.classList.toggle('open',c.key===2);
+  $('bCrab').classList.toggle('stunned',c.stun>B.last);
+  for(const n of B.snakes){
+    const out=n.state==='strike'||n.state==='back'?n.out:0, sn=n.el.firstChild;
+    n.tell.classList.toggle('warn',n.state==='warn'); n.tell.style.visibility=out>.05||n.state==='rest'?'hidden':'visible';
+    // The snake art is two cells square with its head 0.18 of the way along: its head starts tucked half a cell inside
+    // the wall and ends reach cells out from the hole.
+    sn.style.transform=n.roof?`translateY(${(out-1)*100}%) rotate(-90deg)`:`translateX(${n.d*(SNAKE.reach*out-1.64-.5*(1-out))*50}%)${n.d>0?' scaleX(-1)':''}`;
+  }
   // The turtle rides under her, then swims on and fades once it has set her down.
   const tu=$('bTurtle'), tr=B.tur, tw=1.2*T, k=tr&&!tr.on?(B.last-tr.t0)/.6:0;
   tu.style.display=tr&&k<1?'block':'none';
@@ -2345,10 +2389,10 @@ function bGrab(c,d,maxUp){
   return true;
 }
 function bStep(dt,t){
-  const c=B.c, k=B.keys;
+  const c=B.c, k=c.stun>t?new Set():B.keys;
   if(c.anim){const f=Math.min(1,(t-c.anim.t0)/c.anim.dur); c.anim.step(f); if(f>=1){const a=c.anim; c.anim=null; a.done?.()} return}
   if(B.cur.lock){c.vx=0; return}
-  bTraps(c,t);
+  bTraps(c,t); bSnakes(c,t);
   const dir=(k.has('R')?1:0)-(k.has('L')?1:0), up=k.has('U'), down=k.has('D');
   // The jump buttons jump to one side, for when holding a direction and ▲ together is too hard.
   const jd=(k.has('JR')?1:0)-(k.has('JL')?1:0);
@@ -2407,6 +2451,30 @@ function bStep(dt,t){
   }
   if(!c.ride)for(const p of B.spikes)if(c.x+BP.hw>p.x-.33&&c.x-BP.hw<p.x+.33&&c.y>p.y-.45&&c.y-BP.h<p.y)return bOuch(c);
   for(const ch of B.chests)if(!ch.no&&c.x+BP.hw>ch.x+.05&&c.x-BP.hw<ch.x+.95&&c.y>ch.y+.1&&c.y-bH(c)<ch.y+1)return bChoose(ch);
+}
+// Sea snakes. Its tongue shows where one hides. When she comes near it hisses (eyes red), and after a moment it strikes,
+// so she can set it off and run back out of reach (keeping on past it, she gets caught). If it catches her she is stunned for a few seconds; then it slips
+// back into its hole and rests before it can strike again.
+const SNAKE={warn:.55,out:.3,hold:.4,stun:2.6,back:.5,rest:6,reach:3.5};
+const bSnakeEdge=n=>n.d>0?n.x:n.x+1;
+function bSnakes(c,t){
+  for(const n of B.snakes){
+    const dt=t-n.t0, storey=c.y>n.y&&c.y<=n.y+(n.roof?2.05:1.05);
+    const near=storey&&(n.roof?Math.abs(c.x-n.x-.5)<1.5:n.d*(c.x-bSnakeEdge(n))>=0&&n.d*(c.x-bSnakeEdge(n))<3.2);
+    if(n.state==='idle'&&near&&!c.anim){n.state='warn'; n.t0=t; SFX.hiss()}
+    else if(n.state==='warn'&&dt>SNAKE.warn){n.state='strike'; n.t0=t; n.caught=false; SFX.chomp()}
+    else if(n.state==='strike'){
+      n.out=ease(Math.min(1,dt/SNAKE.out));
+      // What it covers: about two and a half cells across under the crack (it sways as it drops), or the bottom of the corridor out to its head.
+      const L=c.x-BP.hw, R=c.x+BP.hw, top=c.y-bH(c);
+      const hit=n.roof?R>n.x-.7&&L<n.x+1.7&&top<n.y+2*n.out:
+        (n.d>0?R>bSnakeEdge(n)&&L<bSnakeEdge(n)+SNAKE.reach*n.out:L<bSnakeEdge(n)&&R>bSnakeEdge(n)-SNAKE.reach*n.out)&&c.y>n.y+.3;
+      if(hit&&!n.caught&&!c.anim){n.caught=true; c.stun=t+SNAKE.stun; c.ride=0; c.climb=false; SFX.bloop(); bMsg('ウミヘビだ！ くらくら…')}
+      if(dt>SNAKE.out+(n.caught?SNAKE.stun:SNAKE.hold)){n.state='back'; n.t0=t}
+    }
+    else if(n.state==='back'){n.out=1-ease(Math.min(1,dt/SNAKE.back)); if(dt>SNAKE.back){n.state='rest'; n.t0=t}}
+    else if(n.state==='rest'&&dt>SNAKE.rest&&!near)n.state='idle';
+  }
 }
 // A trap door trembles when she stands on it, drops open a moment later, and shuts again once she is clear of it.
 function bTraps(c,t){

@@ -38,6 +38,9 @@ It covers the kanji in 光文書院 くりかえし かんじドリル 1年 上,
   Each maze fills one screen with four storeys of stone corridors, and there are five chests around it, only one of them right.
   To get there she climbs kelp up through the floors, drops through holes, jumps over stinging jellyfish (crackling with lightning) and clambers over steps.
   Hidden trap doors look like ordinary floor, but tremble and drop open under her, landing her safely on the storey below, and shut again a few seconds later.
+  ウミヘビ (sea snakes) hide in the roof or in a wall, given away by a forked tongue flicking from a crack in the ceiling or a hole in the bricks.
+  When she comes near, one hisses (its eyes turn red) and a moment later strikes, dropping from the ceiling or lunging along the floor; if it catches her she is stunned for a few seconds, then it slips back into its hole.
+  Setting it off and running straight back gets her clear; carrying on past it gets her caught.
   In two of the four rounds the way to the right chest is shut by a locked door, and she has to find its key somewhere else in the maze first; she carries it on her back, and walking into the door with it opens it.
   Four rounds, each in a different maze.
   It's about finding the way rather than quick fingers: ◀ ▶ walk, ▲ climbs kelp or jumps, ▼ climbs down, and the curved-arrow buttons above ◀ and ▶ call a sea turtle that carries her on its back up and about three cells left or right (over jellyfish, gaps and steps), so she never has to press two buttons at once.
