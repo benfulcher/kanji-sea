@@ -851,6 +851,7 @@ const SFX=(()=>{
     fanfare:go(()=>{[523,659,784,1047,784,1047,1319].forEach((f,j)=>tone({type:'triangle',f0:f,t:j*.11,dur:j===6?.8:.25,vol:.15}));bubbles(8,.85,.06)}),
     whale:go(()=>{tone({f0:170,f1:420,dur:1.1,vol:.18,vib:5});tone({f0:420,f1:230,t:1,dur:1.3,vol:.15,vib:4});hiss({dur:2.2,f0:250,f1:600,q:.6,vol:.06})}),
     swoosh:go(()=>{hiss({dur:.7,f0:300,f1:1400,q:1.5,vol:.14});bubbles(3,.4)}),
+    rocket:go(()=>{hiss({dur:1.6,f0:250,f1:900,q:.6,vol:.22});tone({type:'sawtooth',f0:70,f1:180,dur:.7,vol:.05});bubbles(5,.5,.09)}),
     swooshUp:go(()=>hiss({dur:.6,f0:700,f1:2800,q:1.5,vol:.12})),
     // Anglerfish: a low deep-sea hum, then a twinkle as the lure flares.
     glow:go(()=>{tone({f0:110,f1:150,dur:2.6,vol:.12,vib:3});[1319,1568,2093,2637,3136].forEach((f,j)=>tone({f0:f,t:1.85+j*.08,dur:.45,vol:.07}));hiss({t:1.85,dur:.9,f0:3000,f1:7000,q:2,vol:.05})}),
@@ -2737,7 +2738,7 @@ function rGate(g){
   else{
     const j=RV.lanes.reduce((b,l,n)=>Math.abs(c.x-l)<Math.abs(c.x-RV.lanes[b])?n:b,0); g.hit=j; g.hitT=c.t;
     if(g.ks[j]===g.k){
-      c.res[i]=true; c.score++; c.boost=2.5; SFX.right(); SFX.swoosh(); rBig(g.k,true); rMsg('ブースト！');
+      c.res[i]=true; c.score++; c.boost=2.5; SFX.right(); SFX.rocket(); rBig(g.k,true); rMsg('ブースト！');
       const p=prog(g.k); p.r=(p.r||0)+1; save();
     }else{c.res[i]=false; c.spin=.6; SFX.bloop(); rBig(g.k,true,1400); rMsg(`「${g.ans}」は ${g.k} だよ`)}
   }
@@ -2803,10 +2804,18 @@ function rDraw(){
   // Her kart, at the bottom of the screen.
   const k=W/2/RV.camH, bump=Math.abs(c.x)>1&&!c.done?Math.sin(c.t*40)*3:0;
   const tilt=c.spin>0?(1-c.spin/.6)*Math.PI*2:((c.keys.has('R')?1:0)-(c.keys.has('L')?1:0))*.12;
-  if(c.boost>0)for(let i=0;i<6;i++){g.fillStyle=`rgba(255,255,255,${.5-i*.07})`; g.beginPath(); g.arc(W/2+Math.sin(c.t*30+i*2)*60*k,H-14-i*6,(16+i*10)*k,0,7); g.fill()}
-  rKart(g,W/2,H-6+bump,k,c.me,'#ffcf4d',tilt,1);
+  // A boost: speed lines streaming out from the horizon, and rocket thrusters on her kart.
+  const fire=c.boost>0?Math.min(1,c.boost/.5):0;
+  if(fire){
+    g.strokeStyle=`rgba(255,255,255,${.6*fire})`; g.lineCap='round';
+    for(let i=0;i<30;i++){
+      const a=i*2.4+.3, q=(c.t*2.2+i*.37)%1, r1=W*(.18+q*.55), r2=r1+W*(.08+.1*q), ca=Math.cos(a), sa=Math.sin(a)*.6;
+      g.lineWidth=2+q*4; g.beginPath(); g.moveTo(W/2+ca*r1,H/2+sa*r1); g.lineTo(W/2+ca*r2,H/2+sa*r2); g.stroke();
+    }
+  }
+  rKart(g,W/2,H-6-95*k+bump-fire*3*Math.abs(Math.sin(c.t*25)),k,c.me,'#ffcf4d',tilt,1,fire,c.t);
 }
-function rKart(g,X,Y,k,img,col,tilt,me){
+function rKart(g,X,Y,k,img,col,tilt,me,fire,t){
   const w=380*k;
   g.save(); g.translate(X,Y); g.rotate(tilt||0);
   g.fillStyle='rgba(0,0,0,.25)'; g.beginPath(); g.ellipse(0,0,w*.6,w*.08,0,0,7); g.fill();
@@ -2815,7 +2824,37 @@ function rKart(g,X,Y,k,img,col,tilt,me){
   g.fillStyle=col; g.beginPath(); g.roundRect(-w*.46,-w*.42,w*.92,w*.26,w*.08); g.fill();
   g.fillStyle='rgba(255,255,255,.35)'; g.fillRect(-w*.4,-w*.4,w*.8,w*.05);
   g.fillStyle='#22122f'; g.beginPath(); g.roundRect(-w*.14,-w*.33,w*.28,w*.1,w*.03); g.fill();
+  if(me)rRockets(g,w,fire||0,t||0);
   g.restore();
+}
+// Two rockets on the back of her kart. On a boost they blaze: a white-hot core, flames licking down and out
+// towards the camera, and sparks flying off.
+function rRockets(g,w,fire,t){
+  for(const sd of [-1,1]){
+    const x=sd*w*.36, y=-w*.3, r=w*.075;
+    if(fire){
+      const fl=1+.18*Math.sin(t*47+sd)+.12*Math.sin(t*31), R=w*.2*fl*fire;
+      // Flames: three tongues from the nozzle, fanning down and outwards.
+      for(const [ang,len,col] of [[.6,1,'rgba(255,90,40,.85)'],[.35,.85,'rgba(255,170,40,.9)'],[.48,.6,'rgba(255,240,150,.95)']]){
+        const a=Math.PI/2-sd*ang+.06*Math.sin(t*40+len*9), L=w*.75*len*fl*fire, ex=x+Math.cos(a)*L, ey=y+Math.sin(a)*L, nx=-Math.sin(a), ny=Math.cos(a), hw=r*1.1*len+r*.4;
+        g.fillStyle=col; g.beginPath(); g.moveTo(x+nx*hw,y+ny*hw);
+        g.quadraticCurveTo(x+nx*hw*1.4+(ex-x)*.5,y+ny*hw*1.4+(ey-y)*.5,ex,ey);
+        g.quadraticCurveTo(x-nx*hw*1.4+(ex-x)*.5,y-ny*hw*1.4+(ey-y)*.5,x-nx*hw,y-ny*hw); g.fill();
+      }
+      const glow=g.createRadialGradient(x,y,0,x,y,R*1.6);
+      glow.addColorStop(0,'rgba(255,255,255,1)'); glow.addColorStop(.3,'rgba(255,236,140,.95)'); glow.addColorStop(.6,'rgba(255,140,40,.6)'); glow.addColorStop(1,'rgba(255,80,30,0)');
+      g.fillStyle=glow; g.beginPath(); g.arc(x,y,R*1.6,0,7); g.fill();
+      // Sparks, each flying out along its own line and fading.
+      for(let i=0;i<7;i++){
+        const q=(t*3.1+i*.143+(sd>0?.07:0))%1, a=Math.PI/2-sd*(.25+((i*37)%10)/12), d=w*(.1+q*1.1);
+        g.fillStyle=`rgba(255,${200+((i*53)%55)},120,${(1-q)*fire})`; g.beginPath(); g.arc(x+Math.cos(a)*d,y+Math.sin(a)*d,w*.02*(1.3-q),0,7); g.fill();
+      }
+    }
+    // The nozzle itself: a steel ring with a dark (or blazing) mouth.
+    g.fillStyle='#8a97a8'; g.beginPath(); g.arc(x,y,r*1.35,0,7); g.fill();
+    g.fillStyle='#d6dde6'; g.beginPath(); g.arc(x-r*.35,y-r*.35,r*.45,0,7); g.fill();
+    g.fillStyle=fire?'#fff6c8':'#2a2f3a'; g.beginPath(); g.arc(x,y,r*.8,0,7); g.fill();
+  }
 }
 function rGateDraw(g,gt,o){
   const t=RC.t;

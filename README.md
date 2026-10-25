@@ -54,7 +54,7 @@ It covers the kanji in 光文書院 くりかえし かんじドリル 1年 上,
   It's two laps, and the karts drive themselves, so ◀ ▶ (or the arrow keys) only steer.
   A few seconds before each row of three kanji bubbles across the road, a word is shown in big letters at the top of the road (「やま」) and spoken twice, so she can listen rather than read while steering.
   The race starts with a spoken よーい… どん！, which also lets the iPad speak the words that come later.
-  Driving into the right bubble pops it and gives a speed boost, and counts as a reading; the wrong one spins her round and shows which kanji it was.
+  Driving into the right bubble pops it and fires the two rockets on the back of her kart (flames, sparks, speed lines and a roar) for a speed boost, and counts as a reading; the wrong one spins her round and shows which kanji it was.
   There are eight words in a race, and her place at the finish depends mostly on how many she found.
 - **Practice squares:** after a mistake writing a kanji from memory (in a test, a review, practice or a lesson's かく), four squares open for optional free practice, as in the drill book.
   Trace the first two over a faint outline, then write it in the other two; the ink isn't checked.
