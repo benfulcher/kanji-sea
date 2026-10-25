@@ -271,10 +271,14 @@ ruby rt{font-family:var(--f-ui);font-size:.5em;font-weight:700;color:var(--sun)}
 .stage{position:relative;overflow:hidden;border-radius:18px;background:#0b3550;box-shadow:0 0 0 3px rgba(236,248,245,.12)}
 .stage canvas{position:absolute;inset:0;width:100%;height:100%}
 .pad{display:flex;gap:14px}
+.pad.left{display:grid;grid-template-columns:repeat(2,auto);justify-content:start}
 .pad.right{flex-direction:column-reverse;align-items:center}
 .pad button{width:clamp(68px,8vw,88px);aspect-ratio:1;border-radius:50%;background:rgba(236,248,245,.16);font-size:30px;font-weight:900;
   touch-action:none;box-shadow:inset 0 -5px 0 rgba(0,0,0,.18)}
 .pad button[data-k=U]{width:clamp(84px,10vw,108px);background:rgba(255,130,102,.42)}
+.pad .jump{display:grid;place-items:center;background:rgba(255,130,102,.42)}
+.pad .jump svg{width:46%}
+.pad .jump[data-k=JL] svg{transform:scaleX(-1)}
 .pad button.on{background:rgba(255,211,110,.5);transform:scale(.93)}
 @media (orientation:portrait){
   .bmid{grid-template-columns:1fr 1fr;grid-template-areas:"s s" "l r"}
@@ -288,6 +292,7 @@ ruby rt{font-family:var(--f-ui);font-size:.5em;font-weight:700;color:var(--sun)}
 .bcrab.happy .tk{animation:hop .3s ease-out 6 alternate}
 .bcrab.ouch .tk{animation:ouch .14s steps(2) 5}
 @keyframes ouch{50%{opacity:.2}}
+.bturtle{position:absolute;left:0;top:0;z-index:2;pointer-events:none;display:none}
 .chest{position:absolute;left:0;top:0;transition:opacity .4s,filter .4s}
 .chest svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
 .chest .lid{transform-box:fill-box;transform-origin:50% 100%;transition:transform .35s cubic-bezier(.3,1.6,.6,1)}
@@ -563,9 +568,9 @@ ruby rt{font-family:var(--f-ui);font-size:.5em;font-weight:700;color:var(--sun)}
       <div id="bPlay" class="bwrap">
         <div class="bq"><span id="bWord"></span><span id="bHint"></span><button class="speak" id="bSpeak">こえで きく</button></div>
         <div class="bmid">
-          <div class="pad left" id="bPadL"><button data-k="L" aria-label="ひだり">◀</button><button data-k="R" aria-label="みぎ">▶</button></div>
+          <div class="pad left" id="bPadL"><button data-k="JL" class="jump" aria-label="ひだりへ ジャンプ"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M7 33Q10 10 29 11" stroke="currentColor" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M22 4l9 7-8 8" stroke="currentColor" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button><button data-k="JR" class="jump" aria-label="みぎへ ジャンプ"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M7 33Q10 10 29 11" stroke="currentColor" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M22 4l9 7-8 8" stroke="currentColor" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button><button data-k="L" aria-label="ひだり">◀</button><button data-k="R" aria-label="みぎ">▶</button></div>
           <div class="sbox" id="bBox">
-            <div class="stage" id="bStage"><canvas id="bCanvas"></canvas><div id="bChests"></div><div class="bcrab" id="bCrab"><div class="tk"></div></div><div class="bmsg" id="bMsg"></div></div>
+            <div class="stage" id="bStage"><canvas id="bCanvas"></canvas><div id="bChests"></div><div class="bturtle art" id="bTurtle"></div><div class="bcrab" id="bCrab"><div class="tk"></div></div><div class="bmsg" id="bMsg"></div></div>
           </div>
           <div class="pad right" id="bPadR"><button data-k="D" aria-label="した">▼</button><button data-k="U" aria-label="ジャンプ">▲</button></div>
         </div>
@@ -2126,6 +2131,10 @@ const BMAPS=[
 const BCOLS=20, BROWS=13, BROUND=4;
 // In cells and seconds: a jump rises about a cell (under a corridor's ceiling) and carries her about three cells.
 const BP={g:30,jump:8.1,run:4.5,air:6,climb:3.6,hw:.48,h:.8,grab:1.6};
+// A turtle ride (the jump-left and jump-right buttons): she sits half a cell up on its shell, and it swims up about
+// half a cell and glides about three cells to that side before setting her down. The shell keeps off the spikes.
+const RIDE={up:3.8,g:12,speed:4.5,lift:.5};
+const bH=c=>BP.h+(c.ride?RIDE.lift:0);
 let B=null;
 function startBouken(){
   let pool=ORDER.filter(k=>{const p=prog(k);return p.t||p.w});
@@ -2133,7 +2142,7 @@ function startBouken(){
   if(B)cancelAnimationFrame(B.raf);
   B={items:shuffle(pool.slice()).slice(0,BROUND),maps:shuffle(BMAPS.slice()),pool,i:0,score:0,res:[],keys:new Set(),raf:0,last:0};
   $('bResult').hidden=true; $('bPlay').hidden=false;
-  $('bCrab').firstChild.innerHTML=takaSVG();
+  $('bCrab').firstChild.innerHTML=takaSVG(); $('bTurtle').innerHTML=art('kturtle');
   show('bouken'); bRound();
 }
 function bDots(){$('bDots').innerHTML=Array.from({length:BROUND},(_,i)=>`<i class="${B.res[i]===true?'ok':B.res[i]===false?'miss':''}${i===B.i?' now':''}"></i>`).join('')}
@@ -2162,13 +2171,13 @@ function bRound(){
   if(SFX.on)setTimeout(()=>say(ans),400);
   B.last=0; cancelAnimationFrame(B.raf); B.raf=requestAnimationFrame(bFrame);
 }
-function bSpawn(){B.c={x:B.start.x,y:B.start.y,vx:0,vy:0,ground:true,climb:false,drop:-1,anim:null,face:1,walkT:-9,airT:0,carry:0,push:0}; B.c.safe={x:B.c.x,y:B.c.y}; $('bCrab').className='bcrab'}
+function bSpawn(){B.c={x:B.start.x,y:B.start.y,vx:0,vy:0,ground:true,climb:false,drop:-1,anim:null,face:1,walkT:-9,airT:0,carry:0,push:0}; B.c.safe={x:B.c.x,y:B.c.y}; B.tur=null; $('bCrab').className='bcrab'}
 let bMsgT=0;
 function bMsg(t){const m=$('bMsg'); m.textContent=t; m.classList.toggle('on',!!t); clearTimeout(bMsgT); if(t)bMsgT=setTimeout(()=>m.classList.remove('on'),2200)}
 // Size the stage to whole cells that fit the screen (beside the buttons in landscape, above them in portrait).
 function bLayout(){
   if(!B||$('bouken').hidden||$('bPlay').hidden)return;
-  const box=$('bBox'), below=matchMedia('(orientation:portrait)').matches?$('bPadR').offsetHeight+14:0;
+  const box=$('bBox'), below=matchMedia('(orientation:portrait)').matches?Math.max($('bPadL').offsetHeight,$('bPadR').offsetHeight)+14:0;
   const T=Math.max(16,Math.floor(Math.min(box.clientWidth/BCOLS,(innerHeight-box.getBoundingClientRect().top-below-24)/BROWS)));
   B.T=T; const st=$('bStage'); st.style.width=T*BCOLS+'px'; st.style.height=T*BROWS+'px';
   for(const ch of B.chests){const w=1.6*T,h=w*52/60; Object.assign(ch.el.style,{width:w+'px',height:h+'px',fontSize:.66*T+'px',
@@ -2227,8 +2236,13 @@ function bDraw(){
 }
 function bPlace(){
   const {T,c}=B, el=$('bCrab'), w=1.5*T, h=w*110/160;
-  el.style.transform=`translate(${(c.x*T-w/2).toFixed(1)}px,${(c.y*T-h+.03*T).toFixed(1)}px)`;
-  el.classList.toggle('walking',!c.anim&&c.ground&&!c.climb&&c.vx!==0);
+  el.style.transform=`translate(${(c.x*T-w/2).toFixed(1)}px,${((c.y-(c.ride?RIDE.lift:0))*T-h+.03*T).toFixed(1)}px)`;
+  // The turtle rides under her, then swims on and fades once it has set her down.
+  const tu=$('bTurtle'), tr=B.tur, tw=1.2*T, k=tr&&!tr.on?(B.last-tr.t0)/.6:0;
+  tu.style.display=tr&&k<1?'block':'none';
+  if(tr&&k<1){const x=tr.on?c.x:tr.x+tr.d*3*k*.6, y=tr.on?c.y:tr.y-.3*k;
+    Object.assign(tu.style,{width:tw+'px',opacity:1-k,transform:`translate(${(x*T-tw/2).toFixed(1)}px,${(y*T-tw*.84).toFixed(1)}px)${tr.d>0?' scaleX(-1)':''}`})}
+  el.classList.toggle('walking',!c.anim&&c.ground&&!c.climb&&c.vx!==0||!!c.ride);
   el.classList.toggle('climbing',c.anim?.climb||c.climb&&(B.keys.has('U')||B.keys.has('D')));
 }
 function bFrame(now){
@@ -2239,12 +2253,12 @@ function bFrame(now){
   bPlace();
 }
 const bCols=x=>{const o=[];for(let i=Math.floor(x-BP.hw+1e-3);i<=Math.floor(x+BP.hw-1e-3);i++)o.push(i);return o};
-const bRows=y=>{const o=[];for(let i=Math.floor(y-BP.h+1e-3);i<=Math.floor(y-1e-3);i++)o.push(i);return o};
+const bRows=(y,h=BP.h)=>{const o=[];for(let i=Math.floor(y-h+1e-3);i<=Math.floor(y-1e-3);i++)o.push(i);return o};
 // A move that plays out over time instead of by physics (climbing onto a ledge, getting hurt).
 function bAnim(c,dur,step,done,climb){c.anim={t0:B.last,dur,step,done,climb}}
 function bMoveX(c,dx){
   const x=c.x+dx, edge=dx>0?Math.floor(x+BP.hw):Math.floor(x-BP.hw);
-  if(dx&&bRows(c.y).some(y=>bAt(y,edge)==='#')){c.x=dx>0?edge-BP.hw-1e-4:edge+1+BP.hw+1e-4; return Math.sign(dx)}
+  if(dx&&bRows(c.y,bH(c)).some(y=>bAt(y,edge)==='#')){c.x=dx>0?edge-BP.hw-1e-4:edge+1+BP.hw+1e-4; return Math.sign(dx)}
   c.x=x; return 0;
 }
 function bMoveY(c,dy){
@@ -2254,8 +2268,8 @@ function bMoveY(c,dy){
     for(let r=Math.ceil(y0-1e-6);r<=y;r++)
       if(cols.some(x=>bAt(r,x)==='#'||r!==c.drop&&bTop(r,x))){c.y=r; c.vy=0; c.ground=true; return}
   }else if(dy<0){
-    const head=Math.floor(y-BP.h);
-    if(cols.some(x=>bAt(head,x)==='#')){c.y=head+1+BP.h; c.vy=0; c.ground=false; return}
+    const head=Math.floor(y-bH(c));
+    if(cols.some(x=>bAt(head,x)==='#')){c.y=head+1+bH(c); c.vy=0; c.ground=false; return}
   }
   c.y=y; c.ground=false;
   if(c.drop>=0&&c.y>c.drop+.6)c.drop=-1;
@@ -2278,11 +2292,14 @@ function bStep(dt,t){
   if(c.anim){const f=Math.min(1,(t-c.anim.t0)/c.anim.dur); c.anim.step(f); if(f>=1){const a=c.anim; c.anim=null; a.done?.()} return}
   if(B.cur.lock){c.vx=0; return}
   const dir=(k.has('R')?1:0)-(k.has('L')?1:0), up=k.has('U'), down=k.has('D');
-  if(dir){c.face=dir; c.walkT=t}
+  // The jump buttons jump to one side, for when holding a direction and ▲ together is too hard.
+  const jd=(k.has('JR')?1:0)-(k.has('JL')?1:0);
+  if(dir||jd){c.face=dir||jd; c.walkT=t}
   const col=Math.floor(c.x), nearKelp=Math.abs(c.x-col-.5)<.45, kelp=bRows(c.y).filter(y=>bAt(y,col)==='H');
   const onKelp=nearKelp&&kelp.length>0, kelpBelow=nearKelp&&c.ground&&bAt(Math.round(c.y),col)==='H';
   if(c.climb){
-    if(dir){
+    if(jd){c.climb=false; c.ground=true; c.airT=0}
+    else if(dir){
       // Step off sideways, onto a ledge at the same height if there is one.
       c.climb=false; const ry=Math.round(c.y);
       if(Math.abs(c.y-ry)<.5&&(bAt(ry,col+dir)==='#'||bTop(ry,col+dir))&&!bRows(ry).some(y=>bAt(y,col+dir)==='#')){c.y=ry; c.x+=dir*.5; c.ground=true}
@@ -2302,24 +2319,28 @@ function bStep(dt,t){
     }
   }
   // ▲ climbs kelp when she is at some, and jumps anywhere else.
-  if(up&&onKelp||down&&kelpBelow){c.climb=true; c.vy=0; c.ground=false; if(down&&kelpBelow)c.y+=.05; return}
+  if(!c.ride&&(up&&onKelp||down&&kelpBelow)){c.climb=true; c.vy=0; c.ground=false; if(down&&kelpBelow)c.y+=.05; return}
   if(down&&c.ground&&bCols(c.x).every(x=>bAt(Math.round(c.y),x)!=='#')){c.drop=Math.round(c.y); c.ground=false}
-  if(c.ground){c.airT=0; c.carry=0}else c.airT+=dt;
+  if(c.ground){c.airT=0; c.carry=0; if(c.ride){c.ride=0; B.tur={...B.tur,on:false,x:c.x,y:c.y,t0:t}}}else c.airT+=dt;
+  const canGo=c.ground||c.airT<.15&&c.vy>=0;
+  // The jump buttons call a turtle, when there is room above her for its shell; otherwise she just jumps that way.
+  const room=bCols(c.x).every(x=>bAt(Math.floor(c.y-bH(c)-RIDE.lift-.01),x)!=='#');
+  if(jd&&canGo&&room){c.ride=jd; c.vy=-RIDE.up; c.ground=false; c.airT=1; B.tur={on:true,d:jd}; SFX.swoosh()}
   // A jump keeps going the way she was just walking, so one button at a time is enough; it also works a moment after stepping off an edge.
-  if(up&&(c.ground||c.airT<.15&&c.vy>=0)){c.vy=-BP.jump; c.ground=false; c.airT=1; c.carry=dir||(t-c.walkT<.35?c.face:0); SFX.jump()}
-  const go=c.ground?dir:dir||c.carry, wasGround=c.ground;
-  c.vx=go*(c.ground?BP.run:BP.air);
+  else if((up||jd)&&canGo){c.vy=-BP.jump; c.ground=false; c.airT=1; c.carry=jd||dir||(t-c.walkT<.35?c.face:0); SFX.jump()}
+  const go=c.ride||(c.ground?dir:dir||jd||c.carry), wasGround=c.ground;
+  c.vx=go*(c.ride?RIDE.speed:c.ground?BP.run:BP.air);
   const hit=bMoveX(c,c.vx*dt);
   // Against a wall: on the sand she clambers up one cell at once, or two after pushing a moment; in the air she grabs the edge.
   if(hit&&hit===go){c.push+=dt; if(bGrab(c,go,wasGround?(c.push>.25?2.05:1.05):BP.grab))return}else c.push=0;
-  c.vy=Math.min(18,c.vy+BP.g*dt); const vy=c.vy;
+  c.vy=Math.min(18,c.vy+(c.ride?RIDE.g:BP.g)*dt); const vy=c.vy;
   bMoveY(c,c.vy*dt);
   if(c.ground&&!wasGround&&vy>14)SFX.thud();
   if(c.y>BROWS+1)return bSpawn();
   // Spikes send her back to the last place she stood that wasn't right beside them.
   if(c.ground&&!c.climb&&!B.spikes.some(p=>Math.abs(p.x-c.x)<1.6&&Math.abs(p.y-c.y)<.5))c.safe={x:c.x,y:c.y};
-  for(const p of B.spikes)if(c.x+BP.hw>p.x-.33&&c.x-BP.hw<p.x+.33&&c.y>p.y-.45&&c.y-BP.h<p.y)return bOuch(c);
-  for(const ch of B.chests)if(!ch.no&&c.x+BP.hw>ch.x+.05&&c.x-BP.hw<ch.x+.95&&c.y>ch.y+.1&&c.y-BP.h<ch.y+1)return bChoose(ch);
+  if(!c.ride)for(const p of B.spikes)if(c.x+BP.hw>p.x-.33&&c.x-BP.hw<p.x+.33&&c.y>p.y-.45&&c.y-BP.h<p.y)return bOuch(c);
+  for(const ch of B.chests)if(!ch.no&&c.x+BP.hw>ch.x+.05&&c.x-BP.hw<ch.x+.95&&c.y>ch.y+.1&&c.y-bH(c)<ch.y+1)return bChoose(ch);
 }
 function bOuch(c){
   SFX.thud(); bMsg('いたっ！ トゲに きを つけて'); c.vx=c.vy=0; $('bCrab').classList.add('ouch');
@@ -2350,7 +2371,7 @@ function endBouken(){
   GOOD.work++; if(B.score>=4)GOOD.bouken++;
   $('bResText').textContent=B.score===BROUND?'ぜんぶ みつけた！ だいぼうけん だったね':B.score>=4?'たからものが たくさん！':'もういちど ぼうけんに いこう';
 }
-const BKEYS={ArrowLeft:'L',ArrowRight:'R',ArrowUp:'U',ArrowDown:'D',' ':'U',a:'L',d:'R',w:'U',s:'D'};
+const BKEYS={ArrowLeft:'L',ArrowRight:'R',ArrowUp:'U',ArrowDown:'D',' ':'U',a:'L',d:'R',w:'U',s:'D',q:'JL',e:'JR'};
 addEventListener('keydown',e=>{const k=BKEYS[e.key]; if(!k||!B||$('bouken').hidden)return; e.preventDefault(); B.keys.add(k)});
 addEventListener('keyup',e=>{const k=BKEYS[e.key]; if(k&&B)B.keys.delete(k)});
 addEventListener('blur',()=>B?.keys.clear());

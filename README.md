@@ -38,7 +38,7 @@ It covers the kanji in 光文書院 くりかえし かんじドリル 1年 上,
   Each maze fills one screen with four storeys of stone corridors, and the other two chests are in other rooms.
   To get there she climbs kelp up through the floors, drops through holes, jumps over spikes and clambers over steps.
   Four rounds, each in a different maze.
-  It's about finding the way rather than quick fingers: ◀ ▶ walk, ▲ climbs kelp or jumps (a jump keeps going the way she was walking, so one button at a time is enough), and ▼ climbs down.
+  It's about finding the way rather than quick fingers: ◀ ▶ walk, ▲ climbs kelp or jumps, ▼ climbs down, and the curved-arrow buttons above ◀ and ▶ call a sea turtle that carries her on its back up and about three cells left or right (over spikes, gaps and steps), so she never has to press two buttons at once.
   A step one block high is climbed just by walking into it, every room has a way back up, and spikes only send her back to where she last stood.
   A wrong chest greys out and shows the picture hint; the right one opens with a pearl, and finding it first time counts as a reading.
 - **Practice squares:** after a mistake writing a kanji from memory (in a test, a review, practice or a lesson's かく), four squares open for optional free practice, as in the drill book.
