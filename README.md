@@ -34,10 +34,12 @@ It covers the kanji in 光文書院 くりかえし かんじドリル 1年 上,
   Each set has its own fossil (しおだまり an アンモナイト, さんごしょう a サンヨウチュウ, くじらの うみ a クビナガリュウ, ふかい うみ a シーラカンス, こんぶの もり a ウミユリ), shown next to the set's manta: a ？ until it's dug up, then the fossil, which she can tap to see bigger with a line about it.
   Another perfect test on the same set digs up the same fossil again, just for fun.
   Seven more fossils are drawn and ready for sets added later.
-- **Adventure (ぼうけん):** a one-screen platformer where she is the タカアシガニ and has to reach the treasure chest holding the kanji for a word (「やま」の かんじは どれ？), with two other kanji in the other chests.
-  Five rounds, each on a different map of rocks, planks and kelp.
-  It's about finding the way rather than quick fingers: ◀ ▶ walk, ▲ climbs kelp or jumps (a jump keeps going the way she was walking, so one button at a time is enough), and ▼ climbs down or drops through a plank.
-  Walking into a wall up to two blocks high climbs it, a jump grabs any ledge within reach, and nothing can hurt her.
+- **Adventure (ぼうけん):** a Prince of Persia–style maze in a sunken temple, where she is the タカアシガニ and has to find the treasure chest holding the kanji for a word (「やま」の かんじは どれ？).
+  Each maze fills one screen with four storeys of stone corridors, and the other two chests are in other rooms.
+  To get there she climbs kelp up through the floors, drops through holes, jumps over spikes and clambers over steps.
+  Four rounds, each in a different maze.
+  It's about finding the way rather than quick fingers: ◀ ▶ walk, ▲ climbs kelp or jumps (a jump keeps going the way she was walking, so one button at a time is enough), and ▼ climbs down.
+  A step one block high is climbed just by walking into it, every room has a way back up, and spikes only send her back to where she last stood.
   A wrong chest greys out and shows the picture hint; the right one opens with a pearl, and finding it first time counts as a reading.
 - **Practice squares:** after a mistake writing a kanji from memory (in a test, a review, practice or a lesson's かく), four squares open for optional free practice, as in the drill book.
   Trace the first two over a faint outline, then write it in the other two; the ink isn't checked.
