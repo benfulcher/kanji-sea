@@ -295,6 +295,11 @@ ruby rt{font-family:var(--f-ui);font-size:.5em;font-weight:700;color:var(--sun)}
 .rbig.k{font-family:var(--f-kanji);color:var(--paper)}
 .rpad button{position:absolute;bottom:14px;width:clamp(84px,10vw,112px);font-size:36px;background:rgba(6,25,42,.35)}
 .rpad button[data-r=L]{left:14px}.rpad button[data-r=R]{right:14px}
+/* The word sits on the road at the top, so she needn't look away from it. */
+.rq{position:absolute;top:10px;left:50%;translate:-50% 0;z-index:2;flex-wrap:nowrap;white-space:nowrap;min-height:0;gap:12px;
+  padding:6px 8px 6px 22px;border-radius:999px;background:rgba(6,25,42,.6);font-size:clamp(30px,4.4vw,46px)}
+.rq:has(#rWord:empty){display:none}
+.rq .speak{font-size:16px}
 #rWord.done{opacity:.45}
 @media (orientation:portrait){
   .bmid{grid-template-columns:1fr 1fr;grid-template-areas:"s s" "l r"}
@@ -648,9 +653,9 @@ ruby rt{font-family:var(--f-ui);font-size:.5em;font-weight:700;color:var(--sun)}
         <div class="dots" id="rDots"></div>
       </div>
       <div id="rPlay" class="bwrap">
-        <div class="bq"><span id="rWord"></span><button class="speak" id="rSpeak">こえで きく</button></div>
         <div class="sbox" id="rBox">
           <div class="stage" id="rStage"><canvas id="rCanvas"></canvas>
+            <div class="bq rq"><span id="rWord"></span><button class="speak" id="rSpeak">もういちど</button></div>
             <div class="rhud"><b id="rPlace"></b><span id="rLap"></span></div><div class="rbig" id="rBig"></div><div class="bmsg" id="rMsg"></div>
             <div class="pad rpad"><button data-r="L" aria-label="ひだり">◀</button><button data-r="R" aria-label="みぎ">▶</button></div>
           </div>
@@ -2667,6 +2672,8 @@ function startRace(){
     me:svgImg(takaSVG()),rivals:RRIVALS.map(r=>({...r,d:r.d*RV.seg,img:svgImg(art(r.id)),fin:0,ph:Math.random()*6}))};
   $('rResult').hidden=true; $('rPlay').hidden=false; $('rWord').textContent=''; $('rWord').className=''; rMsg('');
   show('race'); rDots(); rLayout(); RC.raf=requestAnimationFrame(rFrame);
+  // Speaking straight from the tap lets the words that come later be spoken too on an iPad.
+  if(SFX.on)say('よーい');
 }
 function rDots(){$('rDots').innerHTML=RC.gates.map((g,i)=>`<i class="${RC.res[i]===true?'ok':RC.res[i]===false?'miss':''}${i===RC.gi&&g.called?' now':''}"></i>`).join('')}
 let rMsgT=0;
@@ -2692,7 +2699,7 @@ function rStep(dt){
   const c=RC, L=RSEGS.length*RV.seg; c.t+=dt;
   if(c.go>0){
     const was=Math.ceil(c.go); c.go-=dt; const now=Math.ceil(c.go);
-    if(now!==was||c.t===dt){if(now>0){rBig(String(now),false,700); SFX.pop()}else{rBig('スタート！',false,900); SFX.chime()}}
+    if(now!==was||c.t===dt){if(now>0){rBig(String(now),false,700); SFX.pop()}else{rBig('スタート！',false,900); SFX.chime(); if(SFX.on)say('どん！')}}
     return;
   }
   const seg=RSEGS[Math.floor(rmod(c.d,L)/RV.seg)], pct=c.v/RV.speed;
@@ -2706,7 +2713,8 @@ function rStep(dt){
   const d0=c.d; c.d+=c.v*dt;
   const g=c.gates[c.gi];
   if(g&&!c.done){
-    if(!g.called&&g.d-c.d<RV.call*RV.seg){g.called=true; rCall(g)}
+    if(!g.called&&g.d-c.d<RV.call*RV.seg){g.called=true; g.again=c.t+2.4; rCall(g)}
+    else if(g.again&&c.t>=g.again){g.again=0; if(SFX.on)say(g.ans)}
     if(d0<g.d&&c.d>=g.d)rGate(g);
   }
   for(const r of c.rivals){
@@ -2720,7 +2728,7 @@ function rStep(dt){
 }
 const rPlace=()=>1+RC.rivals.filter(r=>r.fin?true:r.d>RC.d).length;
 function rCall(g){
-  $('rWord').innerHTML=`「<b>${g.y}</b>${g.oku}」は どれ？`; $('rWord').className=''; rDots();
+  $('rWord').innerHTML=`「<b>${g.y}</b>${g.oku}」`; $('rWord').className=''; rDots();
   if(SFX.on)say(g.ans);
 }
 function rGate(g){
@@ -2774,12 +2782,12 @@ function rDraw(){
     P[n]={a,b,sg}; x+=dx; dx+=sg.curve;
     if(!a||b.Y>=maxy)continue;
     const alt=Math.floor(sg.i/3)%2, fog=1-Math.exp(-Math.pow(n/RV.draw,2)*3);
-    g.fillStyle=alt?'#2f9a8e':'#2a8c82'; g.fillRect(0,b.Y,W,a.Y-b.Y+1);
+    g.fillStyle=alt?'#2f9a8e':'#2a8c82'; g.fillRect(0,b.Y-1,W,a.Y-b.Y+1);
     quad(a,b,a.w*1.12,b.w*1.12,0,0,alt?'#ff8fab':'#fff3e0');
     quad(a,b,a.w,b.w,0,0,alt?'#ead6a0':'#e2cc92');
     if(sg.i<2)for(let k=0;k<8;k++)quad(a,b,a.w/8,b.w/8,-1+(2*k+1)/8,-1+(2*k+1)/8,(k+sg.i)%2?'#22122f':'#fff');
     else if(alt)for(const l of [-1/3,1/3])quad(a,b,a.w*.025,b.w*.025,l,l,'rgba(255,255,255,.75)');
-    if(fog>.01){g.globalAlpha=fog; g.fillStyle='#1d6f8c'; g.fillRect(0,b.Y,W,a.Y-b.Y+1); g.globalAlpha=1}
+    if(fog>.01){g.globalAlpha=fog; g.fillStyle='#1d6f8c'; g.fillRect(0,b.Y-1,W,a.Y-b.Y+1); g.globalAlpha=1}
     maxy=b.Y;
   }
   // Things on and beside the road, far ones first.
