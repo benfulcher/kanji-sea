@@ -34,19 +34,22 @@ It covers the kanji in 光文書院 くりかえし かんじドリル 1年 上,
   Each set has its own fossil (しおだまり an アンモナイト, さんごしょう a サンヨウチュウ, くじらの うみ a クビナガリュウ, ふかい うみ a シーラカンス, こんぶの もり a ウミユリ), shown next to the set's manta: a ？ until it's dug up, then the fossil, which she can tap to see bigger with a line about it.
   Another perfect test on the same set digs up the same fossil again, just for fun.
   Seven more fossils are drawn and ready for sets added later.
-- **Adventure (ぼうけん):** a Prince of Persia–style maze in a sunken temple, where she is the タカアシガニ and has to find the treasure chest holding the kanji for a word (「やま」の かんじは どれ？).
-  Each maze fills one screen with four storeys of stone corridors, and there are five chests around it, only one of them right.
+- **Adventure (ぼうけん):** a Prince of Persia–style maze in a sunken temple, where she is the タカアシガニ and has to find the kanji for a short sentence in treasure chests.
+  Each sentence has two kanji to find (やまの うえに かにが いる。), and she has to open their chests in the order the words come in the sentence.
+  Each maze fills one screen with four storeys of stone corridors, and there are five chests around it, two of them right.
   To get there she climbs kelp up through the floors, drops through holes, jumps over stinging jellyfish (crackling with lightning) and clambers over steps.
   Hidden trap doors look like ordinary floor, but tremble and drop open under her, landing her safely on the storey below, and shut again a few seconds later.
   ウミヘビ (sea snakes) hide in the roof or in a wall, given away by a forked tongue flicking from a crack in the ceiling or a hole in the bricks.
   When she comes near, one hisses (its eyes turn red) and a moment later strikes, dropping from the ceiling or lunging along the floor; if it catches her she is stunned for a few seconds, then it slips back into its hole.
   Setting it off and running straight back gets her clear; carrying on past it gets her caught.
-  In two of the four rounds the way to the right chest is shut by a locked door, and she has to find its key somewhere else in the maze first; she carries it on her back, and walking into the door with it opens it.
+  In two of the four rounds the way to the second kanji's chest is shut by a locked door, and she has to find its key somewhere else in the maze first; she carries it on her back, and walking into the door with it opens it.
   Four rounds, each in a different maze.
   It's about finding the way rather than quick fingers: ◀ ▶ walk, ▲ climbs kelp or jumps, ▼ climbs down, and the curved-arrow buttons above ◀ and ▶ call a sea turtle that carries her on its back up and about three cells left or right (over jellyfish, gaps and steps), so she never has to press two buttons at once.
   A step one block high is climbed just by walking into it, and every room has a way back up.
   A sting sends her back to where she last stood, and a second sting sends her back to the start.
-  A wrong chest greys out and shows the picture hint; the right one opens with a pearl, and finding it first time counts as a reading.
+  A wrong chest greys out and shows the picture hint, and the second kanji's chest stays shut (まだだよ！) until the first has been found.
+  A right one opens with a pearl, and its kanji is written into the sentence in place of the reading.
+  Each kanji found with no wrong chest on the way counts as a reading of it.
 - **Practice squares:** after a mistake writing a kanji from memory (in a test, a review, practice or a lesson's かく), four squares open for optional free practice, as in the drill book.
   Trace the first two over a faint outline, then write it in the other two; the ink isn't checked.
 - **Reading game (よめるかな？):** a stingray brings a kanji, and you find its reading in a fish tank and tap it.

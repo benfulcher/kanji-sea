@@ -266,6 +266,10 @@ ruby rt{font-family:var(--f-ui);font-size:.5em;font-weight:700;color:var(--sun)}
 #bPlay{width:100%}
 .bq{display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;min-height:48px;font-weight:900;font-size:clamp(24px,3.2vw,32px)}
 .bq b{color:var(--sun)}
+.bq b.now{text-decoration:underline 4px;text-underline-offset:6px}
+.bq b.later{color:#ffe9a8;opacity:.7}
+.bq ruby{font-family:var(--f-kanji);color:var(--sun)}
+.bq rt{font-size:.42em;font-family:inherit;opacity:.85}
 .bmid{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:14px}
 .sbox{min-width:0;display:flex;justify-content:center}
 .stage{position:relative;overflow:hidden;border-radius:18px;background:#0b3550;box-shadow:0 0 0 3px rgba(236,248,245,.12)}
@@ -339,6 +343,7 @@ ruby rt{font-family:var(--f-ui);font-size:.5em;font-weight:700;color:var(--sun)}
 .chest.open span{background:var(--sun);animation:jiggle .5s ease-out 2}
 .chest.no{filter:grayscale(.9) brightness(.7);animation:shake .45s}
 .chest.fade{opacity:.35}
+.chest.nudge{animation:shake .45s}
 .bmsg{position:absolute;left:50%;top:10px;translate:-50% 0;z-index:3;padding:8px 18px;border-radius:999px;background:rgba(6,25,42,.75);
   font-weight:900;font-size:20px;white-space:nowrap;opacity:0;transition:opacity .25s;pointer-events:none}
 .bmsg.on{opacity:1}
@@ -706,6 +711,27 @@ const SENT = {
   '下':['いわの [した]に たこが かくれた。','ひとでの [した]に かにが いた。'],
 };
 
+// ぼうけん: sentences with two kanji to find, in the order they come (the kanji are listed in that order).
+const SENT2 = [
+  ['山上','[やま]の [うえ]に かにが いる。'], ['木下','[き]の [した]で わにが ひるねして いる。'],
+  ['青空','[あお]い [そら]を とびうおが とんだ。'], ['大山','[おお]きな [やま]に かめが のぼった。'],
+  ['小水','[ちい]さい かにが [みず]あびを した。'], ['男子','[おとこ]の [こ]が かにを みつけた。'],
+  ['女子','[おんな]の [こ]が いるかと およぐ。'], ['空雨','[そら]から [あめ]が ふって きた。'],
+  ['先生','[せん][せい]が かめに のって きた。'], ['字見','たこが すみで かいた [じ]を [み]せた。'],
+  ['学山','[がく]せいが [やま]で かにを さがす。'], ['手上','[て]を [うえ]に あげて、と かにが いった。'],
+  ['天青','[てん]きが いいと うみが [あお]い。'], ['一大','[いち]ばん [おお]きいのは くじら。'],
+  ['二小','かにが [ふた]つの [ちい]さい いしを ひろった。'], ['下三','いわの [した]に たこが [さん]びき。'],
+  ['水四','[みず]の なかに いるかが [よん]ひき。'], ['上五','いわの [うえ]に ひとでが [ご]ひき。'],
+  ['六子','[ろく]がつに くじらの [こ]が うまれた。'], ['空七','[そら]に [なな]いろの にじが でた。'],
+  ['八雨','[はち]がつに [あめ]が たくさん ふった。'], ['九正','[きゅう]ひきの いわしが [ただ]しく ならぶ。'],
+  ['見十','[み]て！ ひとでが [とお] ならんで いる。'], ['文見','かめが かいた [ぶん]を [み]せて くれた。'],
+  ['大字','たこが すみで [おお]きな [じ]を かいた。'], ['校上','がっ[こう]の [うえ]を かもめが とんだ。'],
+  ['雨下','[あめ]の ひは いわの [した]に かくれる。'], ['天山','[てん]きが いい ひは [やま]が よく みえる。'],
+  ['水生','[みず]の なかで せん[せい]が およぐ。'], ['木上','[き]の [うえ]で とかげが ひるね。'],
+  ['男手','[おとこ]の ひとが かにに [て]を ふった。'], ['女見','[おんな]の こが くじらを [み]た。'],
+  ['正文','[ただ]しい [ぶん]を かこう、と たこが いった。'], ['子手','たこの [こ]が [て]を ふった。'],
+  ['校小','[こう]ていで [ちい]さい かにを みつけた。'], ['先手','[せん]せいが [て]を あげた。'],
+];
 
 // Sea friends: one joins the tank for each kanji written from memory.
 const CRE = {
@@ -2179,7 +2205,10 @@ function startBouken(){
   let pool=ORDER.filter(k=>{const p=prog(k);return p.t||p.w});
   if(pool.length<BROUND)pool=ORDER.slice();
   if(B)cancelAnimationFrame(B.raf);
-  B={items:shuffle(pool.slice()).slice(0,BROUND),locks:shuffle([1,1,0,0]),maps:shuffle(BMAPS.slice()),pool,i:0,score:0,res:[],keys:new Set(),raf:0,last:0};
+  // Four sentences, with the ones whose kanji she has met first.
+  const met=([ks])=>[...ks].filter(k=>pool.includes(k)).length;
+  const items=shuffle(SENT2.slice()).sort((a,b)=>met(b)-met(a)).slice(0,BROUND);
+  B={items,locks:shuffle([1,1,0,0]),maps:shuffle(BMAPS.slice()),pool,i:0,score:0,res:[],keys:new Set(),raf:0,last:0};
   $('bResult').hidden=true; $('bPlay').hidden=false;
   $('bCrab').firstChild.innerHTML=takaSVG(); $('bTurtle').innerHTML=art('kturtle');
   show('bouken'); bRound();
@@ -2200,25 +2229,25 @@ const STING='<svg viewBox="0 0 40 40" aria-hidden="true"><g class="bolt"><path d
 function bRound(){
   if(B.i>=BROUND)return endBouken();
   bDots();
-  const k=B.items[B.i], r=pick(INFO[k].r.filter(r=>r[0]!=='*')), ans=kana(r);
+  const [pair,sent]=B.items[B.i], two=[...pair], parts=splitSent(sent), ys=[parts[1],parts[3]];
   const grid=B.maps[B.i%B.maps.length].map(row=>[...row]), slots=[], locked=B.locks[B.i];
   grid.forEach((row,y)=>row.forEach((ch,x)=>{
     if(ch==='S')B.start={x:x+.5,y:y+1};
     if('SabcdeABCDE'.includes(ch)){if(ch!=='S')slots.push({x,y,lock:ch<'a'}); row[x]='.'}
     if('|K'.includes(ch)&&!locked)row[x]='.';
   }));
-  // The other chests: kanji from the same set or ones she has met first, never one that can be read the same way.
-  const near=SECTIONS.find(s=>s.kanji.includes(k)).kanji;
+  // The other chests: kanji from the same sets or ones she has met first, never one that can be read either way.
+  const near=SECTIONS.filter(s=>two.some(k=>s.kanji.includes(k))).map(s=>s.kanji).join('');
   const others=[...new Set([...shuffle([...new Set([...near,...B.pool])]),...shuffle(ORDER.slice())])]
-    .filter(x=>x!==k&&!INFO[x].r.some(y=>kana(y)===ans)).slice(0,slots.length-1);
-  const ks=shuffle([k,...others]);
-  // With a lock, the right answer is the chest behind the door.
-  if(locked){const j=slots.findIndex(s=>s.lock); ks.splice(ks.indexOf(k),1); ks.splice(j,0,k)}
+    .filter(x=>!two.includes(x)&&!INFO[x].r.some(y=>ys.includes(y.replace('*','').split('|')[0]))).slice(0,slots.length-2);
+  const ks=shuffle([...two,...others]);
+  // With a lock, the second kanji is the chest behind the door.
+  if(locked){const j=slots.findIndex(s=>s.lock); ks.splice(ks.indexOf(two[1]),1); ks.splice(j,0,two[1])}
   B.spikes=[]; grid.forEach((row,y)=>row.forEach((ch,x)=>{if(ch==='X')B.spikes.push({x:x+.5,y:y+1})}));
   B.traps=[]; grid.forEach((row,y)=>row.forEach((ch,x)=>{if(ch==='T'&&row[x-1]!=='T')B.traps.push({x,y,state:'shut',t0:0})}));
   B.snakes=[]; grid.forEach((row,y)=>row.forEach((ch,x)=>{if('RW'.includes(ch)){row[x]='.';
     B.snakes.push({x,y,roof:ch==='R',d:row[x+1]==='#'?-1:1,state:'idle',t0:0})}}));
-  B.grid=grid; B.cur={k,ans,miss:0,lock:false,hits:0};
+  B.grid=grid; B.cur={ks:two,ys,parts,say:parts.join(''),step:0,miss:[0,0],lock:false,hits:0};
   const box=$('bChests'); box.innerHTML='';
   B.door=B.key=null;
   grid.forEach((row,y)=>row.forEach((ch,x)=>{
@@ -2231,11 +2260,15 @@ function bRound(){
   }
   for(const p of B.spikes){p.el=document.createElement('div'); p.el.className='sting'; p.el.innerHTML=STING; box.appendChild(p.el)}
   B.chests=slots.map((s,j)=>{const el=document.createElement('div'); el.className='chest'; el.innerHTML=CHEST+`<span>${ks[j]}</span>`; box.appendChild(el); return {...s,k:ks[j],el,no:false}});
-  const [y,oku='']=r.replace('*','').split('|');
-  $('bWord').innerHTML=`「<b>${y}</b>${oku}」の かんじは どれ？`; $('bHint').textContent=''; bMsg('');
+  bWord(); $('bHint').textContent=''; bMsg(B.i?'':'ぶんの じゅんばんに かんじを あつめよう');
   bSpawn(); bLayout();
-  if(SFX.on)setTimeout(()=>say(ans),400);
+  if(SFX.on)setTimeout(()=>say(B.cur.say),400);
   B.last=0; cancelAnimationFrame(B.raf); B.raf=requestAnimationFrame(bFrame);
+}
+// The sentence, with each kanji she has found written in, the one to find next underlined, and the one after it dimmer.
+function bWord(){
+  const {parts:p,ks,step}=B.cur, w=j=>j<step?`<ruby>${ks[j]}<rt>${p[2*j+1]}</rt></ruby>`:`<b class="${j===step?'now':'later'}">${p[2*j+1]}</b>`;
+  $('bWord').innerHTML=p[0]+w(0)+p[2]+w(1)+p[4];
 }
 function bSpawn(){B.c={x:B.start.x,y:B.start.y,vx:0,vy:0,ground:true,climb:false,drop:-1,anim:null,face:1,walkT:-9,airT:0,carry:0,push:0,key:0}; B.c.safe={x:B.c.x,y:B.c.y}; B.tur=null; $('bCrab').className='bcrab'}
 let bMsgT=0;
@@ -2450,7 +2483,10 @@ function bStep(dt,t){
     else if(t-(B.doorT||0)>3){B.doorT=t; SFX.bloop(); bMsg('カギが かかってる！ カギを さがそう')}
   }
   if(!c.ride)for(const p of B.spikes)if(c.x+BP.hw>p.x-.33&&c.x-BP.hw<p.x+.33&&c.y>p.y-.45&&c.y-BP.h<p.y)return bOuch(c);
-  for(const ch of B.chests)if(!ch.no&&c.x+BP.hw>ch.x+.05&&c.x-BP.hw<ch.x+.95&&c.y>ch.y+.1&&c.y-bH(c)<ch.y+1)return bChoose(ch);
+  for(const ch of B.chests){
+    const on=c.x+BP.hw>ch.x+.05&&c.x-BP.hw<ch.x+.95&&c.y>ch.y+.1&&c.y-bH(c)<ch.y+1;
+    if(!on)ch.wait=false; else if(!ch.no&&!ch.got&&!ch.wait)return bChoose(ch);
+  }
 }
 // Sea snakes. Its tongue shows where one hides. When she comes near it hisses (eyes red), and after a moment it strikes,
 // so she can set it off and run back out of reach (keeping on past it, she gets caught). If it catches her she is stunned for a few seconds; then it slips
@@ -2494,19 +2530,30 @@ function bOuch(c){
   });
 }
 async function bChoose(ch){
-  const b=B, cur=B.cur;
-  if(ch.k!==cur.k){
-    ch.no=true; ch.el.classList.add('no'); cur.miss++; SFX.bloop();
-    $('bHint').textContent=INFO[cur.k].pic; bMsg('ちがうよ！ ヒントを みてね');
+  const b=B, cur=B.cur, k=cur.ks[cur.step];
+  if(ch.k!==k){
+    cur.miss[cur.step]++; SFX.bloop();
+    // The second kanji, found before the first: it stays shut (and isn't greyed) until the first is found.
+    if(cur.ks.includes(ch.k)){
+      ch.wait=true; ch.el.classList.remove('nudge'); void ch.el.offsetWidth; ch.el.classList.add('nudge');
+      bMsg(`まだだよ！ さきに「${cur.ys[0]}」`); return;
+    }
+    ch.no=true; ch.el.classList.add('no');
+    $('bHint').textContent=INFO[k].pic; bMsg('ちがうよ！ ヒントを みてね');
     return;
   }
-  cur.lock=true; ch.el.classList.add('open'); $('bCrab').classList.add('happy');
-  for(const o of B.chests)if(o!==ch)o.el.classList.add('fade');
-  SFX.right(); if(SFX.on)setTimeout(()=>say(cur.ans),350);
-  const first=cur.miss===0; B.res[B.i]=first;
-  if(first){B.score++; const p=prog(cur.k); p.r=(p.r||0)+1; save()}
+  ch.got=true; ch.el.classList.add('open'); SFX.right(); if(SFX.on)setTimeout(()=>say(cur.ys[cur.step]),350);
+  cur.step++; bWord(); $('bHint').textContent='';
+  if(cur.step<2)return bMsg(`つぎは「${cur.ys[1]}」！`);
+  cur.lock=true; $('bCrab').classList.add('happy');
+  for(const o of B.chests)if(!o.got)o.el.classList.add('fade');
+  if(SFX.on)setTimeout(()=>say(cur.say),1300);
+  // Each kanji found with no wrong chest on the way counts as a reading of it.
+  const first=cur.miss[0]+cur.miss[1]===0; B.res[B.i]=first;
+  if(first)B.score++;
+  cur.ks.forEach((k,j)=>{if(!cur.miss[j]){const p=prog(k); p.r=(p.r||0)+1}}); save();
   bMsg(first?pick(PRAISE):'みつけたね！'); bDots();
-  await sleep(1900);
+  await sleep(3200);
   if(B!==b||$('bouken').hidden)return;
   B.i++; bRound();
 }
@@ -2528,7 +2575,7 @@ for(const b of document.querySelectorAll('.pad button')){
   for(const ev of ['pointerup','pointercancel','lostpointercapture'])b.addEventListener(ev,off);
   b.addEventListener('contextmenu',e=>e.preventDefault());
 }
-$('bSpeak').onclick=()=>{if(B)say(B.cur.ans)};
+$('bSpeak').onclick=()=>{if(B)say(B.cur.say)};
 $('playBouken').onclick=startBouken; $('bAgain').onclick=startBouken;
 $('bHome').onclick=$('backHome3').onclick=()=>{if(B){cancelAnimationFrame(B.raf); B.raf=0} renderHome()};
 
