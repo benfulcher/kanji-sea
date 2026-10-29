@@ -20,6 +20,13 @@ It covers the kanji in 光文書院 くりかえし かんじドリル 1年 上,
   Half the prompts put the word in a short book-style sentence, with the reading over the box to write in.
 - **Writing in sentences (ぶんで かく):** practice where every prompt is one of those sentences.
 - **Writing readings (よみを かく):** the kanji sits in a sentence and you write its reading in hiragana, one kana at a time, each checked stroke by stroke.
+- **This week's kanji (こんしゅうの かんじ):** a card at the top of the home screen, under the tank, with the two or three kanji she is doing at school this week, so there's no scrolling to find them.
+  It has its own ▶ れんしゅう and 🐳 テスト, and the week's kanji are outlined in gold in the book list below.
+  The week moves on one entry each Monday, following `WEEKS` in `app.html` (book order, anchored so the week of 2026-10-26 is 学校).
+  If school gets ahead or behind, a grown-up can move it with the ◀ ▶ next to こんしゅう at the bottom of the home screen; from then on it counts Mondays from that setting.
+  **ぼうけん and レース are locked (🔒) until she passes the week's test**, which means every kanji in it written with no misses.
+  Tapping a locked game points her to the week's card and the crab tells her what to do.
+  A new week locks them again until its test is passed.
 - **Tests (🐳 テスト):** each set has a test that goes through its kanji once each, with no hints, inside a whale's mouth.
   Strokes stay as she wrote them rather than snapping to the model, but each still has to fit to count.
   Once a stroke fits, the model stroke appears in light grey underneath hers, so she can see where it should have gone.
