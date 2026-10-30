@@ -1155,7 +1155,39 @@ const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()
 const kana=r=>r.replace('*','').replace('|','');
 function word(k,r){r=r.replace('*',''); const [y,oku='']=r.split('|'); return `<ruby>${k}<rt>${y}</rt></ruby>${oku}`}
 function wordPlain(k,r){const oku=r.replace('*','').split('|')[1]||''; return k+oku}
-function say(text){try{const u=new SpeechSynthesisUtterance(text);u.lang='ja-JP';u.rate=.8;speechSynthesis.cancel();speechSynthesis.speak(u)}catch(e){}}
+// Voices. Each speaker is a pitch and rate on top of the device's Japanese voice, so the characters sound different
+// even on a device with one voice, plus a preferred voice name for devices with several (iPad: Kyoko, Otoya, Hattori,
+// O-ren; Windows: Ayumi, Ichiro, Haruka, Nanami). Readings and test words stay at the plain pitch and speed so
+// they are clear, but come from a different voice each time, so she hears the word said by several people.
+// Safari's voice list is often empty until voiceschanged fires, so it is re-read then; with fewer than two Japanese
+// voices no name is chosen and the device's default is used.
+const VOICES={
+  read:{pitch:1,rate:.8,want:'any'},
+  crab:{pitch:.6,rate:.72,want:['Otoya','Hattori','Ichiro']},
+  race:{pitch:1.3,rate:1,want:['O-ren','Haruka','Kyoko']},
+};
+let jaVoices=[];
+// One entry per voice name, keeping the enhanced or premium copy where a device has both.
+function loadVoices(){
+  try{
+    const by={}; for(const v of speechSynthesis.getVoices()){if(!/^ja/i.test(v.lang))continue; const n=v.name.split(' (')[0]; if(!by[n]||/enhanced|premium/i.test(v.name))by[n]=v}
+    jaVoices=Object.values(by);
+  }catch(e){}
+}
+loadVoices(); try{speechSynthesis.addEventListener('voiceschanged',loadVoices)}catch(e){}
+function pickVoice(want){
+  if(jaVoices.length<2)return null;
+  if(want==='any')return pick(jaVoices);
+  for(const n of want){const vs=jaVoices.filter(v=>v.name.includes(n)); if(vs.length)return vs.find(v=>/enhanced|premium/i.test(v.name))||vs[0]}
+  return null;
+}
+function say(text,who='read'){
+  try{
+    const c=VOICES[who]||VOICES.read, u=new SpeechSynthesisUtterance(text), v=pickVoice(c.want);
+    u.lang='ja-JP'; u.rate=c.rate; u.pitch=c.pitch; if(v)u.voice=v;
+    speechSynthesis.cancel(); speechSynthesis.speak(u);
+  }catch(e){}
+}
 function seeded(s){let h=0;for(const ch of s)h=(h*31+ch.codePointAt(0))>>>0;return()=>{h=(h*1103515245+12345)>>>0;return(h>>>8)/16777216}}
 function show(id){for(const s of ['home','practice','quiz','bouken','race'])$(s).hidden=s!==id; $(id).scrollTop=0}
 
@@ -1595,7 +1627,7 @@ function hostSay(text,happy){
   const h=$('host'); $('hostSay').textContent=text; h.classList.remove('happy'); void h.offsetWidth;
   h.classList.add('talking'); if(happy)h.classList.add('happy');
   clearTimeout(hostTimer); hostTimer=setTimeout(()=>h.classList.remove('talking','happy'),Math.max(4500,text.length*190));
-  if(SFX.on)setTimeout(()=>say(text),350);
+  if(SFX.on)setTimeout(()=>say(text,'crab'),350);
 }
 const VKEY='kanjiSea.lastVisit';
 function welcome(){
@@ -2751,7 +2783,7 @@ function startRace(){
   $('rResult').hidden=true; $('rPlay').hidden=false; $('rWord').textContent=''; $('rWord').className=''; rMsg('');
   show('race'); rDots(); rLayout(); RC.raf=requestAnimationFrame(rFrame);
   // Speaking straight from the tap lets the words that come later be spoken too on an iPad.
-  if(SFX.on)say('よーい');
+  if(SFX.on)say('よーい','race');
 }
 function rDots(){$('rDots').innerHTML=RC.gates.map((g,i)=>`<i class="${RC.res[i]===true?'ok':RC.res[i]===false?'miss':''}${i===RC.gi&&g.called?' now':''}"></i>`).join('')}
 let rMsgT=0;
@@ -2777,7 +2809,7 @@ function rStep(dt){
   const c=RC, L=RSEGS.length*RV.seg; c.t+=dt;
   if(c.go>0){
     const was=Math.ceil(c.go); c.go-=dt; const now=Math.ceil(c.go);
-    if(now!==was||c.t===dt){if(now>0){rBig(String(now),false,700); SFX.pop()}else{rBig('スタート！',false,900); SFX.chime(); if(SFX.on)say('どん！')}}
+    if(now!==was||c.t===dt){if(now>0){rBig(String(now),false,700); SFX.pop()}else{rBig('スタート！',false,900); SFX.chime(); if(SFX.on)say('どん！','race')}}
     return;
   }
   const seg=RSEGS[Math.floor(rmod(c.d,L)/RV.seg)], pct=c.v/RV.speed;

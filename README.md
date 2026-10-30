@@ -20,6 +20,10 @@ It covers the kanji in 光文書院 くりかえし かんじドリル 1年 上,
   Half the prompts put the word in a short book-style sentence, with the reading over the box to write in.
 - **Writing in sentences (ぶんで かく):** practice where every prompt is one of those sentences.
 - **Writing readings (よみを かく):** the kanji sits in a sentence and you write its reading in hiragana, one kana at a time, each checked stroke by stroke.
+- **Voices:** everything spoken goes through `say(text, who)` in `app.html`, using the device's own Japanese speech voices (no audio files).
+  The タカアシガニ host speaks low and slow (and prefers a male voice such as Otoya or Hattori where the iPad has one), the race starter high and quick (O-ren), and readings and test words stay at the plain pitch and speed for clarity but come from a different installed Japanese voice each time.
+  On a device with only one Japanese voice the pitch and speed still differ per character and the voice name is left to the system.
+  More voices can be added on the iPad under Settings → Accessibility → Spoken Content → Voices → Japanese.
 - **This week's kanji (こんしゅうの かんじ):** a card at the top of the home screen, under the tank, with the book set she is doing at school this week, so there's no scrolling to find it.
   It has the set's ▶ れんしゅう and 🐳 テスト, and the same set is outlined in gold with a こんしゅう badge in the book list below.
   Japanese school is on Saturday mornings from 9, where she is tested on the week's set before the next one begins, so the app moves to a new set every **Saturday at 12 pm Sydney time**, one `SECTIONS` entry at a time in book order (anchored so the week from Saturday 2026-10-24 is ふかい うみ).
