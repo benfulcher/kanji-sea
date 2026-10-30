@@ -42,9 +42,9 @@ It covers the kanji in 光文書院 くりかえし かんじドリル 1年 上,
 - **Fossil dig (かせき):** after the chicken dance, a perfect test digs up that set's fossil of an ancient sea animal.
   The fossil is small and hidden at a random spot, so most of the slab is empty and she has to hunt for it.
   She rubs away loose sand and then harder rock with a fingertip-sized scraper, and once most of the fossil is uncovered the rest crumbles away and the fossil is named.
-  Each set has its own fossil (しおだまり an アンモナイト, さんごしょう a サンヨウチュウ, くじらの うみ a クビナガリュウ, ふかい うみ a シーラカンス, こんぶの もり a ウミユリ), shown next to the set's manta: a ？ until it's dug up, then the fossil, which she can tap to see bigger with a line about it.
+  Each set has its own fossil (しおだまり an アンモナイト, さんごしょう a サンヨウチュウ, くじらの うみ a クビナガリュウ, ふかい うみ a シーラカンス, こんぶの もり a ウミユリ, こおりの うみ an アノマロカリス, ちんぼつせん a モササウルス), shown next to the set's manta: a ？ until it's dug up, then the fossil, which she can tap to see bigger with a line about it.
   Another perfect test on the same set digs up the same fossil again, just for fun.
-  Seven more fossils are drawn and ready for sets added later.
+  Five more fossils are drawn and ready for sets added later.
 - **Adventure (ぼうけん):** a Prince of Persia–style maze in a sunken temple, where she is the タカアシガニ and has to find the kanji for a short sentence in treasure chests.
   Each sentence has two kanji to find (やまの うえに かにが いる。), and she has to open their chests in the order the words come in the sentence.
   Each maze fills one screen with four storeys of stone corridors, and there are five chests around it, two of them right.
