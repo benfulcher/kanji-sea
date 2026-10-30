@@ -118,7 +118,7 @@ h1 small{display:block;font-size:13px;font-weight:700;letter-spacing:.14em;color
 .pill.nag{background:#ffd166;color:#22122f}
 /* This week's kanji: a card at the top of the home screen, so there's no scrolling to find them. Its kanji glow in the book list too. */
 .reef.week{background:linear-gradient(180deg,rgba(255,211,110,.2),rgba(6,25,42,.45) 55%);box-shadow:0 0 0 3px var(--sun),0 0 30px rgba(255,211,110,.35)}
-.reef.week h2{font-family:var(--f-kanji);font-size:38px;line-height:1.1}
+.reef.week h2{font-family:var(--f-kanji);font-size:34px;line-height:1.15}
 .reef.week h2 small{display:block;font-family:var(--f-ui);font-size:14px;letter-spacing:.12em;color:var(--sun);margin-bottom:2px}
 .reef.week .tiles{grid-template-columns:repeat(auto-fill,minmax(112px,1fr))}
 .reef.week .tile .kj{font-size:64px}
@@ -126,14 +126,15 @@ h1 small{display:block;font-size:13px;font-weight:700;letter-spacing:.14em;color
 .wknote{margin:0;font-size:15px;color:var(--mist);font-weight:700}
 .reef.week.nudge{animation:nudge .5s ease 2}
 @keyframes nudge{0%,100%{transform:none}30%{transform:translateX(-8px)}60%{transform:translateX(8px)}}
-.tile.wk{outline:3px solid var(--sun);outline-offset:-3px}
+.reef.now{box-shadow:0 0 0 3px var(--sun)}
+.reef.now h2::after{content:'こんしゅう';margin-left:10px;font-family:var(--f-ui);font-size:12px;letter-spacing:.1em;color:#06192a;background:var(--sun);padding:3px 8px;border-radius:999px;vertical-align:middle}
 /* ぼうけん and レース stay locked until this week's test is passed. */
 .cta.locked{background:rgba(6,25,42,.55);color:var(--mist);box-shadow:0 6px 0 rgba(0,0,0,.3)}
 .cta.locked .ico{opacity:.5}
 .cta .lock{display:none;font-size:18px}
 .cta.locked .lock{display:inline}
 .grownups .wk{display:inline-flex;align-items:center;gap:4px}
-.grownups .wk b{font-family:var(--f-kanji);font-size:18px;color:var(--foam);min-width:56px;text-align:center}
+.grownups .wk b{font-size:15px;color:var(--foam);min-width:96px;text-align:center}
 footer{font-size:12px;color:var(--mist);line-height:1.6}
 footer a{color:var(--mist)}
 
@@ -1128,15 +1129,20 @@ const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(P))}catch(e){}};
 // Ask the browser not to clear this storage when the device runs low on space.
 try{navigator.storage?.persist?.().catch(()=>{})}catch(e){}
 const prog=k=>P.k[k]||(P.k[k]={t:0,w:0,r:0});
-// This week's target kanji, at school's pace: two or three at a time, in book order.
-// The week that began on Monday 2026-10-26 was 学校, and it moves on one entry each Monday from there.
-// A grown-up can re-anchor it with ◀ ▶ at the bottom of the home screen (kept in P.wk as {i, mon}).
-// Each week has its own whale test (best score in P.wtest); ぼうけん and レース stay locked until it's passed with every kanji right.
-const WEEKS=['木大小','一二三','四五六','七八九十','子空','先生','男女','手天青','文字','正見','学校','山水','雨上下'];
-const monday=t=>{const d=new Date(t); d.setHours(0,0,0,0); d.setDate(d.getDate()-(d.getDay()+6)%7); return d.getTime()};
-const WEEK0={i:10,mon:monday(new Date(2026,9,26))};
-function weekIndex(){const a=P.wk||WEEK0; return Math.max(0,Math.min(WEEKS.length-1,a.i+Math.round((monday(Date.now())-a.mon)/(7*864e5))))}
-const weekPassed=i=>(P.wtest?.[i]||0)>=WEEKS[i].length;
+// This week's kanji: one book set (a SECTIONS entry) per week, at school's pace. Japanese school is Saturday
+// morning from 9: she is tested on the week's set there, then the next set begins, so the app moves on every
+// Saturday at 12:00 Sydney time. The week from Saturday 2026-10-24 was ふかい うみ (set 3).
+// A grown-up can re-anchor it with ◀ ▶ at the bottom of the home screen (kept in P.wk as {i, t}: set i was current at instant t).
+// ぼうけん and レース stay locked until the week's set has had a perfect whale test (P.test[i], the same test as in the book list).
+const SYD=new Intl.DateTimeFormat('en-US',{timeZone:'Australia/Sydney',year:'numeric',month:'numeric',day:'numeric',hour:'numeric',minute:'numeric',hourCycle:'h23'});
+// Which Saturday-noon-to-Saturday-noon week (Sydney clock) an instant falls in, counted from Saturday 1970-01-03.
+function sydWeek(t){
+  const f={}; for(const {type,value} of SYD.formatToParts(t))f[type]=+value;
+  return Math.floor((Date.UTC(f.year,f.month-1,f.day,f.hour,f.minute)-12*36e5-Date.UTC(1970,0,3))/(7*864e5));
+}
+const WEEK0={i:3,t:Date.UTC(2026,9,24,1)};
+function weekIndex(){const a=P.wk||WEEK0, t=a.t??a.mon; return Math.max(0,Math.min(SECTIONS.length-1,a.i+sydWeek(Date.now())-sydWeek(t)))}
+const weekPassed=i=>(P.test?.[i]||0)>=SECTIONS[i].kanji.length;
 const gamesLocked=()=>!weekPassed(weekIndex());
 
 // ---------- helpers ----------
@@ -1333,9 +1339,9 @@ function jaws(from,to,dur,easing){
       {duration:reduce?0:dur,easing,fill:'forwards'}).finished;
   }));
 }
-async function startTest(si,wi){
-  const ks=[...(wi==null?SECTIONS[si].kanji:WEEKS[wi])];
-  R={kind:'test',queue:shuffle(ks),done:0,ups:[],practiced:0,extra:false,boost:{},pool:null,test:{si,wi,n:ks.length,score:0,done:0}};
+async function startTest(si){
+  const ks=[...SECTIONS[si].kanji];
+  R={kind:'test',queue:shuffle(ks),done:0,ups:[],practiced:0,extra:false,boost:{},pool:null,test:{si,n:ks.length,score:0,done:0}};
   buildTeeth(ks.length);
   const W=$('whale'), g=$('gulp'); W.hidden=false; W.classList.add('busy');
   jaws('off','off',0);
@@ -1379,23 +1385,19 @@ async function showAnswer(){
     addPath(gHint,STROKES[cur.k][i],'hint',dur); await sleep(dur+150);
   }
 }
-// A set's test (si) keeps its best score in P.test and digs a fossil when perfect; a week's test (wi) keeps it in
-// P.wtest, and a perfect one unlocks ぼうけん and レース for the week.
+// A set's test keeps its best score in P.test and digs a fossil when perfect; a perfect test on this week's set
+// also unlocks ぼうけん and レース.
 function endTest(){
   const R0=R, T=R.test; R=null;
-  const week=T.wi!=null, wasLocked=week&&!weekPassed(T.wi);
-  if(T.done===T.n){
-    if(week){P.wtest=P.wtest||{}; P.wtest[T.wi]=Math.max(P.wtest[T.wi]||0,T.score)}
-    else{P.test=P.test||{}; P.test[T.si]=Math.max(P.test[T.si]||0,T.score)}
-    save();
-  }
+  const wasLocked=T.si===weekIndex()&&gamesLocked();
+  if(T.done===T.n){P.test=P.test||{}; P.test[T.si]=Math.max(P.test[T.si]||0,T.score); save()}
   if(!T.done){closeWhale();return}
   afterCele=closeWhale;
-  const ups=R0.ups.length, perfect=T.score===T.n, unlocked=wasLocked&&weekPassed(T.wi);
+  const ups=R0.ups.length, perfect=T.score===T.n, unlocked=wasLocked&&!gamesLocked();
   GOOD.ups+=ups; GOOD.work++; if(perfect)GOOD.perfect++; if(unlocked)GOOD.unlock++;
   const card=()=>celebrate('kwhale',perfect?(unlocked?'ごうかく！':'ぜんぶ せいかい！'):'テスト おわり！',
     `${T.done}もんの うち ${T.score}もん せいかい 🦷${ups?`。レベル アップ ${ups}こ`:''}${unlocked?'。ぼうけんと レースで あそべるよ！':''}`);
-  if(perfect)chickenDance().then(()=>week?null:digFossil(T.si)).then(card); else card();
+  if(perfect)chickenDance().then(()=>digFossil(T.si)).then(card); else card();
 }
 // ---------- 100% on a test: then dig up a fossil ----------
 // Each set has its own fossil. The first perfect test on a set digs it up and puts it by the set;
@@ -1699,7 +1701,7 @@ function renderWeeds(){
 function renderReefs(){
   const root=$('reefs'); root.innerHTML='';
   SECTIONS.forEach((s,si)=>{
-    const sec=document.createElement('section'); sec.className='reef';
+    const sec=document.createElement('section'); sec.className='reef'+(si===weekIndex()?' now':'');
     const got=!!P.sec[si], best=P.test?.[si], F=FOSSILS[s.fossil], dug=!!P.fos?.[si];
     sec.innerHTML=`<div class="reef-head"><div><h2>${s.zone}</h2><p class="book">${s.lessons?`<b>${s.lessons}</b>　`:''}${s.book}</p></div>
       <div class="right"><button class="setgo">▶ れんしゅう</button><button class="setgo test">🐳 テスト${best==null?'':` <small>🦷${best}/${s.kanji.length}</small>`}</button>
@@ -1708,13 +1710,13 @@ function renderReefs(){
     sec.querySelector('.setgo').onclick=()=>startReview([...s.kanji]);
     sec.querySelector('.setgo.test').onclick=()=>startTest(si);
     if(dug)sec.querySelector('.fosr').onclick=()=>{celebrate(s.fossil,`${F.n}の かせき`,F.t); if(SFX.on)say(F.n)};
-    const tiles=document.createElement('div'), wk=WEEKS[weekIndex()]; tiles.className='tiles';
-    for(const k of s.kanji)tiles.appendChild(tileFor(k,wk.includes(k)));
+    const tiles=document.createElement('div'); tiles.className='tiles';
+    for(const k of s.kanji)tiles.appendChild(tileFor(k));
     sec.appendChild(tiles); root.appendChild(sec);
   });
 }
-function tileFor(k,wk){
-  const p=prog(k), b=document.createElement('button'); b.className='tile'+(wk?' wk':'');
+function tileFor(k){
+  const p=prog(k), b=document.createElement('button'); b.className='tile';
   b.setAttribute('aria-label',k);
   b.innerHTML=`${p.s?`<span class="lvl art">${art(LEVELS[p.s].id)}</span>`:''}<span class="kj">${k}</span><span class="stars"><i class="${p.t?'on':''}"></i><i class="w ${p.w?'on':''}"></i><i class="r ${p.r>=2?'on':''}"></i></span>`;
   b.onclick=()=>openKanji(k);
@@ -1722,12 +1724,12 @@ function tileFor(k,wk){
 }
 // The week's card sits above the play buttons: its kanji, free practice, its test, and whether the games are open.
 function renderWeek(){
-  const wi=weekIndex(), ks=[...WEEKS[wi]], best=P.wtest?.[wi], ok=weekPassed(wi);
-  const sec=$('week'), zone=SECTIONS.find(s=>s.kanji.includes(ks[0]))?.zone||'';
-  sec.innerHTML=`<div class="reef-head"><div><h2><small>こんしゅうの かんじ</small>${ks.join('・')}</h2><p class="book">${zone}</p></div>
+  const wi=weekIndex(), S=SECTIONS[wi], ks=[...S.kanji], best=P.test?.[wi], ok=weekPassed(wi);
+  const sec=$('week');
+  sec.innerHTML=`<div class="reef-head"><div><h2><small>こんしゅうの かんじ</small>${ks.join('・')}</h2><p class="book">${S.zone}　${S.lessons?`<b>${S.lessons}</b>　`:''}${S.book}</p></div>
     <div class="right"><button class="setgo">▶ れんしゅう</button><button class="setgo test">🐳 テスト${best==null?'':` <small>🦷${best}/${ks.length}</small>`}</button>${ok?'<span class="pass">🎉 ごうかく！</span>':''}</div></div>`;
   sec.querySelector('.setgo').onclick=()=>startReview(ks);
-  sec.querySelector('.setgo.test').onclick=()=>startTest(null,wi);
+  sec.querySelector('.setgo.test').onclick=()=>startTest(wi);
   const tiles=document.createElement('div'); tiles.className='tiles';
   for(const k of ks)tiles.appendChild(tileFor(k));
   sec.appendChild(tiles);
@@ -1735,15 +1737,15 @@ function renderWeek(){
   note.textContent=ok?'ぼうけんと レースで あそべるよ！':'テストで ぜんぶ かけたら、ぼうけんと レースで あそべるよ';
   sec.appendChild(note);
   for(const id of ['playBouken','playRace'])$(id).classList.toggle('locked',!ok);
-  $('wkNow').textContent=ks.join('・');
+  $('wkNow').textContent=S.zone;
 }
 // A tap on a locked game points her at the week's card.
 function lockedTap(){
   const w=$('week'); w.scrollIntoView({behavior:reduce?'auto':'smooth',block:'center'});
   w.classList.remove('nudge'); void w.offsetWidth; w.classList.add('nudge'); SFX.bloop();
-  hostSay(`こんしゅうの かんじ「${[...WEEKS[weekIndex()]].join('・')}」の テストに ごうかくしたら あそべるよ！`);
+  hostSay(`こんしゅうの かんじ「${[...SECTIONS[weekIndex()].kanji].join('・')}」の テストに ごうかくしたら あそべるよ！`);
 }
-const setWeek=i=>{P.wk={i:Math.max(0,Math.min(WEEKS.length-1,i)),mon:monday(Date.now())}; save(); renderHome()};
+const setWeek=i=>{P.wk={i:Math.max(0,Math.min(SECTIONS.length-1,i)),t:Date.now()}; save(); renderHome()};
 $('wkPrev').onclick=()=>setWeek(weekIndex()-1); $('wkNext').onclick=()=>setWeek(weekIndex()+1);
 function renderHome(){renderTank();renderLadder();renderWeek();renderReefs();renderBackup();show('home'); setTimeout(praise,1300)}
 
