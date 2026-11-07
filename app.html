@@ -1107,6 +1107,8 @@ function takaSVG(){
     `<g fill="#ffd2b8"><circle cx="66" cy="36" r="3"/><circle cx="96" cy="38" r="2.4"/><circle cx="62" cy="62" r="2"/><circle cx="99" cy="63" r="2.6"/><circle cx="80" cy="69" r="2"/></g>${kface(72,88,47,4.2)}</svg>`;
 }
 function octoSVG(c){return `<svg viewBox="0 0 100 100" aria-hidden="true"><g fill="none" stroke="${c}" stroke-width="10" stroke-linecap="round"><path d="M30 56Q20 76 10 78"/><path d="M40 60Q34 82 26 92"/><path d="M50 62Q53 84 46 94"/><path d="M60 60Q66 82 74 92"/><path d="M70 56Q80 76 90 78"/></g><ellipse cx="50" cy="38" rx="31" ry="29" fill="${c}"/><circle cx="36" cy="21" r="4" fill="#fff" opacity=".35"/><circle cx="62" cy="17" r="3" fill="#fff" opacity=".35"/><ellipse cx="40" cy="40" rx="7" ry="8" fill="#fff"/><ellipse cx="60" cy="40" rx="7" ry="8" fill="#fff"/><circle cx="41" cy="42" r="3.6" fill="#22122f"/><circle cx="61" cy="42" r="3.6" fill="#22122f"/><circle cx="30" cy="52" r="4.5" fill="#ff5d8f" opacity=".45"/><circle cx="70" cy="52" r="4.5" fill="#ff5d8f" opacity=".45"/><path d="M45 54Q50 59 55 54" stroke="#22122f" stroke-width="2.4" fill="none" stroke-linecap="round"/></svg>`}
+// The mean octopus for the race: bigger, dark plum, with cross eyebrows, narrowed red eyes and a fanged scowl.
+function meanOctoSVG(){const c='#7b2d63', s='#5a1d48';return `<svg viewBox="0 0 100 100" aria-hidden="true"><g fill="none" stroke="${c}" stroke-width="11" stroke-linecap="round"><path d="M28 56Q14 70 6 66"/><path d="M38 60Q30 84 18 90"/><path d="M50 62Q55 86 46 96"/><path d="M62 60Q70 84 82 90"/><path d="M72 56Q86 70 94 66"/></g><g fill="${s}"><circle cx="9" cy="67" r="2.6"/><circle cx="91" cy="67" r="2.6"/></g><ellipse cx="50" cy="36" rx="33" ry="30" fill="${c}"/><path d="M30 14Q40 4 56 8" stroke="${s}" stroke-width="3" fill="none" stroke-linecap="round" opacity=".7"/><path d="M33 39Q40 35 47 39Q40 46 33 39Z" fill="#ffe24a"/><path d="M53 39Q60 35 67 39Q60 46 53 39Z" fill="#ffe24a"/><circle cx="41" cy="40.5" r="2.8" fill="#c0122c"/><circle cx="59" cy="40.5" r="2.8" fill="#c0122c"/><path d="M29 29L47 36M71 29L53 36" stroke="#22122f" stroke-width="4.5" stroke-linecap="round"/><path d="M40 56Q50 49 60 56" stroke="#22122f" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M43 53.5L45 58L47 52.2M53 52.2L55 58L57 53.5" fill="#fff" stroke="#fff" stroke-width=".8" stroke-linejoin="round"/></svg>`}
 function raySVG(c,spots){return `<svg viewBox="0 0 120 100" aria-hidden="true"><path d="M60 66Q63 84 80 96" stroke="${c}" stroke-width="3.5" fill="none" stroke-linecap="round"/><path d="M60 12C76 14 104 36 116 50C100 56 80 62 60 70C40 62 20 56 4 50C16 36 44 14 60 12Z" fill="${c}"/>${spots?'<g fill="#fff" opacity=".6"><circle cx="38" cy="38" r="2.6"/><circle cx="82" cy="38" r="2.6"/><circle cx="26" cy="46" r="2"/><circle cx="94" cy="46" r="2"/><circle cx="60" cy="26" r="2.4"/></g>':''}<ellipse cx="60" cy="47" rx="19" ry="13" fill="#fff" opacity=".3"/><ellipse cx="53" cy="43" rx="2.6" ry="3.4" fill="#22122f"/><ellipse cx="67" cy="43" rx="2.6" ry="3.4" fill="#22122f"/><path d="M53 52Q60 58 67 52" stroke="#22122f" stroke-width="2.2" fill="none" stroke-linecap="round"/><circle cx="46" cy="50" r="3" fill="#ff5d8f" opacity=".35"/><circle cx="74" cy="50" r="3" fill="#ff5d8f" opacity=".35"/></svg>`}
 // ---------- fossils (かせき): ancient sea animals in bone on stone, one dug up for each perfect test ----------
 const FB='#f3e4c2', FS='#cdb184', FL='#6e5030';
@@ -2895,7 +2897,8 @@ const RV={seg:200,road:2000,camH:1000,depth:1/Math.tan(40*Math.PI/180),draw:170,
 RV.pz=RV.camH*RV.depth; // how far ahead of the camera her kart is
 // The kanji are pressed into the sand in their lanes, starting `mark` segments before the bubbles and `markLen` long.
 // Octopus ink: squirted `see` segments ahead of her, `len` long, with `t` seconds of slow, slippery wheels if she hits it.
-Object.assign(RV,{mark:56,markLen:36,ink:{see:66,len:12,t:2.2,w:.3}});
+// A rival's rocket boost lasts `rboost` seconds. The starfish: `inv` seconds invincible, `boost` seconds of rockets.
+Object.assign(RV,{rboost:2.5,hitode:{inv:6,boost:4},mark:56,markLen:36,ink:{see:66,len:12,t:2.2,w:.3}});
 // The track: [ease in, hold, ease out, curve, bubbles]. Each row of bubbles sits near the end of a long straight.
 const RTRACK=[[0,70,0,0],[20,40,20,2],[0,90,0,0,1],[25,50,25,-3],[0,90,0,0,1],[20,30,20,3],[20,30,20,-2],[0,90,0,0,1],
   [30,60,30,3],[0,90,0,0,1],[25,40,25,-3],[0,60,0,0]];
@@ -2930,14 +2933,20 @@ function startRace(){
       .filter(x=>x!==k&&!INFO[x].r.some(y=>kana(y)===ans)).slice(0,2);
     return {k,ans,y,oku,ks:shuffle([k,...others]),d:Math.floor(j/RGATES.length)*L+RGATES[j%RGATES.length]*RV.seg,hit:-1};
   });
-  // A few times a race an octopus pops up beside the road and squirts ink across one lane. Each one sits in a long
-  // gap between rows of bubbles, so it squirts after she has passed one row and is over before the next word is called.
+  // A few times a race an octopus pops up beside the road and squirts ink. Each one sits in a long gap between rows
+  // of bubbles, so it squirts after she has passed one row and is over before the next word is called.
+  // Half are the friendly purple one, inking one lane; half are a bigger, meaner one that inks two of the three,
+  // leaving one lane clear. There's always at least one of each.
   const ends=[...gates.map(g=>g.d/RV.seg),L*RV.laps/RV.seg], gaps=[];
   for(let j=0;j<gates.length;j++){const lo=ends[j]+RV.ink.see+5, hi=ends[j+1]-(j+1<gates.length?RV.call:0)-RV.ink.len-20; if(hi>=lo)gaps.push([lo,hi])}
-  const inks=shuffle(gaps).slice(0,3).map(([lo,hi])=>{const d=Math.round(lo+Math.random()*Math.min(hi-lo,60))*RV.seg;
-    return {d,d1:d+RV.ink.len*RV.seg,lane:-1,side:Math.random()<.5?-1:1,spray:0,hit:false,ph:Math.random()*6}}).sort((a,b)=>a.d-b.d);
-  RC={gates,inks,gi:0,d:0,x:0,xv:0,v:0,t:0,go:3,keys:new Set(),score:0,res:[],spin:0,boost:0,ink:0,bgx:0,raf:0,last:0,done:false,
-    me:svgImg(takaSVG()),tako:svgImg(art('octopus3')),rivals:RRIVALS.map(r=>({...r,d:r.d*RV.seg,img:svgImg(art(r.id)),fin:0,ph:Math.random()*6}))};
+  const kinds=shuffle([true,false,Math.random()<.5]);
+  const gs=shuffle(gaps), inks=gs.slice(0,3).map(([lo,hi],j)=>{const d=Math.round(lo+Math.random()*Math.min(hi-lo,60))*RV.seg;
+    return {d,d1:d+RV.ink.len*RV.seg,lanes:[],mean:kinds[j],side:Math.random()<.5?-1:1,spray:0,hit:false,ph:Math.random()*6}}).sort((a,b)=>a.d-b.d);
+  // One glowing starfish (ヒトデ) a race, in a gap of its own, in a random lane: it gives a long rocket boost and
+  // `inv` seconds of being invincible (ink, wrong bubbles and the sand beside the road don't slow her or spin her).
+  const sg=gs[3], hitode=sg&&{d:Math.round(sg[0]+Math.random()*Math.min(sg[1]-sg[0],60))*RV.seg,lane:Math.floor(Math.random()*3),got:false};
+  RC={gates,inks,hitode,inv:0,gi:0,d:0,x:0,xv:0,v:0,t:0,go:3,keys:new Set(),score:0,res:[],spin:0,boost:0,ink:0,bgx:0,raf:0,last:0,done:false,
+    me:svgImg(takaSVG()),tako:svgImg(art('octopus3')),mean:svgImg(meanOctoSVG()),rivals:RRIVALS.map(r=>({...r,d:r.d*RV.seg,img:svgImg(art(r.id)),fin:0,ph:Math.random()*6,boost:0,lap:-1}))};
   $('rResult').hidden=true; $('rPlay').hidden=false; $('rWord').textContent=''; $('rWord').className=''; rMsg('');
   show('race'); rDots(); rLayout(); RC.raf=requestAnimationFrame(rFrame);
   // Speaking straight from the tap lets the words that come later be spoken too on an iPad.
@@ -2981,10 +2990,15 @@ function rStep(dt){
   c.x+=c.xv*dt;
   // Curves pull her gently to the outside; the sand beside the road slows her down.
   c.x-=dt*RV.steer*pct*seg.curve*RV.cent; c.x=Math.max(-1.6,Math.min(1.6,c.x));
-  const want=c.done?RV.speed*.4:RV.speed*(c.boost>0?RV.boost:1)*(Math.abs(c.x)>1?.6:1)*(c.spin>0?.55:1)*(c.ink>0?.65:1);
-  c.v+=(want-c.v)*Math.min(1,dt*(c.v<want?1.1:3)); c.boost-=dt; c.spin-=dt; c.ink-=dt;
+  const want=c.done?RV.speed*.4:RV.speed*(c.boost>0?RV.boost:1)*(Math.abs(c.x)>1&&c.inv<=0?.6:1)*(c.spin>0?.55:1)*(c.ink>0?.65:1);
+  c.v+=(want-c.v)*Math.min(1,dt*(c.v<want?1.1:3)); c.boost-=dt; c.spin-=dt; c.ink-=dt; c.inv-=dt;
   c.bgx+=seg.curve*pct*dt*.004;
   const d0=c.d; c.d+=c.v*dt;
+  const h=c.hitode;
+  if(h&&!h.got&&!c.done&&d0<h.d&&c.d>=h.d&&Math.abs(c.x-RV.lanes[h.lane])<.34){
+    h.got=true; c.inv=RV.hitode.inv; c.boost=Math.max(c.boost,RV.hitode.boost); c.ink=0; c.spin=0;
+    SFX.rocket(); SFX.kira(3); rBig('むてき！',false,1400); rMsg('ひかる ヒトデ！ むてきだ！');
+  }
   const lap=Math.floor(c.d/L);
   if(!c.done&&lap>Math.floor(d0/L)&&lap<RV.laps){rBig(lap===RV.laps-1?'さいごの 1しゅう！':`${lap+1}しゅうめ！`,false,1400); rSnip()}
   const g=c.gates[c.gi];
@@ -2995,18 +3009,29 @@ function rStep(dt){
   }
   for(const e of c.inks){
     if(c.done)break;
-    // The octopus aims at her lane more often than not.
+    // The octopus aims at her lane more often than not (the mean one leaves a lane clear, but rarely hers).
     if(!e.spray&&e.d-c.d<RV.ink.see*RV.seg){
       const near=RV.lanes.reduce((b,l,n)=>Math.abs(c.x-l)<Math.abs(c.x-RV.lanes[b])?n:b,0);
-      e.lane=Math.random()<.6?near:Math.floor(Math.random()*3); e.spray=c.t; SFX.squirt(); rMsg('タコの すみだ！ よけて！');
+      if(e.mean){const others=[0,1,2].filter(n=>n!==near), free=Math.random()<.8?pick(others):near; e.lanes=[0,1,2].filter(n=>n!==free)}
+      else e.lanes=[Math.random()<.6?near:Math.floor(Math.random()*3)];
+      e.spray=c.t; SFX.squirt();
+      if(e.mean){setTimeout(()=>SFX.squirt(),160); rMsg('いじわるダコだ！ あいてる みちへ！')} else rMsg('タコの すみだ！ よけて！');
     }
-    if(e.spray&&!e.hit&&c.d>=e.d&&d0<e.d1&&Math.abs(c.x-RV.lanes[e.lane])<RV.ink.w+.06){
+    if(e.spray&&!e.hit&&c.inv<=0&&c.d>=e.d&&d0<e.d1&&e.lanes.some(n=>Math.abs(c.x-RV.lanes[n])<RV.ink.w+.06)){
       e.hit=true; c.ink=RV.ink.t; c.xv=0; SFX.splat(); rMsg('すみで つるつる！');
     }
   }
   for(const r of c.rivals){
+    // A catch-up boost: a rival in last place fires its rockets for a burst of speed, at most once a lap,
+    // and never within 8 seconds of another rival's boost (or passing each other would set them all off at once).
+    const lap=Math.floor(r.d/L);
+    if(!r.fin&&r.boost<=0&&r.lap!==lap&&c.t>4&&c.t>(c.rbAt||0)+8&&[c,...c.rivals].every(o=>o===r||o.d>r.d)){
+      r.boost=RV.rboost; r.lap=lap; c.rbAt=c.t;
+      if(Math.abs(r.d-c.d)<60*RV.seg&&!c.done){SFX.rocket(); rMsg(`${CRE[r.id].n}が ブースト！`)}
+    }
+    r.boost-=dt;
     // They weave a little, and ease off when far ahead so the race stays close.
-    const lead=r.d-c.d; r.d+=r.v*(lead>40*RV.seg?.93:1)*Math.min(1,c.t/2.5)*dt;
+    const lead=r.d-c.d; r.d+=r.v*(r.boost>0?1.7:lead>40*RV.seg?.93:1)*Math.min(1,c.t/2.5)*dt;
     r.x=Math.max(-.8,Math.min(.8,r.x+Math.sin(c.t*.6+r.ph)*dt*.15));
     if(!r.fin&&r.d>=L*RV.laps)r.fin=c.t;
   }
@@ -3032,7 +3057,7 @@ function rGate(g){
       c.res[i]=true; c.score++; c.boost=2.5; SFX.rocket(); rBig(g.k,true); rMsg('ブースト！');
       if(SFX.song('fish',...SONGS.fish.hit)){c.sang=true; c.music?.duck(SONGS.fish.hit[1]+.2)}else SFX.right();
       const p=prog(g.k); p.r=(p.r||0)+1; save();
-    }else{c.res[i]=false; c.spin=.6; SFX.bloop(); rBig(g.k,true,1400); rMsg(`「${g.ans}」は ${g.k} だよ`)}
+    }else{c.res[i]=false; if(c.inv<=0)c.spin=.6; SFX.bloop(); rBig(g.k,true,1400); rMsg(`「${g.ans}」は ${g.k} だよ`)}
   }
   c.gi++; $('rWord').className='done'; rDots();
 }
@@ -3091,15 +3116,16 @@ function rDraw(){
   // Flat on the road: the kanji pressed into the sand ahead of each row of bubbles, and puddles of ink.
   for(const gt of c.gates){const r0=gt.d-RV.mark*SL-cam; if(r0+RV.markLen*SL<SL||r0>(RV.draw-2)*SL)continue;
     RV.lanes.forEach((l,j)=>rFlat(g,at,rGlyph(gt.ks[j]),r0,RV.markLen*SL,l,.27))}
-  for(const e of c.inks)if(e.spray)rInk(g,at,e,e.d-cam);
+  for(const e of c.inks)if(e.spray)e.lanes.forEach(n=>rInk(g,at,e,e.d-cam,n));
   const items=[];
   for(let n=RV.draw-1;n>=1;n--){const p=P[n]; if(!p.a)continue; for(const d of p.sg.deco)items.push({n,q:0,f:()=>rDeco(g,d,p.a.X+p.a.s*d.x*RV.road*W/2,p.a.Y,p.a.s*W/2)})}
   for(const e of c.inks){const rel=e.d+RV.ink.len*SL/2-cam, up=Math.min(1,((RV.ink.see+40)*SL-(e.d-c.d))/(8*SL)); if(up<=0||rel<SL*1.5||rel>(RV.draw-1)*SL)continue;
     const o=at(rel,e.side*1.4); if(o)items.push({n:o.n,q:.3,f:()=>rTako(g,at,e,o,up,cam)})}
+  if(c.hitode&&!c.hitode.got){const rel=c.hitode.d-cam; if(rel>SL&&rel<(RV.draw-1)*SL){const o=at(rel,RV.lanes[c.hitode.lane]); if(o)items.push({n:o.n,q:.4,f:()=>rHitode(g,o,c.t)})}}
   for(const gt of c.gates){const rel=gt.d-cam; if(rel<SL||rel>(RV.draw-1)*SL)continue;
     const o=at(rel,0); if(o)items.push({n:o.n,q:.5,f:()=>rGateDraw(g,gt,o)})}
   for(const r of c.rivals){const rel=r.d-cam; if(rel<SL*1.5||rel>(RV.draw-1)*SL)continue;
-    const o=at(rel,r.x); if(o)items.push({n:o.n,q:.2,f:()=>rKart(g,o.X,o.Y,o.k,r.img,r.col,Math.sin(c.t*2+r.ph)*.04)})}
+    const o=at(rel,r.x); if(o)items.push({n:o.n,q:.2,f:()=>rKart(g,o.X,o.Y,o.k,r.img,r.col,Math.sin(c.t*2+r.ph)*.04,0,r.boost>0?Math.min(1,r.boost*3):0,c.t)})}
   items.sort((a,b)=>b.n-a.n||a.q-b.q).forEach(it=>it.f());
   // Her kart, at the bottom of the screen.
   const k=W/2/RV.camH, bump=Math.abs(c.x)>1&&!c.done?Math.sin(c.t*40)*3:0;
@@ -3113,7 +3139,33 @@ function rDraw(){
       g.lineWidth=2+q*4; g.beginPath(); g.moveTo(W/2+ca*r1,H/2+sa*r1); g.lineTo(W/2+ca*r2,H/2+sa*r2); g.stroke();
     }
   }
-  rKart(g,W/2,H-6-95*k+bump-fire*3*Math.abs(Math.sin(c.t*25)),k,c.me,'#ffcf4d',tilt,1,fire,c.t,Math.max(0,Math.min(1,c.ink/.5)));
+  const ky=H-6-95*k+bump-fire*3*Math.abs(Math.sin(c.t*25));
+  // Invincible: a rainbow glow round her kart, with sparkles, flickering in its last second.
+  if(c.inv>0&&(c.inv>1||Math.sin(c.t*30)>0)){
+    const R=230*k*(1+.08*Math.sin(c.t*12)), gl=g.createRadialGradient(W/2,ky-70*k,R*.2,W/2,ky-70*k,R);
+    gl.addColorStop(0,`hsla(${c.t*240%360},100%,75%,.75)`); gl.addColorStop(.6,`hsla(${(c.t*240+120)%360},100%,65%,.35)`); gl.addColorStop(1,'rgba(255,255,255,0)');
+    g.fillStyle=gl; g.beginPath(); g.ellipse(W/2,ky-70*k,R*1.25,R,0,0,7); g.fill();
+    g.fillStyle='#fff'; for(let i=0;i<6;i++){const a=c.t*3+i*1.05, rr=R*(.75+.2*Math.sin(c.t*7+i)); rStar(g,W/2+Math.cos(a)*rr*1.2,ky-70*k+Math.sin(a)*rr*.8,10*k*(1+.5*Math.sin(c.t*10+i)),4,.45)}
+  }
+  rKart(g,W/2,ky,k,c.me,'#ffcf4d',tilt,1,fire,c.t,Math.max(0,Math.min(1,c.ink/.5)));
+}
+// A star shape with n points, outer radius r and inner radius r*inner, at x,y (filled with the current fill).
+function rStar(g,x,y,r,n,inner,rot=0){
+  g.beginPath(); for(let i=0;i<n*2;i++){const a=rot-Math.PI/2+i*Math.PI/n, rr=i%2?r*inner:r; g.lineTo(x+Math.cos(a)*rr,y+Math.sin(a)*rr)} g.closePath(); g.fill();
+}
+// The glowing starfish, floating and turning above its lane, in a pulsing golden glow.
+function rHitode(g,o,t){
+  const w=560*o.k, y=o.Y-w*.75+Math.sin(t*3)*w*.08, fade=Math.exp(-Math.pow(o.n/RV.draw,2)*3);
+  g.globalAlpha=fade;
+  g.fillStyle='rgba(0,0,0,.18)'; g.beginPath(); g.ellipse(o.X,o.Y,w*.4,w*.07,0,0,7); g.fill();
+  const R=w*(.9+.12*Math.sin(t*6)), gl=g.createRadialGradient(o.X,y,0,o.X,y,R);
+  gl.addColorStop(0,'rgba(255,250,200,.95)'); gl.addColorStop(.35,'rgba(255,214,90,.55)'); gl.addColorStop(1,'rgba(255,200,60,0)');
+  g.fillStyle=gl; g.beginPath(); g.arc(o.X,y,R,0,7); g.fill();
+  const rot=t*1.2;
+  g.fillStyle='#ff9f2e'; rStar(g,o.X,y,w*.42,5,.45,rot);
+  g.fillStyle='#ffd25e'; rStar(g,o.X,y,w*.3,5,.42,rot);
+  g.fillStyle='#fff6d0'; for(let i=0;i<5;i++){const a=rot-Math.PI/2+i*Math.PI*2/5; g.beginPath(); g.arc(o.X+Math.cos(a)*w*.2,y+Math.sin(a)*w*.2,w*.03,0,7); g.fill()}
+  g.globalAlpha=1;
 }
 function rKart(g,X,Y,k,img,col,tilt,me,fire,t,ink){
   const w=380*k;
@@ -3124,7 +3176,7 @@ function rKart(g,X,Y,k,img,col,tilt,me,fire,t,ink){
   g.fillStyle=col; g.beginPath(); g.roundRect(-w*.46,-w*.42,w*.92,w*.26,w*.08); g.fill();
   g.fillStyle='rgba(255,255,255,.35)'; g.fillRect(-w*.4,-w*.4,w*.8,w*.05);
   g.fillStyle='#22122f'; g.beginPath(); g.roundRect(-w*.14,-w*.33,w*.28,w*.1,w*.03); g.fill();
-  if(me)rRockets(g,w,fire||0,t||0);
+  if(me||fire)rRockets(g,w,fire||0,t||0);
   if(ink){
     // Ink on her wheels: glossy splotches, and drops flung off as they turn.
     for(const s of [-1,1]){
@@ -3166,10 +3218,10 @@ function rFlat(g,at,img,rel0,len,wx,hw){
   }
   g.globalAlpha=1;
 }
-// A puddle of ink across one lane. It spreads out after the squirt lands.
-function rInk(g,at,e,rel0){
+// A puddle of ink across one lane (lane n). It spreads out after the squirt lands.
+function rInk(g,at,e,rel0,n){
   const grow=Math.max(0,Math.min(1,(RC.t-e.spray-.4)/.35)); if(!grow)return;
-  const len=RV.ink.len*RV.seg, lx=RV.lanes[e.lane], L=[], R=[];
+  const len=RV.ink.len*RV.seg, lx=RV.lanes[n], L=[], R=[];
   for(let i=0;i<=12;i++){
     const u=i/12, rel=rel0+len*(.5+(u-.5)*grow), hw=RV.ink.w*grow*(.15+.85*Math.sqrt(Math.sin(u*Math.PI)))*(1+.14*Math.sin(u*19+e.ph));
     const a=at(rel,lx-hw), b=at(rel,lx+hw); if(a&&b){L.push(a); R.push(b)}
@@ -3185,19 +3237,22 @@ function rInk(g,at,e,rel0){
 }
 // The octopus pops up out of the sand beside the road, and squirts a jet of ink across to the puddle.
 function rTako(g,at,e,o,up,cam){
-  const img=RC.tako, w=820*o.k, t=RC.t;
+  const img=e.mean?RC.mean:RC.tako, w=(e.mean?1150:820)*o.k, t=RC.t;
   if(img.complete&&img.naturalWidth){
     const iw=w*(1+.05*Math.sin(t*4+e.ph)), ih=iw*img.naturalHeight/img.naturalWidth*up;
     g.fillStyle='rgba(0,0,0,.2)'; g.beginPath(); g.ellipse(o.X,o.Y,w*.5,w*.08,0,0,7); g.fill();
     g.drawImage(img,o.X-iw/2,o.Y-ih,iw,ih);
   }
   const a=e.spray?t-e.spray:-1; if(a<0||a>.8)return;
-  const p=at(e.d+RV.ink.len*RV.seg/2-cam,RV.lanes[e.lane]); if(!p)return;
-  const sx=o.X, sy=o.Y-w*.45, head=Math.min(1,a/.4), tail=Math.max(0,(a-.3)/.4);
-  g.fillStyle='#2b1740';
-  for(let i=0;i<=10;i++){
-    const u=tail+(head-tail)*i/10;
-    g.beginPath(); g.arc(sx+(p.X-sx)*u,sy+(p.Y-sy)*u-Math.sin(u*Math.PI)*w*.8,w*(.08+.04*Math.sin(i*2.3)),0,7); g.fill();
+  // One jet to each inked lane.
+  for(const n of e.lanes){
+    const p=at(e.d+RV.ink.len*RV.seg/2-cam,RV.lanes[n]); if(!p)continue;
+    const sx=o.X, sy=o.Y-w*.45, head=Math.min(1,a/.4), tail=Math.max(0,(a-.3)/.4);
+    g.fillStyle='#2b1740';
+    for(let i=0;i<=10;i++){
+      const u=tail+(head-tail)*i/10;
+      g.beginPath(); g.arc(sx+(p.X-sx)*u,sy+(p.Y-sy)*u-Math.sin(u*Math.PI)*w*.8,w*(.08+.04*Math.sin(i*2.3)),0,7); g.fill();
+    }
   }
 }
 // Two rockets on the back of her kart. On a boost they blaze: a white-hot core, flames licking down and out

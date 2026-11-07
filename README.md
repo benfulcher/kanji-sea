@@ -76,8 +76,12 @@ It covers the kanji in 光文書院 くりかえし かんじドリル 1年 上,
   The same three kanji are pressed into the sand in their lanes a little before the bubbles, so she can line up early.
   The race starts with a spoken よーい… どん！, which also lets the iPad speak the words that come later.
   Driving into the right bubble pops it and fires the two rockets on the back of her kart (flames, sparks, speed lines and a roar) for a speed boost, and counts as a reading; the wrong one spins her round and shows which kanji it was.
-  A few times a race, between rows of bubbles, an octopus pops up beside the road and squirts a puddle of ink across one lane (usually hers).
-  Driving through it puts ink on her wheels: for a couple of seconds she slows down and the steering goes slippery.
+  Three times a race, between rows of bubbles, an octopus pops up beside the road and squirts ink.
+  Half the time it's the friendly purple one, which inks one lane (usually hers); otherwise it's a bigger, mean-looking plum one (いじわるダコ) that inks two of the three lanes, leaving one clear (rarely hers).
+  Every race has at least one of each.
+  Driving through ink puts it on her wheels: for a couple of seconds she slows down and the steering goes slippery.
+  Once a race a glowing starfish (ひかる ヒトデ) floats over one lane; driving into it fires her rockets for 4 seconds and makes her invincible (むてき！) for 6, so ink, wrong bubbles and the sand don't slow her or spin her, with a rainbow glow round her kart.
+  The other racers get a catch-up boost: a racer in last place fires its rockets for a couple of seconds, at most once a lap each, and never within 8 seconds of another's.
   There are eight words in a race, and her place at the finish depends mostly on how many she found.
   The words (and ぼうけん's sentences) come from the kanji she has practised, picked more often the lower their level and the newer they are: this week's set 3x, last week's 1.5x, so this week's kanji are about half of them.
   An original racing tune (synthesised, 150 bpm, pitched up so the iPad's speakers carry it) plays underneath from どん！ to the finish, and dips whenever a word is called.
