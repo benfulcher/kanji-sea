@@ -888,8 +888,9 @@ const SONGS={
   sky:{id:1749483437, name:'孩子的天空 (少年版)', by:'土豆王國小樂隊',
     url:'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/0a/ae/47/0aae475c-d2bc-5b5c-2946-d45efb1edeb1/mzaf_11745880920374830306.plus.aac.p.m4a',
     link:'https://music.apple.com/au/album/1749483427?i=1749483437'},
-  // レース: the first two bars (126 bpm), at the start, each new lap and the finish.
-  fish:{id:1640631791, name:'おさかなしりとりずかん', by:'さかなのおにいさん かわちゃん', snip:4,
+  // レース: the first two bars (126 bpm), at the start, each new lap and the finish; for each right bubble, the
+  // 1.5 s straight after them (from the downbeat at 4.0 s).
+  fish:{id:1640631791, name:'おさかなしりとりずかん', by:'さかなのおにいさん かわちゃん', snip:4, hit:[4.0,1.5],
     url:'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/45/17/7b/45177b82-a974-577d-b616-066f7874f64c/mzaf_12204173791275788347.plus.aac.p.m4a',
     link:'https://music.apple.com/au/album/1640631656?i=1640631791'},
   // The chicken dance. Timings come from the preview's onsets and melody: a sixteenth note (e) is 0.155 s and a bar is 8 of them.
@@ -3028,7 +3029,8 @@ function rGate(g){
   else{
     const j=RV.lanes.reduce((b,l,n)=>Math.abs(c.x-l)<Math.abs(c.x-RV.lanes[b])?n:b,0); g.hit=j; g.hitT=c.t;
     if(g.ks[j]===g.k){
-      c.res[i]=true; c.score++; c.boost=2.5; SFX.right(); SFX.rocket(); rBig(g.k,true); rMsg('ブースト！');
+      c.res[i]=true; c.score++; c.boost=2.5; SFX.rocket(); rBig(g.k,true); rMsg('ブースト！');
+      if(SFX.song('fish',...SONGS.fish.hit)){c.sang=true; c.music?.duck(SONGS.fish.hit[1]+.2)}else SFX.right();
       const p=prog(g.k); p.r=(p.r||0)+1; save();
     }else{c.res[i]=false; c.spin=.6; SFX.bloop(); rBig(g.k,true,1400); rMsg(`「${g.ans}」は ${g.k} だよ`)}
   }
