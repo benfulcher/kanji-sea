@@ -79,7 +79,8 @@ It covers the kanji in 光文書院 くりかえし かんじドリル 1年 上,
   A few times a race, between rows of bubbles, an octopus pops up beside the road and squirts a puddle of ink across one lane (usually hers).
   Driving through it puts ink on her wheels: for a couple of seconds she slows down and the steering goes slippery.
   There are eight words in a race, and her place at the finish depends mostly on how many she found.
-  An original racing tune (synthesised, 150 bpm) plays quietly underneath from どん！ to the finish, and dips whenever a word is called.
+  The words (and ぼうけん's sentences) come from the kanji she has practised, picked more often the lower their level and the newer they are: this week's set 3x, last week's 1.5x, so this week's kanji are about half of them.
+  An original racing tune (synthesised, 150 bpm, pitched up so the iPad's speakers carry it) plays underneath from どん！ to the finish, and dips whenever a word is called.
   The opening of さかなのおにいさん かわちゃん's おさかなしりとりずかん plays for 4 seconds at the start, at the new lap and at the finish.
 - **Practice squares:** after a mistake writing a kanji from memory (in a test, a review, practice or a lesson's かく), four squares open for optional free practice, as in the drill book.
   Trace the first two over a faint outline, then write it in the other two; the ink isn't checked.

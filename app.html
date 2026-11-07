@@ -1006,10 +1006,10 @@ const SFX=(()=>{
       return ()=>{out.gain.setTargetAtTime(0,ctx.currentTime,.03); setTimeout(()=>out.disconnect(),400)};
     }),
     // レース background music: an original 8-bar loop at 150 bpm (bass, kick, hi-hat, offbeat chords and a tune in C),
-    // kept quiet under the spoken words. Scheduled a bar ahead, so it never drifts. Returns {stop, duck(seconds)}:
+    // under the spoken words. Pitched up and bright enough to carry on an iPad's small speakers (which drop real bass). Scheduled a bar ahead, so it never drifts. Returns {stop, duck(seconds)}:
     // duck turns it right down for a while, for a song snippet or a called word.
     race:go(()=>{
-      const out=ctx.createGain(), e=.2, LOUD=.45, SOFT=.1; out.gain.value=LOUD; out.connect(master);
+      const out=ctx.createGain(), e=.2, LOUD=3, SOFT=.7; out.gain.value=LOUD; out.connect(master);
       const T=o=>tone({...o,to:out}), H=o=>hiss({...o,to:out});
       const ROOT=[131,110,87,98,131,110,87,98], CH=[[523,659,784],[440,523,659],[440,523,698],[494,587,784]];
       const MEL=[[659,784,880,784,659,0,587,659],[523,0,523,587,659,0,784,0],[880,0,880,784,698,0,659,698],[784,0,587,0,494,587,784,0],
@@ -1017,9 +1017,10 @@ const SFX=(()=>{
       let next=ctx.currentTime+.1, bar=0, until=0, timer=0;
       const play=(n,at)=>{for(let j=0;j<8;j++){
         const t=at+j*e-ctx.currentTime;
-        T({type:'triangle',f0:ROOT[n]*(j%2?2:1),t,dur:e*.8,vol:.16});
-        if(j%2===0)T({f0:150,f1:50,t,dur:.12,vol:.22}); else{H({t,dur:.05,f0:7000,f1:8000,q:3,vol:.05}); CH[n%4].forEach(f=>T({type:'square',f0:f,t,dur:.07,vol:.012}))}
-        if(MEL[n][j])T({type:'triangle',f0:MEL[n][j],t,dur:e*.85,vol:.08});
+        T({type:'sawtooth',f0:ROOT[n]*(j%2?4:2),t,dur:e*.7,vol:.07});
+        if(j%2===0){T({f0:180,f1:60,t,dur:.12,vol:.25}); H({t,dur:.03,f0:2500,f1:1500,q:1,vol:.08})}
+        else{H({t,dur:.05,f0:7000,f1:8000,q:3,vol:.1}); CH[n%4].forEach(f=>T({type:'square',f0:f,t,dur:.08,vol:.03}))}
+        if(MEL[n][j])T({type:'square',f0:MEL[n][j],t,dur:e*.85,vol:.06});
       }};
       const tick=()=>{while(next<ctx.currentTime+.4){play(bar%8,next); next+=8*e; bar++}};
       const iv=setInterval(tick,100); tick();
@@ -1364,6 +1365,17 @@ let R=null;
 // A practice miss makes that kanji 3x as likely for the rest of the session (up to 9x); writing it again eases that off.
 // Practice never changes levels, so it can't upset the review timings.
 // Practice picks from all the set's kanji; ones not yet written from memory (キノコ) count as the lowest level.
+// The games (レース and ぼうけん) lean the same way, and also towards the newest kanji: this week's set 3x, last week's 1.5x.
+function gameWeight(k){
+  const wi=weekIndex(), new_=SECTIONS[wi]?.kanji.includes(k)?3:SECTIONS[wi-1]?.kanji.includes(k)?1.5:1;
+  return .6**((prog(k).s||0)-1)*new_;
+}
+// n items drawn at random without repeats, each as likely as its weight.
+function wSample(items,w,n){
+  const a=items.slice(), ww=w.slice(), out=[];
+  while(out.length<n&&a.length){let r=Math.random()*ww.reduce((x,y)=>x+y,0), i=ww.findIndex(v=>(r-=v)<0); if(i<0)i=a.length-1; out.push(a.splice(i,1)[0]); ww.splice(i,1)}
+  return out;
+}
 function practicePick(){
   const ks=R.pool, w=ks.map(k=>.6**((prog(k).s||0)-1)*(R.boost[k]||1));
   let r=Math.random()*w.reduce((a,b)=>a+b,0);
@@ -2496,9 +2508,11 @@ function startBouken(){
   let pool=ORDER.filter(k=>{const p=prog(k);return p.t||p.w});
   if(pool.length<BROUND)pool=ORDER.slice();
   if(B)cancelAnimationFrame(B.raf);
-  // Four sentences, with the ones whose kanji she has met first.
-  const met=([ks])=>[...ks].filter(k=>pool.includes(k)).length;
-  const items=shuffle(SENT2.slice()).sort((a,b)=>met(b)-met(a)).slice(0,BROUND);
+  // Four sentences whose kanji she has met, picked by gameWeight (summed over the two kanji),
+  // then if there aren't enough, the ones with the most kanji she has met.
+  const met=([ks])=>[...ks].filter(k=>pool.includes(k)).length, full=SENT2.filter(x=>met(x)===2);
+  const items=wSample(full,full.map(([ks])=>[...ks].reduce((a,k)=>a+gameWeight(k),0)),BROUND);
+  items.push(...shuffle(SENT2.filter(x=>!items.includes(x))).sort((a,b)=>met(b)-met(a)).slice(0,BROUND-items.length));
   B={items,locks:shuffle([1,1,0,0]),maps:shuffle(BMAPS.slice()),pool,i:0,score:0,res:[],keys:new Set(),raf:0,last:0};
   $('bResult').hidden=true; $('bPlay').hidden=false;
   $('bCrab').firstChild.innerHTML=takaSVG(); $('bTurtle').innerHTML=art('kturtle');
@@ -2906,7 +2920,7 @@ function startRace(){
   let pool=ORDER.filter(k=>{const p=prog(k);return p.t||p.w});
   if(pool.length<4)pool=ORDER.slice();
   const n=RGATES.length*RV.laps, ks=[];
-  while(ks.length<n)ks.push(...shuffle(pool.slice()));
+  while(ks.length<n)ks.push(...wSample(pool,pool.map(gameWeight),n-ks.length));
   const L=RSEGS.length*RV.seg;
   const gates=ks.slice(0,n).map((k,j)=>{
     const r=pick(INFO[k].r.filter(r=>r[0]!=='*')), ans=kana(r), [y,oku='']=r.split('|');
