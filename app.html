@@ -689,6 +689,7 @@ ruby rt{font-family:var(--f-ui);font-size:.5em;font-weight:700;color:var(--sun)}
         <div class="art" style="width:200px" id="rResArt"></div>
         <div class="score" id="rScore"></div>
         <p id="rResText" style="margin:0;font-weight:700;font-size:20px"></p>
+        <div id="rResSong"></div>
         <div class="row" style="justify-content:center">
           <button class="cta" id="rAgain">もういちど</button>
           <button class="back" id="rHome">もどる</button>
@@ -887,6 +888,10 @@ const SONGS={
   sky:{id:1749483437, name:'孩子的天空 (少年版)', by:'土豆王國小樂隊',
     url:'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/0a/ae/47/0aae475c-d2bc-5b5c-2946-d45efb1edeb1/mzaf_11745880920374830306.plus.aac.p.m4a',
     link:'https://music.apple.com/au/album/1749483427?i=1749483437'},
+  // レース: the first two bars (126 bpm), at the start, each new lap and the finish.
+  fish:{id:1640631791, name:'おさかなしりとりずかん', by:'さかなのおにいさん かわちゃん', snip:4,
+    url:'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/45/17/7b/45177b82-a974-577d-b616-066f7874f64c/mzaf_12204173791275788347.plus.aac.p.m4a',
+    link:'https://music.apple.com/au/album/1640631656?i=1640631791'},
   // The chicken dance. Timings come from the preview's onsets and melody: a sixteenth note (e) is 0.155 s and a bar is 8 of them.
   // The verse runs in 4-bar phrases, one bar per move, and from `at` there are two whole phrases (two rounds of the
   // four moves) before the chorus comes in at 20.99 s, which they swing round to for six bars.
@@ -940,14 +945,16 @@ const SFX=(()=>{
     unlock(){if(on)init()},
     get on(){return on},
     toggle(){on=!on;try{localStorage.setItem('kanjiSea.sound',on?'on':'off')}catch(e){}if(on){init();bubbles(3)}else playing.forEach(f=>f());return on},
-    // A song preview from `from` seconds in, fading out over the last 2 s of the clip. Returns a function that fades it
-    // out and stops it, or nothing when the sound is off or the song hasn't loaded (then play the synthesised tune).
-    song:go((k,from=0)=>{
+    // A song preview from `from` seconds in, for `len` seconds or to the end of the clip, fading out over the last 2 s
+    // (0.4 s for a short snippet). Returns a function that fades it out and stops it, or nothing when the sound is off
+    // or the song hasn't loaded (then play the synthesised tune).
+    song:go((k,from=0,len)=>{
       const b=songBuf[k]; if(!b)return;
-      const now=ctx.currentTime+.02, src=ctx.createBufferSource(), g=ctx.createGain(), end=now+b.duration-from, vol=.75;
+      const now=ctx.currentTime+.02, src=ctx.createBufferSource(), g=ctx.createGain(), vol=.75;
+      const end=now+Math.min(len||1e9,b.duration-from), fade=len?.4:2;
       g.gain.setValueAtTime(.0001,now); g.gain.exponentialRampToValueAtTime(vol,now+.03);
-      g.gain.setValueAtTime(vol,Math.max(now+.05,end-2)); g.gain.linearRampToValueAtTime(0,end);
-      src.buffer=b; src.connect(g).connect(master); src.start(now,from);
+      g.gain.setValueAtTime(vol,Math.max(now+.05,end-fade)); g.gain.linearRampToValueAtTime(0,end);
+      src.buffer=b; src.connect(g).connect(master); src.start(now,from); src.stop(end+.05);
       const stop=()=>{if(!playing.delete(stop))return; const t=ctx.currentTime; g.gain.cancelScheduledValues(t); g.gain.setTargetAtTime(0,t,.15); src.stop(t+.8)};
       playing.add(stop); src.onended=()=>playing.delete(stop);
       return stop;
@@ -997,6 +1004,30 @@ const SFX=(()=>{
       [1047,1319,1568,2093].forEach(f=>T({type:'triangle',f0:f,t:48*e,dur:.9,vol:.1})); T({f0:131,t:48*e,dur:.6,vol:.25});
       bubbles(8,48*e,.06);
       return ()=>{out.gain.setTargetAtTime(0,ctx.currentTime,.03); setTimeout(()=>out.disconnect(),400)};
+    }),
+    // レース background music: an original 8-bar loop at 150 bpm (bass, kick, hi-hat, offbeat chords and a tune in C),
+    // kept quiet under the spoken words. Scheduled a bar ahead, so it never drifts. Returns {stop, duck(seconds)}:
+    // duck turns it right down for a while, for a song snippet or a called word.
+    race:go(()=>{
+      const out=ctx.createGain(), e=.2, LOUD=.45, SOFT=.1; out.gain.value=LOUD; out.connect(master);
+      const T=o=>tone({...o,to:out}), H=o=>hiss({...o,to:out});
+      const ROOT=[131,110,87,98,131,110,87,98], CH=[[523,659,784],[440,523,659],[440,523,698],[494,587,784]];
+      const MEL=[[659,784,880,784,659,0,587,659],[523,0,523,587,659,0,784,0],[880,0,880,784,698,0,659,698],[784,0,587,0,494,587,784,0],
+        [1047,0,988,880,784,0,659,784],[880,0,784,659,523,0,587,659],[698,880,1047,880,698,0,659,587],[587,659,784,0,988,0,1175,0]];
+      let next=ctx.currentTime+.1, bar=0, until=0, timer=0;
+      const play=(n,at)=>{for(let j=0;j<8;j++){
+        const t=at+j*e-ctx.currentTime;
+        T({type:'triangle',f0:ROOT[n]*(j%2?2:1),t,dur:e*.8,vol:.16});
+        if(j%2===0)T({f0:150,f1:50,t,dur:.12,vol:.22}); else{H({t,dur:.05,f0:7000,f1:8000,q:3,vol:.05}); CH[n%4].forEach(f=>T({type:'square',f0:f,t,dur:.07,vol:.012}))}
+        if(MEL[n][j])T({type:'triangle',f0:MEL[n][j],t,dur:e*.85,vol:.08});
+      }};
+      const tick=()=>{while(next<ctx.currentTime+.4){play(bar%8,next); next+=8*e; bar++}};
+      const iv=setInterval(tick,100); tick();
+      const stop=()=>{if(!playing.delete(stop))return; clearInterval(iv); clearTimeout(timer); out.gain.setTargetAtTime(0,ctx.currentTime,.1); setTimeout(()=>out.disconnect(),800)};
+      playing.add(stop);
+      const duck=sec=>{const now=ctx.currentTime; until=Math.max(until,now+sec); out.gain.setTargetAtTime(SOFT,now,.05);
+        clearTimeout(timer); timer=setTimeout(()=>out.gain.setTargetAtTime(LOUD,ctx.currentTime,.3),(until-now)*1000)};
+      return {stop,duck};
     }),
     // A new tooth: a thump and a ta-da chord, then a ringing bell, a run of sparkles and bubbles, about 1.2 seconds.
     tooth:go(()=>{
@@ -1251,6 +1282,9 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const pick=a=>a[Math.floor(Math.random()*a.length)];
 const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const kana=r=>r.replace('*','').replace('|','');
+// Readings that more than one kanji has (ひ: 日 and 火), each with the kanji that have it.
+const SHARED=(()=>{const m={};for(const k of ORDER)for(const r of INFO[k].r)if(r[0]!=='*'){const y=kana(r);(m[y]=m[y]||new Set).add(k)}
+  for(const y in m)if(m[y].size<2)delete m[y]; return m})();
 function word(k,r){r=r.replace('*',''); const [y,oku='']=r.split('|'); return `<ruby>${k}<rt>${y}</rt></ruby>${oku}`}
 function wordPlain(k,r){const oku=r.replace('*','').split('|')[1]||''; return k+oku}
 // Voices. Each speaker is a pitch and rate on top of the device's Japanese voice, so the characters sound different
@@ -1378,6 +1412,9 @@ function nextReview(){
     const [yomi,oku='']=pick(INFO[k].r.filter(x=>x[0]!=='*')).split('|'); R.reading=yomi+oku;
     $('revPrompt').innerHTML=`<span class="pbox"><span class="pfuri">${yomi}</span><i></i></span>${oku?`<span>${oku}</span>`:''}`;
   }
+  // A word another kanji also reads (ひ could be 日 or 火) always shows its picture, free, even in a test.
+  const word=$('revPrompt').querySelector('.pfuri').textContent+($('revPrompt').querySelector('.pbox+span')?.textContent||'');
+  if(SHARED[word]){$('revPic').textContent=INFO[k].pic; $('revHint').hidden=true}
   cur.k=k;
   const T=R.test;
   $('revMeta').innerHTML=R.extra?`れんしゅう <b>${R.practiced+1}</b>かいめ`:T?`テスト <b>${T.done+1}</b> / ${T.n}`:`のこり <b>${R.queue.length}</b>`;
@@ -2865,7 +2902,7 @@ const svgImg=t=>{const [,,w,h]=t.match(/viewBox="([^"]+)"/)[1].split(/[\s,]+/), 
 const RRIVALS=[{id:'octopus2',col:'#7c5cff',d:14,x:-.45,v:4650},{id:'kjelly',col:'#3fb7a0',d:10,x:.5,v:4540},{id:'kpuffer',col:'#ff6b5e',d:6,x:0,v:4440}];
 function startRace(){
   if(!RSEGS)rBuild();
-  if(RC)cancelAnimationFrame(RC.raf);
+  if(RC){cancelAnimationFrame(RC.raf); RC.music?.stop()}
   let pool=ORDER.filter(k=>{const p=prog(k);return p.t||p.w});
   if(pool.length<4)pool=ORDER.slice();
   const n=RGATES.length*RV.laps, ks=[];
@@ -2906,7 +2943,7 @@ function rLayout(){
 }
 addEventListener('resize',rLayout);
 function rFrame(ts){
-  const c=RC; if(!c||$('race').hidden){if(c)c.raf=0; return}
+  const c=RC; if(!c||$('race').hidden){if(c){c.raf=0; c.music?.stop()} return}
   const dt=Math.min(.05,c.last?(ts-c.last)/1000:0); c.last=ts;
   rStep(dt); rDraw(); c.raf=requestAnimationFrame(rFrame);
 }
@@ -2915,7 +2952,10 @@ function rStep(dt){
   const c=RC, L=RSEGS.length*RV.seg; c.t+=dt;
   if(c.go>0){
     const was=Math.ceil(c.go); c.go-=dt; const now=Math.ceil(c.go);
-    if(now!==was||c.t===dt){if(now>0){rBig(String(now),false,700); SFX.pop()}else{rBig('スタート！',false,900); SFX.chime(); if(SFX.on)say('どん！','race')}}
+    if(now!==was||c.t===dt){if(now>0){rBig(String(now),false,700); SFX.pop()}else{
+      rBig('スタート！',false,900); SFX.chime(); if(SFX.on)say('どん！','race');
+      c.music=SFX.race(); setTimeout(()=>{if(RC===c&&!c.done)rSnip()},700);
+    }}
     return;
   }
   const seg=RSEGS[Math.floor(rmod(c.d,L)/RV.seg)], pct=c.v/RV.speed;
@@ -2930,10 +2970,12 @@ function rStep(dt){
   c.v+=(want-c.v)*Math.min(1,dt*(c.v<want?1.1:3)); c.boost-=dt; c.spin-=dt; c.ink-=dt;
   c.bgx+=seg.curve*pct*dt*.004;
   const d0=c.d; c.d+=c.v*dt;
+  const lap=Math.floor(c.d/L);
+  if(!c.done&&lap>Math.floor(d0/L)&&lap<RV.laps){rBig(lap===RV.laps-1?'さいごの 1しゅう！':`${lap+1}しゅうめ！`,false,1400); rSnip()}
   const g=c.gates[c.gi];
   if(g&&!c.done){
     if(!g.called&&g.d-c.d<RV.call*RV.seg){g.called=true; g.again=c.t+2.4; rCall(g)}
-    else if(g.again&&c.t>=g.again){g.again=0; if(SFX.on)say(g.ans)}
+    else if(g.again&&c.t>=g.again){g.again=0; if(SFX.on){say(g.ans); c.music?.duck(1.5)}}
     if(d0<g.d&&c.d>=g.d)rGate(g);
   }
   for(const e of c.inks){
@@ -2957,9 +2999,14 @@ function rStep(dt){
   if(!c.done){$('rPlace').textContent=rPlace()+'い'; $('rLap').textContent=`${Math.min(RV.laps,Math.floor(c.d/L)+1)} / ${RV.laps} しゅう`}
 }
 const rPlace=()=>1+RC.rivals.filter(r=>r.fin?true:r.d>RC.d).length;
+// A snippet of the fish song (the background music ducks under it), or the fanfare when it can't play.
+function rSnip(){
+  const stop=SFX.song('fish',0,SONGS.fish.snip);
+  if(stop){RC.sang=true; RC.music?.duck(SONGS.fish.snip+.2)} else SFX.fanfare();
+}
 function rCall(g){
   $('rWord').innerHTML=`「<b>${g.y}</b>${g.oku}」`; $('rWord').className=''; rDots();
-  if(SFX.on)say(g.ans);
+  if(SFX.on){say(g.ans); RC.music?.duck(1.5)}
 }
 function rGate(g){
   const c=RC, i=c.gi;
@@ -2975,7 +3022,9 @@ function rGate(g){
 }
 function rFinish(){
   const c=RC; c.done=true; const place=rPlace(), n=c.gates.length; c.place=place;
-  rBig('ゴール！',false,1600); place===1?SFX.fanfare():SFX.chime();
+  rBig('ゴール！',false,1600); c.music?.stop(); c.music=null;
+  const sang=SFX.song('fish',0,SONGS.fish.snip); if(!sang)place===1?SFX.fanfare():SFX.chime();
+  $('rResSong').innerHTML=sang||c.sang?songCredit('fish'):'';
   setTimeout(()=>{
     if(RC!==c||$('race').hidden)return;
     cancelAnimationFrame(c.raf); c.raf=0; $('rPlay').hidden=true; $('rResult').hidden=false;

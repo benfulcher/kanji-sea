@@ -18,6 +18,7 @@ It covers the kanji in 光文書院 くりかえし かんじドリル 1年 上,
   Any stroke shown (after two misses on it, or one drawn backwards), ちょっと みる or わからない drops it a level (two from じょうず up).
   Each set's ▶ れんしゅう button gives free practice on that set instead, which picks low-level kanji most often and never changes levels.
   Half the prompts put the word in a short book-style sentence, with the reading over the box to write in.
+  A word that more than one kanji reads (ひ for 日 or 火, き for 木 or 気, じゅう for 十 or 中) always shows its picture as well, free, even in a test, so she knows which one is meant.
 - **Writing in sentences (ぶんで かく):** practice where every prompt is one of those sentences.
 - **Writing readings (よみを かく):** the kanji sits in a sentence and you write its reading in hiragana, one kana at a time, each checked stroke by stroke.
 - **Voices:** everything spoken goes through `say(text, who)` in `app.html`, using the device's own Japanese speech voices (no audio files).
@@ -78,6 +79,8 @@ It covers the kanji in 光文書院 くりかえし かんじドリル 1年 上,
   A few times a race, between rows of bubbles, an octopus pops up beside the road and squirts a puddle of ink across one lane (usually hers).
   Driving through it puts ink on her wheels: for a couple of seconds she slows down and the steering goes slippery.
   There are eight words in a race, and her place at the finish depends mostly on how many she found.
+  An original racing tune (synthesised, 150 bpm) plays quietly underneath from どん！ to the finish, and dips whenever a word is called.
+  The opening of さかなのおにいさん かわちゃん's おさかなしりとりずかん plays for 4 seconds at the start, at the new lap and at the finish.
 - **Practice squares:** after a mistake writing a kanji from memory (in a test, a review, practice or a lesson's かく), four squares open for optional free practice, as in the drill book.
   Trace the first two over a faint outline, then write it in the other two; the ink isn't checked.
 - **Reading game (よめるかな？):** a stingray brings a kanji, and you find its reading in a fish tank and tap it.
