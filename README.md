@@ -27,6 +27,7 @@ It covers the kanji in 光文書院 くりかえし かんじドリル 1年 上,
 - **This week's kanji (こんしゅうの かんじ):** a card at the top of the home screen, under the tank, with the book set she is doing at school this week, so there's no scrolling to find it.
   It has the set's ▶ れんしゅう and 🐳 テスト, and the same set is outlined in gold with a こんしゅう badge in the book list below.
   Japanese school is on Saturday mornings from 9, where she is tested on the week's set before the next one begins, so the app moves to a new set every **Saturday at 12 pm Sydney time**, one `SECTIONS` entry at a time in book order (anchored so the week from Saturday 2026-10-24 is ふかい うみ).
+  When there's no test at school on a Saturday, add that date to `NO_TEST` in `app.html` and the set stays for another week (2026-11-07 had none).
   If school gets ahead or behind, a grown-up can move it with the ◀ ▶ next to こんしゅう at the bottom of the home screen; from then on it counts Saturdays from that setting.
   **ぼうけん and レース are locked (🔒) until she passes the week's test**, which means every kanji in the set written with no misses (the same perfect test that digs up the set's fossil).
   Tapping a locked game points her to the week's card and the crab tells her what to do.

@@ -1174,7 +1174,7 @@ try{navigator.storage?.persist?.().catch(()=>{})}catch(e){}
 const prog=k=>P.k[k]||(P.k[k]={t:0,w:0,r:0});
 // This week's kanji: one book set (a SECTIONS entry) per week, at school's pace. Japanese school is Saturday
 // morning from 9: she is tested on the week's set there, then the next set begins, so the app moves on every
-// Saturday at 12:00 Sydney time. The week from Saturday 2026-10-24 was ふかい うみ (set 3).
+// Saturday at 12:00 Sydney time, except on Saturdays listed in NO_TEST. The week from Saturday 2026-10-24 was ふかい うみ (set 3).
 // A grown-up can re-anchor it with ◀ ▶ at the bottom of the home screen (kept in P.wk as {i, t}: set i was current at instant t).
 // ぼうけん and レース stay locked until the week's set has had a perfect whale test (P.test[i], the same test as in the book list).
 const SYD=new Intl.DateTimeFormat('en-US',{timeZone:'Australia/Sydney',year:'numeric',month:'numeric',day:'numeric',hour:'numeric',minute:'numeric',hourCycle:'h23'});
@@ -1184,7 +1184,14 @@ function sydWeek(t){
   return Math.floor((Date.UTC(f.year,f.month-1,f.day,f.hour,f.minute)-12*36e5-Date.UTC(1970,0,3))/(7*864e5));
 }
 const WEEK0={i:3,t:Date.UTC(2026,9,24,1)};
-function weekIndex(){const a=P.wk||WEEK0, t=a.t??a.mon; return Math.max(0,Math.min(SECTIONS.length-1,a.i+sydWeek(Date.now())-sydWeek(t)))}
+// Saturdays (Sydney date) with no test at school: the week doesn't move on at noon that day, so the set stays another week.
+const NO_TEST=['2026-11-07'];
+const NO_TEST_WEEKS=NO_TEST.map(d=>{const [y,m,dd]=d.split('-').map(Number); return (Date.UTC(y,m-1,dd)-Date.UTC(1970,0,3))/(7*864e5)});
+function weekIndex(){
+  const a=P.wk||WEEK0, w0=sydWeek(a.t??a.mon), w=sydWeek(Date.now());
+  const held=NO_TEST_WEEKS.filter(x=>x>w0&&x<=w).length;
+  return Math.max(0,Math.min(SECTIONS.length-1,a.i+w-w0-held));
+}
 const weekPassed=i=>(P.test?.[i]||0)>=SECTIONS[i].kanji.length;
 const gamesLocked=()=>!weekPassed(weekIndex());
 
