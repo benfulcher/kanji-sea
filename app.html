@@ -393,6 +393,9 @@ ruby rt{font-family:var(--f-ui);font-size:.5em;font-weight:700;color:var(--sun)}
 .cele .emo{font-size:120px}
 .cele h2{margin:0;font-size:28px;font-weight:900}
 .cele p{margin:0;font-size:18px;font-weight:700;color:var(--foam)}
+/* The credit under a song preview: small, so it isn't tapped by mistake. */
+.songby{font-size:12px;font-weight:700;color:var(--foam);opacity:.8;text-decoration:none}
+.chicken .songby{position:absolute;bottom:max(14px,env(safe-area-inset-bottom,0px));left:0;right:0;text-align:center}
 
 /* ---------- SRS ---------- */
 .tile{position:relative}
@@ -706,6 +709,7 @@ ruby rt{font-family:var(--f-ui);font-size:.5em;font-weight:700;color:var(--sun)}
       <div class="art" id="celeArt"></div>
       <h2 id="celeTitle"></h2>
       <p id="celeText"></p>
+      <div id="celeSong" hidden></div>
       <button class="cta" id="celeBtn">やったー！</button>
     </div>
   </div>
@@ -870,9 +874,40 @@ const FRIEND = ['octopus','kcrab','ray',
   'eel2','kcrab','octopus2','fish','kwhale','seal','ksnake','kmush','kclown','ray2',
   'dolphin','kpuffer','kturtle2','squid','kcroc','octopus3','jelly','lobster','kmush2','dumbo'];
 
+// Songs for the big moments: Apple Music's 30-second previews, streamed from Apple (no key needed; never copied here).
+// Each is fetched and decoded once the sound starts, and played through SFX's audio context, which a tap has already
+// unlocked, so it can start later without a tap of its own. If one can't load (offline, or a page that blocks it),
+// the synthesised tune plays instead. If Apple moves a preview, the iTunes lookup by track id finds its new address.
+const SONGS={
+  // The card for passing this week's test (ごうかく！).
+  onigiri:{id:6769801805, name:'NIGI NIGI ONIGIRI', by:'里咲りさ',
+    url:'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/22/2c/4a/222c4ab9-d7c6-0e03-1f1a-4aa992738026/mzaf_16013787186917521971.plus.aac.p.m4a',
+    link:'https://music.apple.com/au/album/6769801365?i=6769801805'},
+  // The card for any other good test (at most one wrong).
+  sky:{id:1749483437, name:'孩子的天空 (少年版)', by:'土豆王國小樂隊',
+    url:'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/0a/ae/47/0aae475c-d2bc-5b5c-2946-d45efb1edeb1/mzaf_11745880920374830306.plus.aac.p.m4a',
+    link:'https://music.apple.com/au/album/1749483427?i=1749483437'},
+  // The chicken dance. Timings come from the preview's onsets and melody: a sixteenth note (e) is 0.155 s and a bar is 8 of them.
+  // The verse runs in 4-bar phrases, one bar per move, and from `at` there are two whole phrases (two rounds of the
+  // four moves) before the chorus comes in at 20.99 s, which they swing round to for six bars.
+  chick:{id:267161970, name:'Chicken Dance', by:'Kids Sing', e:.15475, at:11.083, rounds:2, swing:48,
+    url:'https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/77/5d/f9/775df980-905f-9402-c36f-992d643d371f/mzaf_1193667451953342077.plus.aac.p.m4a',
+    link:'https://music.apple.com/au/album/267160591?i=267161970'},
+};
+// The small credit Apple asks for alongside a preview, with a link to the song.
+const songCredit=k=>`<a class="songby" href="${SONGS[k].link}" target="_blank" rel="noopener">♪ ${SONGS[k].name} — ${SONGS[k].by} · Apple Music</a>`;
+
 // ---------- sea sounds (synthesised with Web Audio; start after the first tap) ----------
 const SFX=(()=>{
-  let ctx=null,master=null,noise=null,on=true;
+  let ctx=null,master=null,noise=null,on=true,songsAsked=false;
+  const songBuf={}, playing=new Set();
+  async function loadSong(k){
+    const S=SONGS[k], get=async u=>{const r=await fetch(u);if(!r.ok)throw r.status;return ctx.decodeAudioData(await r.arrayBuffer())};
+    try{songBuf[k]=await get(S.url)}catch(e){
+      try{const r=await(await fetch(`https://itunes.apple.com/lookup?id=${S.id}&country=au`)).json(), u=r.results?.[0]?.previewUrl;
+        if(u){S.url=u; songBuf[k]=await get(u)}}catch(e){}
+    }
+  }
   try{on=localStorage.getItem('kanjiSea.sound')!=='off'}catch(e){}
   function init(){
     if(ctx){if(ctx.state!=='running')ctx.resume();return ctx}
@@ -882,6 +917,7 @@ const SFX=(()=>{
     noise=ctx.createBuffer(1,ctx.sampleRate,ctx.sampleRate); const d=noise.getChannelData(0);
     for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
     const s=ctx.createBufferSource(); s.buffer=ctx.createBuffer(1,1,22050); s.connect(ctx.destination); s.start(0);
+    if(!songsAsked){songsAsked=true; for(const k in SONGS)loadSong(k)}
     return ctx;
   }
   function tone({type='sine',f0,f1=f0,t=0,dur=.15,vol=.2,vib=0,to=master}){
@@ -903,7 +939,19 @@ const SFX=(()=>{
   return {
     unlock(){if(on)init()},
     get on(){return on},
-    toggle(){on=!on;try{localStorage.setItem('kanjiSea.sound',on?'on':'off')}catch(e){}if(on){init();bubbles(3)}return on},
+    toggle(){on=!on;try{localStorage.setItem('kanjiSea.sound',on?'on':'off')}catch(e){}if(on){init();bubbles(3)}else playing.forEach(f=>f());return on},
+    // A song preview from `from` seconds in, fading out over the last 2 s of the clip. Returns a function that fades it
+    // out and stops it, or nothing when the sound is off or the song hasn't loaded (then play the synthesised tune).
+    song:go((k,from=0)=>{
+      const b=songBuf[k]; if(!b)return;
+      const now=ctx.currentTime+.02, src=ctx.createBufferSource(), g=ctx.createGain(), end=now+b.duration-from, vol=.75;
+      g.gain.setValueAtTime(.0001,now); g.gain.exponentialRampToValueAtTime(vol,now+.03);
+      g.gain.setValueAtTime(vol,Math.max(now+.05,end-2)); g.gain.linearRampToValueAtTime(0,end);
+      src.buffer=b; src.connect(g).connect(master); src.start(now,from);
+      const stop=()=>{if(!playing.delete(stop))return; const t=ctx.currentTime; g.gain.cancelScheduledValues(t); g.gain.setTargetAtTime(0,t,.15); src.stop(t+.8)};
+      playing.add(stop); src.onended=()=>playing.delete(stop);
+      return stop;
+    }),
     pop:go(()=>tone({f0:700,f1:1700,dur:.08,vol:.13})),
     jump:go(()=>tone({type:'triangle',f0:330,f1:760,dur:.13,vol:.1})),
     hiss:go(()=>hiss({dur:.55,f0:5000,f1:7000,q:2.5,vol:.12})),
@@ -1478,7 +1526,7 @@ function endTest(){
   const ups=R0.ups.length, perfect=T.score===T.n, unlocked=wasLocked&&!gamesLocked();
   GOOD.ups+=ups; GOOD.work++; if(perfect)GOOD.perfect++; if(unlocked)GOOD.unlock++;
   const card=()=>celebrate('kwhale',perfect?(unlocked?'ごうかく！':'ぜんぶ せいかい！'):'テスト おわり！',
-    `${T.done}もんの うち ${T.score}もん せいかい 🦷${ups?`。レベル アップ ${ups}こ`:''}${unlocked?'。ぼうけんと レースで あそべるよ！':''}`);
+    `${T.done}もんの うち ${T.score}もん せいかい 🦷${ups?`。レベル アップ ${ups}こ`:''}${unlocked?'。ぼうけんと レースで あそべるよ！':''}`,unlocked?'onigiri':T.done===T.n&&T.score>=T.n-1?'sky':null);
   if(perfect)chickenDance().then(()=>digFossil(T.si)).then(card); else card();
 }
 // ---------- 100% on a test: then dig up a fossil ----------
@@ -1572,16 +1620,19 @@ function digFossil(si){
 }
 // ---------- 100% on a test: the sea animals do a chicken dance ----------
 // The dance's four moves, four times each: snap (パクパク), flap (パタパタ), wiggle down (フリフリ) and clap (パチパチ),
-// then they swing round (くるくる). The moves follow SFX.chickenDance's beat. Tapping anywhere skips it.
-const CD_E=.2; // one eighth note, in seconds
+// then they swing round (くるくる). Tapping anywhere skips it.
+// It goes to the Chicken Dance song when that has loaded (SONGS.chick: its note length, how many rounds of the four
+// moves and how long the swing), otherwise to SFX.chickenDance's polka, which has one round and a swing of 16 eighths.
+const CD_E=.2; // one eighth note of the polka, in seconds
 function chickenDance(){
   return new Promise(done=>{
     if(reduce)return done();
     const st=document.createElement('div'), ids=['dumbo','kcrab','octopus','kpuffer','kclown'];
+    const C=SONGS.chick, song=SFX.song('chick',C.at), {e:E,rounds,swing}=song?C:{e:CD_E,rounds:1,swing:16};
     st.className='chicken';
-    st.innerHTML=`<div class="cap"></div><div class="line">${ids.map(id=>`<div class="hen art">${art(id)}</div>`).join('')}</div>`;
+    st.innerHTML=`<div class="cap"></div><div class="line">${ids.map(id=>`<div class="hen art">${art(id)}</div>`).join('')}</div>${song?songCredit('chick'):''}`;
     document.body.appendChild(st);
-    const hens=[...st.querySelectorAll('.hen')], cap=st.querySelector('.cap'), timers=[], stop=SFX.chickenDance()||(()=>{});
+    const hens=[...st.querySelectorAll('.hen')], cap=st.querySelector('.cap'), timers=[], stop=song||SFX.chickenDance()||(()=>{});
     const at=(t,f)=>timers.push(setTimeout(f,t*1000));
     const end=()=>{timers.forEach(clearTimeout); stop(); st.remove(); done()};
     st.onclick=end;
@@ -1597,16 +1648,18 @@ function chickenDance(){
         c.animate([{transform:'scale(.5)',opacity:1},{transform:'translateY(-50px) scale(1.2)',opacity:0}],{duration:600,easing:'ease-out'}).onfinish=()=>c.remove();
       },
     };
-    [['snap','パクパク！'],['flap','パタパタ！'],['wiggle','フリフリ！'],['clap','パチパチ！']].forEach(([m,label],k)=>{
-      at(k*8*CD_E,()=>{cap.textContent=label; cap.animate([{transform:'scale(.4)',opacity:0},{transform:'scale(1.15)',opacity:1,offset:.6},{transform:'none',opacity:1}],{duration:300})});
-      for(let i=0;i<4;i++)at((k*8+i)*CD_E,()=>hens.forEach(h=>MOVES[m](h,i)));
+    for(let r=0;r<rounds;r++)[['snap','パクパク！'],['flap','パタパタ！'],['wiggle','フリフリ！'],['clap','パチパチ！']].forEach(([m,label],k)=>{
+      k+=r*4;
+      at(k*8*E,()=>{cap.textContent=label; cap.animate([{transform:'scale(.4)',opacity:0},{transform:'scale(1.15)',opacity:1,offset:.6},{transform:'none',opacity:1}],{duration:300})});
+      for(let i=0;i<4;i++)at((k*8+i)*E,()=>hens.forEach(h=>MOVES[m](h,i)));
     });
-    at(32*CD_E,()=>{
+    const sw=32*rounds*E, turns={duration:16*E*1000,easing:'ease-in-out',iterations:swing/16,direction:'alternate'};
+    at(sw,()=>{
       cap.textContent='くるくる〜！';
-      hens.forEach((h,j)=>{const d=j%2?-1:1; h.animate([0,1,2,3,4].map(q=>({transform:`rotate(${d*180*q}deg) translateY(${q%2?-24:0}px)`})),{duration:16*CD_E*1000,easing:'ease-in-out'})});
-      st.querySelector('.line').animate([{transform:'none'},{transform:'translateX(-40px)'},{transform:'translateX(40px)'},{transform:'none'}],{duration:16*CD_E*1000,easing:'ease-in-out'});
+      hens.forEach((h,j)=>{const d=j%2?-1:1; h.animate([0,1,2,3,4].map(q=>({transform:`rotate(${d*180*q}deg) translateY(${q%2?-24:0}px)`})),turns)});
+      st.querySelector('.line').animate([{transform:'none'},{transform:'translateX(-40px)'},{transform:'translateX(40px)'},{transform:'none'}],turns);
     });
-    at(48*CD_E+.9,end);
+    at(sw+swing*E+.9,end);
   });
 }
 async function closeWhale(){
@@ -2176,13 +2229,16 @@ async function finish(){
     pendingCele=['manta','マンタが きたよ！',`${SECTIONS[si].zone}の かんじ ぜんぶ かけたね`];
   }
 }
-let pendingCele=null, afterCele=null;
-function celebrate(id,title,text){
+let pendingCele=null, afterCele=null, celeStop=null;
+// song (a SONGS key) plays that song's preview on the card until it's closed, in place of the fanfare.
+function celebrate(id,title,text,song){
   $('celeArt').innerHTML=FOSSILS[id]?`<div class="plaque">${fossilArt(id)}</div>`:art(id); $('celeTitle').textContent=title; $('celeText').textContent=text;
   $('cele').hidden=false; $('celeBtn').focus();
-  if(id==='manta')SFX.whale(); else if(FOSSILS[id])SFX.chime(); else SFX.fanfare();
+  celeStop=song&&SFX.song(song); $('celeSong').hidden=!celeStop; $('celeSong').innerHTML=celeStop?songCredit(song):'';
+  if(!celeStop){if(id==='manta')SFX.whale(); else if(FOSSILS[id])SFX.chime(); else SFX.fanfare()}
 }
 $('celeBtn').onclick=()=>{
+  if(celeStop){celeStop();celeStop=null}
   if(pendingCele){const c=pendingCele;pendingCele=null;celebrate(...c);return}
   $('cele').hidden=true;
   if(afterCele){const f=afterCele;afterCele=null;f()}

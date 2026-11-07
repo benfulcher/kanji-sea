@@ -39,7 +39,14 @@ It covers the kanji in 光文書院 くりかえし かんじドリル 1年 上,
   Two misses on one stroke mark that kanji wrong and draw the rest of it in.
   A right answer on a kanji that is due for review counts as that review and levels it up; nothing else in a test changes levels.
   The best full-test score for each set shows on its button.
-  A perfect test sets off a chicken dance by a line of sea animals, to an original polka (tap to skip).
+  A perfect test sets off a chicken dance by a line of sea animals, to Kids Sing's "Chicken Dance" (tap to skip).
+  The moves follow the song: one move per bar, two rounds of the four moves through the verse, then they swing round when the chorus comes in.
+- **Songs:** the big moments play 30-second Apple Music previews, streamed from Apple's servers (no key or account, and the music isn't stored in this repo).
+  Passing the week's test (ごうかく！) plays 里咲りさ's NIGI NIGI ONIGIRI, any other test with at most one wrong plays 土豆王國小樂隊's 孩子的天空 (少年版), and the chicken dance has its own song.
+  They're in `SONGS` in `app.html`, each with its iTunes track id; if Apple moves a preview, the app looks up its new address by that id.
+  The previews download after the first tap, and with no internet (or the sound off) the synthesised fanfare and polka play instead.
+  Each one shows a small credit with a link to the song on Apple Music, as Apple asks.
+  The claude.ai artifact version probably can't fetch them, so it uses the synthesised tunes.
 - **Fossil dig (かせき):** after the chicken dance, a perfect test digs up that set's fossil of an ancient sea animal.
   The fossil is small and hidden at a random spot, so most of the slab is empty and she has to hunt for it.
   She rubs away loose sand and then harder rock with a fingertip-sized scraper, and once most of the fossil is uncovered the rest crumbles away and the fossil is named.
