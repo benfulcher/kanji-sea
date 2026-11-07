@@ -1031,6 +1031,13 @@ const SFX=(()=>{
         clearTimeout(timer); timer=setTimeout(()=>out.gain.setTargetAtTime(LOUD,ctx.currentTime,.3),(until-now)*1000)};
       return {stop,duck};
     }),
+    // The glowing starfish: a magic power-up, a shimmering sweep up two octaves and a bright chord that rings on.
+    power:go(()=>{
+      [523,659,784,1047,1319,1568,2093,2637].forEach((f,j)=>tone({type:'square',f0:f,t:j*.045,dur:.12,vol:.05}));
+      [523,659,784,1047,1319,1568,2093,2637].forEach((f,j)=>tone({type:'triangle',f0:f*1.5,t:.02+j*.045,dur:.1,vol:.04}));
+      [1047,1319,1568,2093].forEach(f=>tone({type:'triangle',f0:f,t:.38,dur:1.1,vol:.08,vib:7}));
+      hiss({t:.05,dur:1.3,f0:2500,f1:9000,q:2,vol:.07}); bubbles(10,.4,.05);
+    }),
     // A new tooth: a thump and a ta-da chord, then a ringing bell, a run of sparkles and bubbles, about 1.2 seconds.
     tooth:go(()=>{
       tone({f0:196,f1:392,dur:.2,vol:.22});
@@ -1094,14 +1101,20 @@ const KAWAII={
 };
 // Japanese spider crab (タカアシガニ): a small round shell with a kawaii face on very long jointed legs.
 // Legs are in two groups (.legs.a and .legs.b) that rock against each other as it walks.
-function takaSVG(){
-  const C='#f47a45', D='#a8452a', leg=(pts,w=4.2)=>{const d='M'+pts.map(q=>q.join(' ')).join('L');
+// power: the starfish's glow in the race, with walking legs 1.7x as long, shining gold, in a wider viewBox (TAKA_POW).
+const TAKA_POW={x:-70,y:-50,w:300,h:205};
+function takaSVG(power){
+  const C='#f47a45', D='#a8452a', leg=(pts,w=4.2,glow)=>{const d='M'+pts.map(q=>q.join(' ')).join('L');
+    if(glow)return `<path d="${d}" stroke="#fff3a0" stroke-opacity=".35" stroke-width="${w+9}" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="${d}" stroke="#ffb300" stroke-width="${w+2.2}" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="${d}" stroke="#fff6b8" stroke-width="${w}" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`+
+      pts.slice(1,-1).map(([x,y])=>`<circle cx="${x}" cy="${y}" r="3" fill="#fff"/>`).join('');
     return `<path d="${d}" stroke="${D}" stroke-width="${w+2.2}" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="${d}" stroke="${C}" stroke-width="${w}" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`+
       pts.slice(1,-1).map(([x,y])=>`<circle cx="${x}" cy="${y}" r="2.3" fill="#fff3e6"/>`).join('')};
-  const L=[[[62,44],[38,6],[6,98]],[[59,51],[24,20],[20,106]],[[59,58],[14,40],[34,107]],[[63,64],[26,62],[48,105]]];
+  const F=power?1.7:1, L=[[[62,44],[38,6],[6,98]],[[59,51],[24,20],[20,106]],[[59,58],[14,40],[34,107]],[[63,64],[26,62],[48,105]]]
+    .map(l=>l.map(([x,y])=>[l[0][0]+(x-l[0][0])*F,l[0][1]+(y-l[0][1])*F]));
   const side=(m)=>L.map(l=>l.map(([x,y])=>[m?160-x:x,y]));
-  const [l,r]=[side(0),side(1)];
-  return `<svg viewBox="0 0 160 110" aria-hidden="true"><g class="legs a">${[l[0],l[2],r[1],r[3]].map(q=>leg(q)).join('')}</g><g class="legs b">${[l[1],l[3],r[0],r[2]].map(q=>leg(q)).join('')}</g>`+
+  const [l,r]=[side(0),side(1)], vb=power?Object.values(TAKA_POW).join(' '):'0 0 160 110';
+  if(power)return `<svg viewBox="${vb}" aria-hidden="true">${[...l,...r].map(q=>leg(q,5,1)).join('')}`+takaSVG().replace(/^<svg[^>]*>/,'').replace(/<g class="legs a">.*?<\/g><g class="legs b">.*?<\/g>/,'');
+  return `<svg viewBox="${vb}" aria-hidden="true"><g class="legs a">${[l[0],l[2],r[1],r[3]].map(q=>leg(q)).join('')}</g><g class="legs b">${[l[1],l[3],r[0],r[2]].map(q=>leg(q)).join('')}</g>`+
     `${leg([[68,68],[58,82],[64,96]],5)}${leg([[92,68],[102,82],[96,96]],5)}<path d="M60 94q4 8 9 2M100 94q-4 8 -9 2" stroke="${D}" stroke-width="2.4" fill="#fff3e6" stroke-linecap="round"/>`+
     `<path d="M80 26Q106 26 107 50Q106 74 80 76Q54 74 53 50Q54 26 80 26Z" fill="${C}" stroke="${D}" stroke-width="2"/><path d="M76 26l4-7 4 7" fill="${C}" stroke="${D}" stroke-width="2" stroke-linejoin="round"/>`+
     `<g fill="#ffd2b8"><circle cx="66" cy="36" r="3"/><circle cx="96" cy="38" r="2.4"/><circle cx="62" cy="62" r="2"/><circle cx="99" cy="63" r="2.6"/><circle cx="80" cy="69" r="2"/></g>${kface(72,88,47,4.2)}</svg>`;
@@ -2898,7 +2911,7 @@ RV.pz=RV.camH*RV.depth; // how far ahead of the camera her kart is
 // The kanji are pressed into the sand in their lanes, starting `mark` segments before the bubbles and `markLen` long.
 // Octopus ink: squirted `see` segments ahead of her, `len` long, with `t` seconds of slow, slippery wheels if she hits it.
 // A rival's rocket boost lasts `rboost` seconds. The starfish: `inv` seconds invincible, `boost` seconds of rockets.
-Object.assign(RV,{rboost:2.5,hitode:{inv:6,boost:4},mark:56,markLen:36,ink:{see:66,len:12,t:2.2,w:.3}});
+Object.assign(RV,{rboost:2.5,hitode:{inv:6,boost:4,after:30},mark:56,markLen:36,ink:{see:66,len:12,t:2.2,w:.3}});
 // The track: [ease in, hold, ease out, curve, bubbles]. Each row of bubbles sits near the end of a long straight.
 const RTRACK=[[0,70,0,0],[20,40,20,2],[0,90,0,0,1],[25,50,25,-3],[0,90,0,0,1],[20,30,20,3],[20,30,20,-2],[0,90,0,0,1],
   [30,60,30,3],[0,90,0,0,1],[25,40,25,-3],[0,60,0,0]];
@@ -2942,11 +2955,12 @@ function startRace(){
   const kinds=shuffle([true,false,Math.random()<.5]);
   const gs=shuffle(gaps), inks=gs.slice(0,3).map(([lo,hi],j)=>{const d=Math.round(lo+Math.random()*Math.min(hi-lo,60))*RV.seg;
     return {d,d1:d+RV.ink.len*RV.seg,lanes:[],mean:kinds[j],side:Math.random()<.5?-1:1,spray:0,hit:false,ph:Math.random()*6}}).sort((a,b)=>a.d-b.d);
-  // One glowing starfish (ヒトデ) a race, in a gap of its own, in a random lane: it gives a long rocket boost and
-  // `inv` seconds of being invincible (ink, wrong bubbles and the sand beside the road don't slow her or spin her).
-  const sg=gs[3], hitode=sg&&{d:Math.round(sg[0]+Math.random()*Math.min(sg[1]-sg[0],60))*RV.seg,lane:Math.floor(Math.random()*3),got:false};
-  RC={gates,inks,hitode,inv:0,gi:0,d:0,x:0,xv:0,v:0,t:0,go:3,keys:new Set(),score:0,res:[],spin:0,boost:0,ink:0,bgx:0,raf:0,last:0,done:false,
-    me:svgImg(takaSVG()),tako:svgImg(art('octopus3')),mean:svgImg(meanOctoSVG()),rivals:RRIVALS.map(r=>({...r,d:r.d*RV.seg,img:svgImg(art(r.id)),fin:0,ph:Math.random()*6,boost:0,lap:-1}))};
+  // A glowing starfish (ヒトデ) each lap, `after` segments past one of that lap's rows of bubbles (before any ink
+  // there), in a random lane: it gives a long rocket boost and `inv` seconds of being invincible (ink, wrong bubbles
+  // and the sand beside the road don't slow her or spin her).
+  const hitodes=Array.from({length:RV.laps},(_,lap)=>({d:pick(gates.filter(g=>Math.floor(g.d/L)===lap)).d+RV.hitode.after*RV.seg,lane:Math.floor(Math.random()*3),got:false}));
+  RC={gates,inks,hitodes,inv:0,gi:0,d:0,x:0,xv:0,v:0,t:0,go:3,keys:new Set(),score:0,res:[],spin:0,boost:0,ink:0,bgx:0,raf:0,last:0,done:false,
+    me:svgImg(takaSVG()),mePow:Object.assign(svgImg(takaSVG(true)),{pow:TAKA_POW}),tako:svgImg(art('octopus3')),mean:svgImg(meanOctoSVG()),rivals:RRIVALS.map(r=>({...r,d:r.d*RV.seg,img:svgImg(art(r.id)),fin:0,ph:Math.random()*6,boost:0,lap:-1}))};
   $('rResult').hidden=true; $('rPlay').hidden=false; $('rWord').textContent=''; $('rWord').className=''; rMsg('');
   show('race'); rDots(); rLayout(); RC.raf=requestAnimationFrame(rFrame);
   // Speaking straight from the tap lets the words that come later be spoken too on an iPad.
@@ -2994,10 +3008,9 @@ function rStep(dt){
   c.v+=(want-c.v)*Math.min(1,dt*(c.v<want?1.1:3)); c.boost-=dt; c.spin-=dt; c.ink-=dt; c.inv-=dt;
   c.bgx+=seg.curve*pct*dt*.004;
   const d0=c.d; c.d+=c.v*dt;
-  const h=c.hitode;
-  if(h&&!h.got&&!c.done&&d0<h.d&&c.d>=h.d&&Math.abs(c.x-RV.lanes[h.lane])<.34){
+  for(const h of c.hitodes)if(!h.got&&!c.done&&d0<h.d&&c.d>=h.d&&Math.abs(c.x-RV.lanes[h.lane])<.34){
     h.got=true; c.inv=RV.hitode.inv; c.boost=Math.max(c.boost,RV.hitode.boost); c.ink=0; c.spin=0;
-    SFX.rocket(); SFX.kira(3); rBig('むてき！',false,1400); rMsg('ひかる ヒトデ！ むてきだ！');
+    SFX.power(); SFX.rocket(); c.music?.duck(1.2); rBig('むてき！',false,1400); rMsg('ひかる ヒトデ！ むてきだ！');
   }
   const lap=Math.floor(c.d/L);
   if(!c.done&&lap>Math.floor(d0/L)&&lap<RV.laps){rBig(lap===RV.laps-1?'さいごの 1しゅう！':`${lap+1}しゅうめ！`,false,1400); rSnip()}
@@ -3121,7 +3134,7 @@ function rDraw(){
   for(let n=RV.draw-1;n>=1;n--){const p=P[n]; if(!p.a)continue; for(const d of p.sg.deco)items.push({n,q:0,f:()=>rDeco(g,d,p.a.X+p.a.s*d.x*RV.road*W/2,p.a.Y,p.a.s*W/2)})}
   for(const e of c.inks){const rel=e.d+RV.ink.len*SL/2-cam, up=Math.min(1,((RV.ink.see+40)*SL-(e.d-c.d))/(8*SL)); if(up<=0||rel<SL*1.5||rel>(RV.draw-1)*SL)continue;
     const o=at(rel,e.side*1.4); if(o)items.push({n:o.n,q:.3,f:()=>rTako(g,at,e,o,up,cam)})}
-  if(c.hitode&&!c.hitode.got){const rel=c.hitode.d-cam; if(rel>SL&&rel<(RV.draw-1)*SL){const o=at(rel,RV.lanes[c.hitode.lane]); if(o)items.push({n:o.n,q:.4,f:()=>rHitode(g,o,c.t)})}}
+  for(const h of c.hitodes)if(!h.got){const rel=h.d-cam; if(rel>SL&&rel<(RV.draw-1)*SL){const o=at(rel,RV.lanes[h.lane]); if(o)items.push({n:o.n,q:.4,f:()=>rHitode(g,o,c.t)})}}
   for(const gt of c.gates){const rel=gt.d-cam; if(rel<SL||rel>(RV.draw-1)*SL)continue;
     const o=at(rel,0); if(o)items.push({n:o.n,q:.5,f:()=>rGateDraw(g,gt,o)})}
   for(const r of c.rivals){const rel=r.d-cam; if(rel<SL*1.5||rel>(RV.draw-1)*SL)continue;
@@ -3140,14 +3153,15 @@ function rDraw(){
     }
   }
   const ky=H-6-95*k+bump-fire*3*Math.abs(Math.sin(c.t*25));
-  // Invincible: a rainbow glow round her kart, with sparkles, flickering in its last second.
-  if(c.inv>0&&(c.inv>1||Math.sin(c.t*30)>0)){
+  // Invincible: a rainbow glow round her kart, with sparkles, and long glowing legs, flickering in its last second.
+  const pow=c.inv>0&&(c.inv>1||Math.sin(c.t*30)>0);
+  if(pow){
     const R=230*k*(1+.08*Math.sin(c.t*12)), gl=g.createRadialGradient(W/2,ky-70*k,R*.2,W/2,ky-70*k,R);
     gl.addColorStop(0,`hsla(${c.t*240%360},100%,75%,.75)`); gl.addColorStop(.6,`hsla(${(c.t*240+120)%360},100%,65%,.35)`); gl.addColorStop(1,'rgba(255,255,255,0)');
     g.fillStyle=gl; g.beginPath(); g.ellipse(W/2,ky-70*k,R*1.25,R,0,0,7); g.fill();
     g.fillStyle='#fff'; for(let i=0;i<6;i++){const a=c.t*3+i*1.05, rr=R*(.75+.2*Math.sin(c.t*7+i)); rStar(g,W/2+Math.cos(a)*rr*1.2,ky-70*k+Math.sin(a)*rr*.8,10*k*(1+.5*Math.sin(c.t*10+i)),4,.45)}
   }
-  rKart(g,W/2,ky,k,c.me,'#ffcf4d',tilt,1,fire,c.t,Math.max(0,Math.min(1,c.ink/.5)));
+  rKart(g,W/2,ky,k,pow?c.mePow:c.me,'#ffcf4d',tilt,1,fire,c.t,Math.max(0,Math.min(1,c.ink/.5)));
 }
 // A star shape with n points, outer radius r and inner radius r*inner, at x,y (filled with the current fill).
 function rStar(g,x,y,r,n,inner,rot=0){
@@ -3171,7 +3185,12 @@ function rKart(g,X,Y,k,img,col,tilt,me,fire,t,ink){
   const w=380*k;
   g.save(); g.translate(X,Y); g.rotate(tilt||0);
   g.fillStyle='rgba(0,0,0,.25)'; g.beginPath(); g.ellipse(0,0,w*.6,w*.08,0,0,7); g.fill();
-  if(img.complete&&img.naturalWidth){const iw=w*(me?1.05:.78), ih=iw*img.naturalHeight/img.naturalWidth; g.drawImage(img,-iw/2,-w*.3-ih*(me?.82:.85),iw,ih)}
+  if(img.complete&&img.naturalWidth){
+    const P=img.pow, iw=w*(me?1.05:.78), ih=P?iw*110/160:iw*img.naturalHeight/img.naturalWidth, x0=-iw/2, y0=-w*.3-ih*(me?.82:.85);
+    // The powered-up crab's wider picture lines up with the plain one; its legs glow.
+    if(P){g.save(); g.shadowColor='#ffd84a'; g.shadowBlur=w*.12; g.drawImage(img,x0+P.x*iw/160,y0+P.y*ih/110,P.w*iw/160,P.h*ih/110); g.restore()}
+    else g.drawImage(img,x0,y0,iw,ih);
+  }
   g.fillStyle='#22122f'; for(const s of [-1,1])g.fillRect(s*w*.42-w*.12,-w*.26,w*.24,w*.26);
   g.fillStyle=col; g.beginPath(); g.roundRect(-w*.46,-w*.42,w*.92,w*.26,w*.08); g.fill();
   g.fillStyle='rgba(255,255,255,.35)'; g.fillRect(-w*.4,-w*.4,w*.8,w*.05);

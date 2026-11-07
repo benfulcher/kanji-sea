@@ -80,7 +80,8 @@ It covers the kanji in 光文書院 くりかえし かんじドリル 1年 上,
   Half the time it's the friendly purple one, which inks one lane (usually hers); otherwise it's a bigger, mean-looking plum one (いじわるダコ) that inks two of the three lanes, leaving one clear (rarely hers).
   Every race has at least one of each.
   Driving through ink puts it on her wheels: for a couple of seconds she slows down and the steering goes slippery.
-  Once a race a glowing starfish (ひかる ヒトデ) floats over one lane; driving into it fires her rockets for 4 seconds and makes her invincible (むてき！) for 6, so ink, wrong bubbles and the sand don't slow her or spin her, with a rainbow glow round her kart.
+  Each lap a glowing starfish (ひかる ヒトデ) floats over one lane, just after one of the rows of bubbles; driving into it plays a magic power-up sound, fires her rockets for 4 seconds and makes her invincible (むてき！) for 6, so ink, wrong bubbles and the sand don't slow her or spin her.
+  While she's invincible a rainbow glow surrounds her kart and the タカアシガニ's legs grow long and shine gold.
   The other racers get a catch-up boost: a racer in last place fires its rockets for a couple of seconds, at most once a lap each, and never within 8 seconds of another's.
   There are eight words in a race, and her place at the finish depends mostly on how many she found.
   The words (and ぼうけん's sentences) come from the kanji she has practised, picked more often the lower their level and the newer they are: this week's set 3x, last week's 1.5x, so this week's kanji are about half of them.
