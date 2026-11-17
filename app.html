@@ -727,7 +727,8 @@ const SECTIONS = [
   {zone:'くじらの うみ', book:'くじらぐも', lessons:'15〜20', kanji:'子空先生男女手天青', fossil:'plesio'},
   {zone:'ふかい うみ', book:'しらせたいな、見せたいな', lessons:'21〜26', kanji:'文字正見学校', fossil:'coel'},
   {zone:'こんぶの もり', book:'かん字の はなし・ことばを たのしもう', lessons:'27〜32', kanji:'山水雨上下日火田川竹月', fossil:'crin'},
-  {zone:'こおりの うみ', book:'じどう車くらべ・たぬきの 糸車', lessons:'35〜40', kanji:'車人気糸目玉村白土音', fossil:'anom'},
+  {zone:'こおりの うみ', book:'じどう車くらべ・たぬきの 糸車', lessons:'35〜40', kanji:'車人気', fossil:'anom'},
+  {zone:'りゅうひょうの うみ', book:'じどう車くらべ・たぬきの 糸車', lessons:'35〜40', kanji:'糸目玉村白土音', fossil:'kabuto'},
   {zone:'ちんぼつせん', book:'日づけと よう日・おかゆの おなべ', lessons:'41〜46', kanji:'花休虫金本森出中町入', fossil:'mosa'},
 ];
 // Readings as printed in the book. "|" splits kanji reading from okurigana; "*" = not used in the game.
@@ -1264,6 +1265,24 @@ function art(id){const c=CRE[id]; if(c.svg==='octo') return octoSVG(c.c); if(c.s
 const KEY='kanjiSea.v1';
 let P={k:{},sec:{}};
 try{const s=JSON.parse(localStorage.getItem(KEY)); if(s&&s.k) P=s;}catch(e){}
+// Set 5 (こおりの うみ, 車人気糸目玉村白土音) was split in two on 2026-11-17: school did only 車人気 that week.
+// Progress saved by set index (P.test, P.sec, P.fos, P.wk.i) is moved along so sets 6+ keep theirs.
+// A test score on the old 10-kanji set can't be split, so it is kept only if it was perfect (then both halves pass).
+function migrateSplit5(P){
+  if(P.split5)return P;
+  for(const f of ['test','sec','fos']){
+    const o=P[f]; if(!o)continue; const n={};
+    for(const [k,v] of Object.entries(o)){const i=+k; if(i<5)n[i]=v; else if(i>5)n[i+1]=v}
+    if(o[5]!=null){
+      if(f==='test'){if(o[5]>=10){n[5]=3; n[6]=7}}
+      else{n[5]=o[5]; if(f==='sec')n[6]=o[5]}
+    }
+    P[f]=n;
+  }
+  if(P.wk&&P.wk.i>5)P.wk.i++;
+  P.split5=1; return P;
+}
+migrateSplit5(P);
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(P))}catch(e){}};
 // Ask the browser not to clear this storage when the device runs low on space.
 try{navigator.storage?.persist?.().catch(()=>{})}catch(e){}
@@ -3387,7 +3406,7 @@ async function backupLoad(f){
     if(!p||typeof p.k!=='object')throw new Error('not a かんじの うみ backup');
     const n=Object.values(p.k).filter(v=>v.s).length;
     if(!confirm(`${o.at?ymd(o.at)+' の ':''}バックアップに もどしますか？（ふくしゅう ${n}こ）\nいまの きろくは うわがき されます。\n\nRestore this backup? It replaces the progress on this device.`))return;
-    P=p; P.sec=P.sec||{}; save();
+    P=migrateSplit5(p); P.sec=P.sec||{}; save();
     if(o.at)try{localStorage.setItem(BKEY,Date.parse(o.at))}catch(e){}
     renderHome();
   }catch(e){alert('もどせませんでした: '+e.message)}
