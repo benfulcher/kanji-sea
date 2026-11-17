@@ -97,6 +97,8 @@ h1 small{display:block;font-size:13px;font-weight:700;letter-spacing:.14em;color
 .reef-head .right{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end}
 .setgo.test{background:#6aa6e8;color:#06192a}
 .setgo.test small{font-size:13px}
+/* A set's test stays shut until every kanji in it has been written (the green star). */
+.setgo.test.shut{background:rgba(106,166,232,.3);color:rgba(6,25,42,.55)}
 .reward{width:64px;flex:none;text-align:center;font-size:11px;color:var(--mist);font-weight:700}
 .reward .art{filter:grayscale(1) brightness(.55);opacity:.7}
 .reward.got .art{filter:none;opacity:1}
@@ -1309,6 +1311,18 @@ function weekIndex(){
 }
 const weekPassed=i=>(P.test?.[i]||0)>=SECTIONS[i].kanji.length;
 const gamesLocked=()=>!weekPassed(weekIndex());
+// The test opens once every kanji in the set has been written on its own (prog(k).w, the green star).
+const unwritten=si=>[...SECTIONS[si].kanji].filter(k=>!prog(k).w);
+function testButton(si,best){
+  const shut=unwritten(si).length>0, n=SECTIONS[si].kanji.length;
+  return `<button class="setgo test${shut?' shut':''}"${shut?' aria-disabled="true"':''}>${shut?'🔒':'🐳'} テスト${best==null?'':` <small>🦷${best}/${n}</small>`}</button>`;
+}
+// A tap on a shut test: the crab names the kanji still to write.
+function tryTest(si){
+  const left=unwritten(si);
+  if(!left.length)return startTest(si);
+  SFX.bloop(); hostSay(`「${left.join('・')}」を かけたら テストできるよ！`);
+}
 
 // ---------- helpers ----------
 const $=id=>document.getElementById(id);
@@ -1923,11 +1937,11 @@ function renderReefs(){
     const sec=document.createElement('section'); sec.className='reef'+(si===weekIndex()?' now':'');
     const got=!!P.sec[si], best=P.test?.[si], F=FOSSILS[s.fossil], dug=!!P.fos?.[si];
     sec.innerHTML=`<div class="reef-head"><div><h2>${s.zone}</h2><p class="book">${s.lessons?`<b>${s.lessons}</b>　`:''}${s.book}</p></div>
-      <div class="right"><button class="setgo">▶ れんしゅう</button><button class="setgo test">🐳 テスト${best==null?'':` <small>🦷${best}/${s.kanji.length}</small>`}</button>
+      <div class="right"><button class="setgo">▶ れんしゅう</button>${testButton(si,best)}
       <div class="reward${got?' got':''}"><div class="art">${art('manta')}</div>${got?'マンタ！':'ぜんぶ かくと…'}</div>
       <${dug?'button':'div'} class="reward fosr${dug?' got':''}"><div class="plaque">${dug?fossilArt(s.fossil):'？'}</div>${dug?F.n:'テストが<br>まんてんだと…'}</${dug?'button':'div'}></div></div>`;
     sec.querySelector('.setgo').onclick=()=>startReview([...s.kanji]);
-    sec.querySelector('.setgo.test').onclick=()=>startTest(si);
+    sec.querySelector('.setgo.test').onclick=()=>tryTest(si);
     if(dug)sec.querySelector('.fosr').onclick=()=>{celebrate(s.fossil,`${F.n}の かせき`,F.t); if(SFX.on)say(F.n)};
     const tiles=document.createElement('div'); tiles.className='tiles';
     for(const k of s.kanji)tiles.appendChild(tileFor(k));
@@ -1946,9 +1960,9 @@ function renderWeek(){
   const wi=weekIndex(), S=SECTIONS[wi], ks=[...S.kanji], best=P.test?.[wi], ok=weekPassed(wi);
   const sec=$('week');
   sec.innerHTML=`<div class="reef-head"><div><h2><small>こんしゅうの かんじ</small>${ks.join('・')}</h2><p class="book">${S.zone}　${S.lessons?`<b>${S.lessons}</b>　`:''}${S.book}</p></div>
-    <div class="right"><button class="setgo">▶ れんしゅう</button><button class="setgo test">🐳 テスト${best==null?'':` <small>🦷${best}/${ks.length}</small>`}</button>${ok?'<span class="pass">🎉 ごうかく！</span>':''}</div></div>`;
+    <div class="right"><button class="setgo">▶ れんしゅう</button>${testButton(wi,best)}${ok?'<span class="pass">🎉 ごうかく！</span>':''}</div></div>`;
   sec.querySelector('.setgo').onclick=()=>startReview(ks);
-  sec.querySelector('.setgo.test').onclick=()=>startTest(wi);
+  sec.querySelector('.setgo.test').onclick=()=>tryTest(wi);
   const tiles=document.createElement('div'); tiles.className='tiles';
   for(const k of ks)tiles.appendChild(tileFor(k));
   sec.appendChild(tiles);

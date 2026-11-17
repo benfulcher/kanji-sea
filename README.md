@@ -34,6 +34,7 @@ It covers the kanji in 光文書院 くりかえし かんじドリル 1年 上,
   Tapping a locked game points her to the week's card and the crab tells her what to do.
   A new week locks them again until its set's test is passed.
 - **Tests (🐳 テスト):** each set has a test that goes through its kanji once each, with no hints, inside a whale's mouth.
+  A set's test is locked (🔒) until every kanji in it has been written on its own (the green star); tapping it then has the crab name the kanji still to write.
   Strokes stay as she wrote them rather than snapping to the model, but each still has to fit to count.
   Once a stroke fits, the model stroke appears in light grey underneath hers, so she can see where it should have gone.
   A kanji written with no misses grows a tooth on the whale's jaws, so the teeth are the score.
