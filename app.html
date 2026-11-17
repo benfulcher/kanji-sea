@@ -2544,11 +2544,13 @@ function endQuiz(){
 $('playQuiz').onclick=startQuiz; $('qAgain').onclick=startQuiz;
 $('qHome').onclick=$('backHome2').onclick=()=>{stopTank(); renderHome()};
 
-// ---------- ぼうけん: a two-screen maze in a sunken temple ----------
+// ---------- ぼうけん: a maze of two or four screens in a sunken temple ----------
 // She is the タカアシガニ and hunts for the treasure chest holding the kanji for a word, with the other chests
-// in side rooms. Each maze is 40 x 13 cells, two screens side by side (BVIEW cells wide each, split by a double wall at
-// columns 19 and 20): four storeys of corridors two cells high, with floors between them. Openings in the middle wall
-// are doorways between the screens, and the view flips to the other screen as she walks through one.
+// in side rooms. A screen is BVIEW x BVROWS (20 x 13) cells: four storeys of corridors two cells high, with floors
+// between them. The first two rounds are BMAPS mazes, two screens side by side (40 x 13); the last two are BMAPS4 mazes,
+// four screens in a 2 x 2 grid (40 x 26). Screens are split by a double wall (columns 19 and 20) or a double floor
+// (rows 12 and 13); openings in the wall are doorways, and kelp and holes cross the floor. The view slides to
+// whichever screen she is on.
 // The mazes are generated and checked (every chest reachable, the locked one only with the key, no place she can get
 // stuck) by tools/bmaze.py; BMAPS holds its output.
 // # stone, H kelp to climb (it passes up through the floors), X a stinging jellyfish, T a hidden trap door (two cells wide, over
@@ -2558,7 +2560,7 @@ $('qHome').onclick=$('backHome2').onclick=()=>{stopTank(); renderHome()};
 // fingers: every room has a way back up, a jump keeps going the way she was walking, a step one cell high is
 // climbed just by walking into it, and a sting sends her back to where she last stood (to the start after two).
 const BMAPS=[
-  // のぼる: up from the bottom on the left, through to the right screen and back
+  // のぼる
   [
     '########################################',
     '#..|...............##..................#',
@@ -2574,7 +2576,7 @@ const BMAPS=[
     '#.S.....X.......H..........e.....W#..H.#',
     '########################################',
   ],
-  // おりる: down from the top, with kelp back up
+  // おりる
   [
     '########################################',
     '#......................................#',
@@ -2590,7 +2592,7 @@ const BMAPS=[
     '#.K.H.........f..........H......|....C.#',
     '########################################',
   ],
-  // ジグザグ: a long kelp up the right screen
+  // ジグザグ
   [
     '########################################',
     '#..............|...##..................#',
@@ -2606,7 +2608,7 @@ const BMAPS=[
     '#.c....H..X..........S....X..H...W#..e.#',
     '########################################',
   ],
-  // めいろ: rooms split by walls, starting in the middle of the bottom
+  // めいろ
   [
     '########################################',
     '#......|................R..............#',
@@ -2623,7 +2625,96 @@ const BMAPS=[
     '########################################',
   ],
 ];
-const BCOLS=40, BVIEW=20, BROWS=13, BROUND=4;
+const BMAPS4=[
+  // おおきな しんでん: up from the bottom left
+  [
+    '########################################',
+    '#..................##..................#',
+    '#..e..X............##..................#',
+    '############H###############TT######H###',
+    '#...|.......H.................R.....H..#',
+    '#.A.|.......H.......................H..#',
+    '#######H################H#########..####',
+    '#......H..#........##...H..............#',
+    '#......H..#........##.K.H...X..........#',
+    '####H###########H##################H####',
+    '#...H...........H.............R....H...#',
+    '#...H.X.........H..................H...#',
+    '##############H##########..#############',
+    '##############H##########..#############',
+    '#.............H....##..................#',
+    '#........X....H....##..................#',
+    '##H##############################H######',
+    '#.H..............................H.....#',
+    '#.H.............b......d...#.....H.....#',
+    '######H###TT#########################H##',
+    '#.....H......R.....##................H.#',
+    '#..c..H............##.........X......H.#',
+    '###############H########H##########..###',
+    '#..............H........H..............#',
+    '#.S......X.....H........H.....W#....a..#',
+    '########################################',
+  ],
+  // ふかい たに: down from the top right
+  [
+    '########################################',
+    '#......................................#',
+    '#.a...........................X......S.#',
+    '##########H###TT########..#######H######',
+    '#.........H........##............H.....#',
+    '#....X....H........##............H..W#.#',
+    '########H###################H###########',
+    '#.......H..............R....H..........#',
+    '#.......H.....c.............H....X.....#',
+    '###..#H##############################H##',
+    '#.....H............##................H.#',
+    '#.....H.....X......##.....d..........H.#',
+    '################H#############..########',
+    '################H#############..########',
+    '#...............H......................#',
+    '#..K............H........X.............#',
+    '#####H####..##########..##H########H####',
+    '#....H.............##.....H.#......H...#',
+    '#....H.............##.f...H.#......H...#',
+    '####H#######TT##########################',
+    '#...H..........|...##..................#',
+    '#...H..........|.C.##.............X....#',
+    '########H#####################H#########',
+    '#.......H.....................H........#',
+    '#.......H.....................H......e.#',
+    '########################################',
+  ],
+  // ぐるぐる: round and round
+  [
+    '########################################',
+    '#......................................#',
+    '#...X....S...........................a.#',
+    '###############H######H#################',
+    '#..............H...##.H................#',
+    '#..........#W..H...##.H.....X........b.#',
+    '###..#H##########################..#H###',
+    '#.....H.............................H..#',
+    '#.....H.............................H..#',
+    '#############H#########H##TT############',
+    '#............H.....##..H...............#',
+    '#.........X..H..d..##..H...............#',
+    '####H###############################..##',
+    '####H###############################..##',
+    '#...H..................................#',
+    '#...H...........K.............X........#',
+    '#########H###############H##############',
+    '#........H....R....##....H.............#',
+    '#.e......H.........##....H.............#',
+    '############H###################..######',
+    '#...........H..........................#',
+    '#.....X.....H........................f.#',
+    '###H##################H#################',
+    '#..H..........|....##.H................#',
+    '#..H..........|..E.##.H.......X........#',
+    '########################################',
+  ],
+];
+const BVIEW=20, BVROWS=13, BROUND=4;
 // In cells and seconds: a jump rises about a cell (under a corridor's ceiling) and carries her about three cells.
 const BP={g:30,jump:8.1,run:4.5,air:6,climb:3.6,hw:.48,h:.8,grab:1.6};
 // A turtle ride (the jump-left and jump-right buttons): she sits half a cell up on its shell, and it swims up about
@@ -2640,7 +2731,7 @@ function startBouken(){
   const met=([ks])=>[...ks].filter(k=>pool.includes(k)).length, full=SENT2.filter(x=>met(x)===2);
   const items=wSample(full,full.map(([ks])=>[...ks].reduce((a,k)=>a+gameWeight(k),0)),BROUND);
   items.push(...shuffle(SENT2.filter(x=>!items.includes(x))).sort((a,b)=>met(b)-met(a)).slice(0,BROUND-items.length));
-  B={items,locks:shuffle([1,1,0,0]),maps:shuffle(BMAPS.slice()),pool,i:0,score:0,res:[],keys:new Set(),raf:0,last:0};
+  B={items,locks:shuffle([1,1,0,0]),maps:[...shuffle(BMAPS.slice()).slice(0,2),...shuffle(BMAPS4.slice()).slice(0,2)],pool,i:0,score:0,res:[],keys:new Set(),raf:0,last:0};
   $('bResult').hidden=true; $('bPlay').hidden=false;
   $('bCrab').firstChild.innerHTML=takaSVG(); $('bTurtle').innerHTML=art('kturtle');
   show('bouken'); bRound();
@@ -2679,7 +2770,7 @@ function bRound(){
   B.traps=[]; grid.forEach((row,y)=>row.forEach((ch,x)=>{if(ch==='T'&&row[x-1]!=='T')B.traps.push({x,y,state:'shut',t0:0})}));
   B.snakes=[]; grid.forEach((row,y)=>row.forEach((ch,x)=>{if('RW'.includes(ch)){row[x]='.';
     B.snakes.push({x,y,roof:ch==='R',d:row[x+1]==='#'?-1:1,state:'idle',t0:0})}}));
-  B.grid=grid; B.cur={ks:two,ys,parts,say:parts.join(''),step:0,miss:[0,0],lock:false,hits:0};
+  B.grid=grid; B.rows=grid.length; B.cols=grid[0].length; B.cur={ks:two,ys,parts,say:parts.join(''),step:0,miss:[0,0],lock:false,hits:0};
   const box=$('bChests'); box.innerHTML='';
   B.door=B.key=null;
   grid.forEach((row,y)=>row.forEach((ch,x)=>{
@@ -2709,11 +2800,11 @@ function bMsg(t){const m=$('bMsg'); m.textContent=t; m.classList.toggle('on',!!t
 function bLayout(){
   if(!B||$('bouken').hidden||$('bPlay').hidden)return;
   const box=$('bBox'), below=matchMedia('(orientation:portrait)').matches?Math.max($('bPadL').offsetHeight,$('bPadR').offsetHeight)+14:0;
-  const T=Math.max(16,Math.floor(Math.min(box.clientWidth/BVIEW,(innerHeight-box.getBoundingClientRect().top-below-24)/BROWS)));
-  B.T=T; const st=$('bStage'); st.style.width=T*BVIEW+'px'; st.style.height=T*BROWS+'px';
-  Object.assign($('bWorld').style,{width:T*BCOLS+'px',height:T*BROWS+'px'}); B.scr=-1;
+  const T=Math.max(16,Math.floor(Math.min(box.clientWidth/BVIEW,(innerHeight-box.getBoundingClientRect().top-below-24)/BVROWS)));
+  B.T=T; const st=$('bStage'); st.style.width=T*BVIEW+'px'; st.style.height=T*BVROWS+'px';
+  Object.assign($('bWorld').style,{width:T*B.cols+'px',height:T*B.rows+'px'}); B.scr=-1;
   for(const ch of B.chests){const w=1.6*T,h=w*52/60; Object.assign(ch.el.style,{width:w+'px',height:h+'px',fontSize:.66*T+'px',
-    transform:`translate(${Math.min(T*BCOLS-w,Math.max(0,(ch.x+.5)*T-w/2))}px,${(ch.y+1)*T-h}px)`})}
+    transform:`translate(${Math.min(T*B.cols-w,Math.max(0,(ch.x+.5)*T-w/2))}px,${(ch.y+1)*T-h}px)`})}
   for(const p of B.spikes)Object.assign(p.el.style,{width:T+'px',height:T+'px',transform:`translate(${(p.x-.5)*T}px,${(p.y-1)*T}px)`});
   // A roof snake drops through the two cells of corridor under its crack; a wall snake lunges four cells along the floor.
   for(const n of B.snakes){
@@ -2728,20 +2819,20 @@ function bLayout(){
 }
 addEventListener('resize',bLayout);
 // The sides are walls as high as the screen.
-const bAt=(y,x)=>y<0||y>=BROWS?'.':x<0||x>=BCOLS?'#':B.grid[y][x];
+const bAt=(y,x)=>y<0||y>=B.rows?'.':x<0||x>=B.cols?'#':B.grid[y][x];
 // Stone, and a locked door until she has opened it with the key.
 const bSolid=(y,x)=>{const ch=bAt(y,x); return ch==='#'||ch==='|'&&B.c.key!==2||ch==='T'&&bTrap(y,x).state!=='open'};
 const bTrap=(y,x)=>B.traps.find(p=>p.y===y&&(x===p.x||x===p.x+1));
 // The top of a kelp holds her up from above only.
 const bTop=(y,x)=>bAt(y,x)==='H'&&bAt(y-1,x)!=='H';
 function bDraw(){
-  const {T,grid}=B, W=T*BCOLS, H=T*BROWS, cv=$('bCanvas'), dpr=devicePixelRatio||1;
+  const {T,grid}=B, W=T*B.cols, H=T*B.rows, cv=$('bCanvas'), dpr=devicePixelRatio||1;
   cv.width=W*dpr; cv.height=H*dpr; const g=cv.getContext('2d'); g.scale(dpr,dpr);
   const sea=g.createLinearGradient(0,0,0,H); sea.addColorStop(0,'#1b6f92'); sea.addColorStop(1,'#0a2a42'); g.fillStyle=sea; g.fillRect(0,0,W,H);
   const rnd=seeded(grid.map(r=>r.join('')).join(''));
   // The temple's back wall: faint bricks behind the corridors.
   g.strokeStyle='rgba(255,255,255,.06)'; g.lineWidth=1;
-  for(let y=0;y<BROWS*2;y++){g.beginPath(); g.moveTo(0,y*T/2); g.lineTo(W,y*T/2);
+  for(let y=0;y<B.rows*2;y++){g.beginPath(); g.moveTo(0,y*T/2); g.lineTo(W,y*T/2);
     for(let x=(y%2)*T*.6;x<W;x+=T*1.2){g.moveTo(x,y*T/2); g.lineTo(x,(y+1)*T/2)} g.stroke()}
   grid.forEach((row,y)=>row.forEach((ch,x)=>{
     const X=x*T, Y=y*T;
@@ -2775,7 +2866,7 @@ function bDraw(){
   }));
   // Doorways through the middle wall: a faint arrow on each side pointing to the other screen.
   g.fillStyle='rgba(255,236,170,.4)';
-  for(let y=1;y<BROWS-1;y++)if(bAt(y,19)==='.'&&bAt(y,20)==='.'&&bAt(y+1,19)==='#')
+  for(let y=1;y<B.rows-1;y++)if(bAt(y,19)==='.'&&bAt(y,20)==='.'&&bAt(y+1,19)==='#')
     for(const [x,d] of [[19,1],[20,-1]]){const cx=(x+.5)*T, cy=(y-.35)*T; g.beginPath(); g.moveTo(cx+d*T*.3,cy); g.lineTo(cx-d*T*.2,cy-T*.3); g.lineTo(cx-d*T*.2,cy+T*.3); g.closePath(); g.fill()}
   // Trap doors: a shade paler than the stone round them, with a hairline crack, so a sharp eye can spot one; and an open pit with its two flaps hanging down once it drops.
   for(const p of B.traps){
@@ -2797,9 +2888,10 @@ function bDraw(){
 }
 function bPlace(){
   const {T,c}=B, el=$('bCrab'), w=1.5*T, h=w*110/160;
-  // Which screen she is on: the view slides over once she is past the middle of the doorway (snaps on a new round).
-  const scr=c.x>=BVIEW?1:0;
-  if(scr!==B.scr){const wd=$('bWorld'); wd.classList.toggle('slide',B.scr>=0); wd.style.transform=`translateX(${-scr*BVIEW*T}px)`; B.scr=scr}
+  // Which screen she is on: the view slides over once she is past the middle of a doorway, or halfway through the
+  // double floor on kelp or falling (and snaps there on a new round).
+  const sx=c.x>=BVIEW?1:0, sy=B.rows>BVROWS&&c.y-.4>=BVROWS?1:0, scr=sx+2*sy;
+  if(scr!==B.scr){const wd=$('bWorld'); wd.classList.toggle('slide',B.scr>=0); wd.style.transform=`translate(${-sx*BVIEW*T}px,${-sy*BVROWS*T}px)`; B.scr=scr}
   el.style.transform=`translate(${(c.x*T-w/2).toFixed(1)}px,${((c.y-(c.ride?RIDE.lift:0))*T-h+.03*T).toFixed(1)}px)`;
   // The key bobs where it lies until she picks it up, then rides on her back.
   if(B.key){const kw=(c.key?.95:.75)*T, kx=c.key?c.x+.1:B.key.x+.5, ky=c.key?c.y-(c.ride?RIDE.lift:0)-1.12:B.key.y+.62;
@@ -2915,7 +3007,7 @@ function bStep(dt,t){
   c.vy=Math.min(18,c.vy+(c.ride?RIDE.g:BP.g)*dt); const vy=c.vy;
   bMoveY(c,c.vy*dt);
   if(c.ground&&!wasGround&&vy>14)SFX.thud();
-  if(c.y>BROWS+1)return bSpawn();
+  if(c.y>B.rows+1)return bSpawn();
   // A sting sends her back to the last place she stood that wasn't right beside a jellyfish.
   if(c.ground&&!c.climb&&!B.spikes.some(p=>Math.abs(p.x-c.x)<1.6&&Math.abs(p.y-c.y)<.5))c.safe={x:c.x,y:c.y};
   // The key: touch it to pick it up; touch the door carrying it to open it.

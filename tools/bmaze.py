@@ -1,39 +1,56 @@
-"""Build the two-screen ぼうけん mazes (40 x 13) for BMAPS in app.html from a short spec, and check each can be finished from anywhere.
+"""Build the ぼうけん mazes for app.html from a short spec, and check each one can be finished from anywhere.
 
-Storey s (0 = top .. 3 = bottom) is rows 1+3s (upper) and 2+3s (lower); the floor under it is row 3+3s.
+Run `python3 tools/bmaze.py`: it checks every maze, then prints BMAPS (two screens side by side, 40 x 13) and
+BMAPS4 (four screens in a 2 x 2 grid, 40 x 26) to paste into app.html.
+
+A screen is 20 x 13 cells. Screens side by side are split by a double wall (columns 19 and 20); screens one above
+the other by a double floor (rows 12 and 13). Each screen has four storeys, two cells high. Storey s counts from the
+top: 0-3 on the top screens, 4-7 on the bottom ones.
+
+Spec operations (s = storey, x = column):
+  ('door', s)      an opening in the middle wall on storey s, between the left and right screens
+  ('kelp', s, x)   kelp from storey s up through the floor above into storey s-1 (s = 4 crosses between screens)
+  ('hole', s, x[, w]) a hole w cells wide (default 2) in the floor under storey s (s = 3 crosses between screens)
+  ('trap', s, x)   a two-cell trap door in the floor under storey s (not s = 3)
+  ('wall', s, x)   stone the full height of the storey;  ('lock', s, x) a locked door the full height
+  ('roof', s, x)   a sea snake in the roof
+  (ch, s, x)       one cell on the storey's lower row: X jellyfish, # step, S start, K key,
+                   W wall snake (beside stone), a-f chests (a capital letter is the chest behind the locked door)
 """
 import sys
 from collections import deque
 
-W, H = 40, 13
-LOW = lambda s: 2 + 3 * s
-UP = lambda s: 1 + 3 * s
-FLOOR = lambda s: 3 + 3 * s  # floor under storey s
+
+def UP(s): return 1 + 3 * s + (1 if s >= 4 else 0)
+def LOW(s): return UP(s) + 1
 
 
-def build(spec):
+def build(spec, tall):
+    W, H = 40, 26 if tall else 13
     g = [['#'] * W for _ in range(H)]
-    for s in range(4):
+    for s in range(8 if tall else 4):
         for r in (UP(s), LOW(s)):
             for x in range(1, W - 1):
                 if x not in (19, 20):
                     g[r][x] = '.'
     for op, *a in spec:
-        if op == 'door':  # opening between the screens on storey s
+        if op == 'door':
             s, = a
             for r in (UP(s), LOW(s)):
                 g[r][19] = g[r][20] = '.'
-        elif op == 'kelp':  # from storey s up through the floor into storey s-1
+        elif op == 'kelp':
             s, x = a
-            for r in (FLOOR(s - 1), UP(s), LOW(s)):
+            for r in range(LOW(s - 1) + 1, LOW(s) + 1):
                 g[r][x] = 'H'
         elif op == 'hole':
             s, x, *w = a
-            for i in range(w[0] if w else 2):
-                g[FLOOR(s)][x + i] = '.'
+            for r in range(LOW(s) + 1, UP(s + 1)):
+                for i in range(w[0] if w else 2):
+                    g[r][x + i] = '.'
         elif op == 'trap':
             s, x = a
-            g[FLOOR(s)][x] = g[FLOOR(s)][x + 1] = 'T'
+            assert s != 3, 'no trap doors in the double floor'
+            g[LOW(s) + 1][x] = g[LOW(s) + 1][x + 1] = 'T'
         elif op == 'wall':
             s, x = a
             g[UP(s)][x] = g[LOW(s)][x] = '#'
@@ -43,114 +60,91 @@ def build(spec):
         elif op == 'roof':
             s, x = a
             g[UP(s)][x] = 'R'
-        else:  # one cell on the lower row: X jelly, # step, S start, K key, W wall snake, a-f chests
+        else:
             s, x = a
             g[LOW(s)][x] = op
     return [''.join(r) for r in g]
 
 
-def solid(g, r, x, locked):
-    if r < 0 or r >= H:
-        return False
-    if x < 0 or x >= W:
-        return True
-    c = g[r][x]
-    return c == '#' or c == 'T' or (c == '|' and locked)
-
-
-def at(g, r, x):
-    return '.' if r < 0 or r >= H else '#' if x < 0 or x >= W else g[r][x]
-
-
-def check(rows, name):
-    g = rows
-    # A position is (r, x): she stands in cell r (feet on the top of cell r+1).
+def check(g, name):
+    H, W = len(g), len(g[0])
+    at = lambda r, x: '.' if r < 0 or r >= H else '#' if x < 0 or x >= W else g[r][x]
+    def solid(r, x, locked):
+        c = at(r, x)
+        return c == '#' or c == 'T' or (c == '|' and locked)
+    # A position (r, x): she is in cell r with her feet on the top of cell r+1.
     def stand(r, x, locked):
-        if solid(g, r, x, locked) or at(g, r, x) == 'X':
+        if solid(r, x, locked) or at(r, x) == 'X':
             return False
-        b = at(g, r + 1, x)
-        return solid(g, r + 1, x, locked) or (b == 'H' and at(g, r, x) != 'H') or at(g, r, x) == 'H'
-
+        return solid(r + 1, x, locked) or at(r + 1, x) == 'H' or at(r, x) == 'H'
     def fall(r, x, locked):
         while not stand(r, x, locked):
-            if solid(g, r + 1, x, locked) or r > H:
+            if solid(r + 1, x, locked) or r >= H:
                 return None
             r += 1
-            if at(g, r, x) == 'X':
+            if at(r, x) == 'X':
                 return None
         return (r, x)
-
     def moves(p, locked):
         r, x = p
         out = []
         for d in (-1, 1):
-            nx = x + d
-            if not solid(g, r, nx, locked):
-                q = fall(r, nx, locked)
+            if not solid(r, x + d, locked):
+                q = fall(r, x + d, locked)
                 if q: out.append(q)
-            elif not solid(g, r - 1, nx, locked) and not solid(g, r - 1, x, locked):
-                if stand(r - 1, nx, locked): out.append((r - 1, nx))  # step up one
-            # jump (or turtle) up to 3 across, clear of stone on rows r and r-1, landing level or lower
-            for k in (2, 3):
+            elif not solid(r - 1, x + d, locked) and not solid(r - 1, x, locked) and stand(r - 1, x + d, locked):
+                out.append((r - 1, x + d))  # a step one cell high
+            for k in (2, 3):  # a jump or a turtle ride across
                 cells = [x + d * i for i in range(1, k + 1)]
-                if all(not solid(g, r, c, locked) for c in cells) and all(not solid(g, r - 1, c, locked) for c in cells):
+                if all(not solid(r, c, locked) and not solid(r - 1, c, locked) for c in cells):
                     q = fall(r, x + d * k, locked)
                     if q: out.append(q)
-        # kelp
-        col = x
-        if at(g, r, col) == 'H' or at(g, r + 1, col) == 'H':
-            top = r if at(g, r, col) == 'H' else r + 1
-            while at(g, top - 1, col) == 'H': top -= 1
-            bot = r if at(g, r, col) == 'H' else r + 1
-            while at(g, bot + 1, col) == 'H': bot += 1
+        if at(r, x) == 'H' or at(r + 1, x) == 'H':  # kelp, up or down
+            top = r if at(r, x) == 'H' else r + 1
+            while at(top - 1, x) == 'H': top -= 1
+            bot = top
+            while at(bot + 1, x) == 'H': bot += 1
             for rr in range(top - 1, bot + 1):
-                if stand(rr, col, locked): out.append((rr, col))
-        # drop through a kelp top or a trap door
-        if at(g, r + 1, x) in 'HT':
-            rr = r + 1
-            while at(g, rr, x) == 'T': rr += 1
-            q = fall(rr, x, locked)
+                if stand(rr, x, locked): out.append((rr, x))
+        if at(r + 1, x) in 'HT':  # drop through a kelp top or a trap door
+            q = fall(r + 2, x, locked)
             if q: out.append(q)
-            if at(g, r + 1, x) == 'T':
-                for d in (-1, 1):  # standing on the other half of the trap
-                    if at(g, r + 1, x + d) == 'T': pass
         return out
-
     def reach(src, locked):
         seen = {src}; dq = deque([src])
         while dq:
-            p = dq.popleft()
-            for q in moves(p, locked):
+            for q in moves(dq.popleft(), locked):
                 if q not in seen:
                     seen.add(q); dq.append(q)
         return seen
-
     find = lambda chs: [(r, x) for r in range(H) for x in range(W) if g[r][x] in chs]
-    S = find('S')[0]
-    chests = find('abcdefABCDEF'); key = find('K'); door = find('|')
+    S = find('S')[0]; chests = find('abcdefABCDEF'); key = find('K'); door = find('|')
     ok = True
-    for locked in ([True, False] if door else [False]):
+    def bad(*m):
+        nonlocal ok; ok = False; print(name, *m, file=sys.stderr)
+    if not 5 <= len(chests) <= 7: bad('has', len(chests), 'chests')
+    if not door or not key or sum(g[r][x].isupper() for r, x in chests) != 1: bad('needs one locked door, one key and one capital chest')
+    for locked in (True, False):
         R = reach(S, locked)
-        need = [c for c in chests if not (locked and g[c[0]][c[1]].isupper())] + (key if locked else [])
-        for c in need:
-            if c not in R: print(name, 'locked' if locked else 'open', 'cannot reach', g[c[0]][c[1]], c); ok = False
-        if locked and door:
-            # the locked chest must be shut away
-            for c in chests:
-                if g[c[0]][c[1]].isupper() and c in R: print(name, 'locked chest reachable without key', c); ok = False
-        # from everywhere reachable, the start must be reachable again (no dead ends)
+        for c in chests + (key if locked else []):
+            if locked and c in chests and g[c[0]][c[1]].isupper():
+                if c in R: bad('the locked chest is reachable without the key', c)
+            elif c not in R: bad('cannot reach', g[c[0]][c[1]], c, 'locked' if locked else 'open')
+        # Everywhere she can get to must lead back to the start: search backwards from it.
+        back = {}
         for p in R:
-            if S not in reach(p, locked):
-                print(name, 'stuck at', p, 'locked' if locked else 'open'); ok = False; break
-    # unlocked with key: everything
-    if door:
-        R = reach(S, False)
-        for c in chests:
-            if c not in R: print(name, 'unlocked cannot reach', c); ok = False
+            for q in moves(p, locked): back.setdefault(q, []).append(p)
+        seen = {S}; dq = deque([S])
+        while dq:
+            for q in back.get(dq.popleft(), []):
+                if q not in seen: seen.add(q); dq.append(q)
+        stuck = sorted(R - seen)
+        if stuck: bad('can get stuck at', stuck[:5], 'locked' if locked else 'open')
     return ok
 
 
-MAPS = [
+S = 'S'
+MAPS2 = [
   ('のぼる', [
     ('S',3,2),('X',3,8),('kelp',3,16),('door',3),('e',3,27),('W',3,33),('#',3,34),('kelp',3,37),
     ('c',2,2),('#',2,10),('kelp',2,5),('K',2,24),('trap',2,29),('roof',2,31),('kelp',2,22),
@@ -180,11 +174,47 @@ MAPS = [
   ]),
 ]
 
+MAPS4 = [
+  ('おおきな しんでん: up from the bottom left', [
+    ('S',7,2),('X',7,9),('kelp',7,15),('door',7),('a',7,36),('W',7,30),('#',7,31),('kelp',7,24),
+    ('c',6,3),('kelp',6,6),('roof',6,13),('X',6,30),('hole',6,35),('kelp',6,37),
+    ('door',5),('trap',5,10),('b',5,16),('kelp',5,2),('#',5,27),('d',5,23),('kelp',5,33),
+    ('X',4,9),('kelp',4,14),
+    ('door',3),('X',3,6),('kelp',3,4),('hole',3,25),('kelp',3,35),('roof',3,30),
+    ('wall',2,10),('kelp',3,16),('X',2,28),('K',2,22),('kelp',2,24),
+    ('door',1),('lock',1,4),('A',1,2),('kelp',2,7),('roof',1,30),('hole',1,34),
+    ('kelp',1,12),('X',0,6),('e',0,3),('kelp',1,36),('trap',0,28),
+  ]),
+  ('ふかい たに: down from the top right', [
+    ('S',0,37),('X',0,30),('door',0),('hole',0,24),('kelp',1,33),('a',0,2),('kelp',1,10),('trap',0,14),
+    ('X',1,5),('kelp',2,8),('W',1,36),('#',1,37),('kelp',2,28),
+    ('door',2),('c',2,14),('hole',2,3),('X',2,33),('roof',2,23),
+    ('kelp',3,6),('X',3,12),('kelp',4,16),('kelp',3,37),('d',3,26),('hole',3,30),
+    ('door',4),('K',4,3),('hole',4,10),('X',4,25),('kelp',5,35),('hole',4,22),
+    ('kelp',5,5),('trap',5,12),('wall',5,28),('f',5,22),('kelp',5,26),
+    ('kelp',6,4),('lock',6,15),('C',6,17),('kelp',7,30),('X',6,34),
+    ('door',7),('kelp',7,8),('e',7,37),
+  ]),
+  ('ぐるぐる: round and round', [
+    ('S',0,9),('X',0,4),('door',0),('a',0,37),('kelp',1,22),
+    ('kelp',1,15),('hole',1,3),('#',1,11),('W',1,12),('X',1,28),('b',1,37),('hole',1,33),
+    ('door',2),('kelp',2,6),('trap',2,26),('kelp',2,36),
+    ('kelp',4,4),('X',3,10),('d',3,16),('kelp',3,13),('kelp',3,23),('hole',3,36),
+    ('door',4),('K',4,16),('X',4,30),('kelp',5,25),
+    ('kelp',5,9),('roof',5,14),('e',5,2),('hole',5,32),
+    ('door',6),('kelp',6,12),('X',6,6),('f',6,37),('kelp',7,22),
+    ('kelp',7,3),('lock',7,14),('E',7,17),('X',7,30),
+  ]),
+]
+
+
 if __name__ == '__main__':
-    # Check every maze, then print BMAPS rows to paste into app.html.
     allok = True
-    for name, sp in MAPS:
-        rows = build(sp)
-        allok &= check(rows, name)
-        print(f'  // {name}\n  [\n' + ''.join(f"    '{r}',\n" for r in rows) + '  ],')
-    print('// ALL OK' if allok else '// PROBLEMS', file=sys.stderr)
+    for var, maps, tall in (('BMAPS', MAPS2, False), ('BMAPS4', MAPS4, True)):
+        print(f'const {var}=[')
+        for name, sp in maps:
+            rows = build(sp, tall)
+            allok &= check(rows, name)
+            print(f'  // {name}\n  [\n' + ''.join(f"    '{r}',\n" for r in rows) + '  ],')
+        print('];')
+    print('ALL OK' if allok else 'PROBLEMS', file=sys.stderr)
