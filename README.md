@@ -57,9 +57,11 @@ It covers the kanji in 光文書院 くりかえし かんじドリル 1年 上,
   Five more fossils are drawn and ready for sets added later.
 - **Adventure (ぼうけん):** a Prince of Persia–style maze in a sunken temple, where she is the タカアシガニ and has to find the kanji for a short sentence in treasure chests.
   Each sentence has two kanji to find (やまの うえに かにが いる。), and she has to open their chests in the order the words come in the sentence.
-  Each maze fills one screen with four storeys of stone corridors, and there are five chests around it, two of them right.
+  Each maze is two screens wide with four storeys of stone corridors, and there are six chests around it, two of them right.
+  Openings in the wall down the middle (marked with faint arrows) are doorways between the two screens, and the view slides across when she walks through one.
+  The mazes are built and checked by `tools/bmaze.py` (every chest reachable, the locked one only with the key, and nowhere she can get stuck); it prints the `BMAPS` rows for `app.html`.
   To get there she climbs kelp up through the floors, drops through holes, jumps over stinging jellyfish (crackling with lightning) and clambers over steps.
-  Hidden trap doors look like ordinary floor, but tremble and drop open under her, landing her safely on the storey below, and shut again a few seconds later.
+  Hidden trap doors look almost like ordinary floor (a shade paler, with a hairline crack), but tremble and drop open under her, landing her safely on the storey below, and shut again a few seconds later.
   ウミヘビ (sea snakes) hide in the roof or in a wall, given away by a forked tongue flicking from a crack in the ceiling or a hole in the bricks.
   When she comes near, one hisses (its eyes turn red) and a moment later strikes, dropping from the ceiling or lunging along the floor; if it catches her she is stunned for a few seconds, then it slips back into its hole.
   Setting it off and running straight back gets her clear; carrying on past it gets her caught.

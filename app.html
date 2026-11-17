@@ -347,6 +347,10 @@ ruby rt{font-family:var(--f-ui);font-size:.5em;font-weight:700;color:var(--sun)}
 .bcrab.happy .tk{animation:hop .3s ease-out 6 alternate}
 .bcrab.ouch .tk{animation:ouch .14s steps(2) 5}
 @keyframes ouch{50%{opacity:.2}}
+/* The whole two-screen maze; the stage shows one screen of it and slides across when she goes through a doorway. */
+#bWorld{position:absolute;left:0;top:0}
+#bWorld.slide{transition:transform .4s ease-in-out}
+@media (prefers-reduced-motion:reduce){#bWorld.slide{transition:none}}
 .bturtle{position:absolute;left:0;top:0;z-index:2;pointer-events:none;display:none}
 .bdoor{position:absolute;left:0;top:0;overflow:hidden}
 .bdoor div{height:100%;transition:transform .8s ease-in}
@@ -667,7 +671,7 @@ ruby rt{font-family:var(--f-ui);font-size:.5em;font-weight:700;color:var(--sun)}
         <div class="bmid">
           <div class="pad left" id="bPadL"><button data-k="JL" class="jump" aria-label="ひだりへ ジャンプ"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M7 33Q10 10 29 11" stroke="currentColor" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M22 4l9 7-8 8" stroke="currentColor" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button><button data-k="JR" class="jump" aria-label="みぎへ ジャンプ"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M7 33Q10 10 29 11" stroke="currentColor" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M22 4l9 7-8 8" stroke="currentColor" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button><button data-k="L" aria-label="ひだり">◀</button><button data-k="R" aria-label="みぎ">▶</button></div>
           <div class="sbox" id="bBox">
-            <div class="stage" id="bStage"><canvas id="bCanvas"></canvas><div id="bChests"></div><div class="bturtle art" id="bTurtle"></div><div class="bcrab" id="bCrab"><div class="tk"></div><div class="stars">💫</div></div><div class="bmsg" id="bMsg"></div></div>
+            <div class="stage" id="bStage"><div id="bWorld"><canvas id="bCanvas"></canvas><div id="bChests"></div><div class="bturtle art" id="bTurtle"></div><div class="bcrab" id="bCrab"><div class="tk"></div><div class="stars">💫</div></div></div><div class="bmsg" id="bMsg"></div></div>
           </div>
           <div class="pad right" id="bPadR"><button data-k="D" aria-label="した">▼</button><button data-k="U" aria-label="ジャンプ">▲</button></div>
         </div>
@@ -2540,26 +2544,86 @@ function endQuiz(){
 $('playQuiz').onclick=startQuiz; $('qAgain').onclick=startQuiz;
 $('qHome').onclick=$('backHome2').onclick=()=>{stopTank(); renderHome()};
 
-// ---------- ぼうけん: a one-screen maze in a sunken temple ----------
+// ---------- ぼうけん: a two-screen maze in a sunken temple ----------
 // She is the タカアシガニ and hunts for the treasure chest holding the kanji for a word, with the other chests
-// in side rooms. Each maze is 20 x 13 cells: four storeys of corridors two cells high, with floors between them.
+// in side rooms. Each maze is 40 x 13 cells, two screens side by side (BVIEW cells wide each, split by a double wall at
+// columns 19 and 20): four storeys of corridors two cells high, with floors between them. Openings in the middle wall
+// are doorways between the screens, and the view flips to the other screen as she walks through one.
+// The mazes are generated and checked (every chest reachable, the locked one only with the key, no place she can get
+// stuck) by tools/bmaze.py; BMAPS holds its output.
 // # stone, H kelp to climb (it passes up through the floors), X a stinging jellyfish, T a hidden trap door (two cells wide, over
-// a safe landing), R and W sea snakes hiding in the roof or in a wall, S the start and a-e the five chests. Some rounds
+// a safe landing), R and W sea snakes hiding in the roof or in a wall, S the start and a-f the six chests. Some rounds
 // lock the way to the right chest (the capital letter) with a door |, and hide its key K elsewhere.
 // She goes up kelp, drops through holes, jumps stinging jellyfish and clambers over steps. It's about finding the way, not quick
 // fingers: every room has a way back up, a jump keeps going the way she was walking, a step one cell high is
 // climbed just by walking into it, and a sting sends her back to where she last stood (to the start after two).
 const BMAPS=[
-  // のぼる: up from the bottom, over spikes on two storeys
-  ['####################','#..|...............#','#A.|.........W#...d#','######..##TT###H####','#..............H...#','#b......X......H...#','####H######TT#######','#...H..............#','#K..H..#..........c#','#################H##','#..........R.....H.#','#S......X....e...H.#','####################'],
-  // おりる: down through holes, with kelp back up on the left
-  ['####################','#..................#','#S....X.........a..#','#H#######TT..#######','#H......#..........#','#H....b.#W.....#d..#','###H#############..#','#..H...........R...#','#K.H....e...X......#','#####HTT#..#########','#....H..........|..#','#....H........X.|.C#','####################'],
-  // ジグザグ: a long kelp through the middle storeys
-  ['####################','#...........R......#','#b.....#..........K#','####..####TT###H####','#..............H...#','#S.......X.....H..d#','####TT######..#H####','#..............H...#','#c......X..W#..H...#','#####H##############','#....H......|......#','#e...H..X...|..A...#','####################'],
+  // のぼる: up from the bottom on the left, through to the right screen and back
+  [
+    '########################################',
+    '#..|...............##..................#',
+    '#A.|...............##.......X........f.#',
+    '###############H########..########H#####',
+    '#..............H...........R......H....#',
+    '#b.......X.....H...............X..H.d..#',
+    '#####H################H#################',
+    '#....H.............##.H........R.......#',
+    '#.c..H....#........##.H.K..............#',
+    '################H############TT######H##',
+    '#...............H....................H.#',
+    '#.S.....X.......H..........e.....W#..H.#',
+    '########################################',
+  ],
+  // おりる: down from the top, with kelp back up
+  [
+    '########################################',
+    '#......................................#',
+    '#S....X.............................a..#',
+    '##H##########TT###############..#####H##',
+    '#.H.....#..........##.............R..H.#',
+    '#.H...b.#W.........##.......d........H.#',
+    '#################H####H#..##############',
+    '#................H....H................#',
+    '#...e.....X......H....H....X...........#',
+    '####H#..#################H###..#########',
+    '#...H....................H......|......#',
+    '#.K.H.........f..........H......|....C.#',
+    '########################################',
+  ],
+  // ジグザグ: a long kelp up the right screen
+  [
+    '########################################',
+    '#..............|...##..................#',
+    '#..............|.A.##....X.............#',
+    '###H##################TT#####H#####..###',
+    '#..H.........................H...R.....#',
+    '#..H......X..a...........#...H.......K.#',
+    '################H############H##########',
+    '#..........R....H..##........H.........#',
+    '#...#..........dH..##...b....H....X....#',
+    '#######H#####TT##############H##########',
+    '#......H.....................H.........#',
+    '#.c....H..X..........S....X..H...W#..e.#',
+    '########################################',
+  ],
   // めいろ: rooms split by walls, starting in the middle of the bottom
-  ['####################','#.|................#','#B|.....X....#....d#','###H##..##TT####H###','#..H.....#......H..#','#c.H....W#......H.e#','############H#######','#........R..H......#','#.....X.....H......#','##..H##TT#H####H#..#','#...H.#...H..#.H...#','#a..H.#..SH..#.H..K#','####################'],
+  [
+    '########################################',
+    '#......|................R..............#',
+    '#.B....|...................X...........#',
+    '##########H########################..###',
+    '#.........H......................#.....#',
+    '#.......X.H.d....................#...f.#',
+    '##H#############H#########H####H####H###',
+    '#.H......#......H..##.....H.#..H...RH..#',
+    '#.H......#......Hc.##.e...H.#.bH....H..#',
+    '####H######H#TT##########H#######H###.##',
+    '#...H.#....H.............H....#..H.....#',
+    '#.a.H.#..S.H.....X.......H...W#..H...K.#',
+    '########################################',
+  ],
 ];
-const BCOLS=20, BROWS=13, BROUND=4;
+const BCOLS=40, BVIEW=20, BROWS=13, BROUND=4;
 // In cells and seconds: a jump rises about a cell (under a corridor's ceiling) and carries her about three cells.
 const BP={g:30,jump:8.1,run:4.5,air:6,climb:3.6,hw:.48,h:.8,grab:1.6};
 // A turtle ride (the jump-left and jump-right buttons): she sits half a cell up on its shell, and it swims up about
@@ -2601,7 +2665,7 @@ function bRound(){
   const grid=B.maps[B.i%B.maps.length].map(row=>[...row]), slots=[], locked=B.locks[B.i];
   grid.forEach((row,y)=>row.forEach((ch,x)=>{
     if(ch==='S')B.start={x:x+.5,y:y+1};
-    if('SabcdeABCDE'.includes(ch)){if(ch!=='S')slots.push({x,y,lock:ch<'a'}); row[x]='.'}
+    if('SabcdefABCDEF'.includes(ch)){if(ch!=='S')slots.push({x,y,lock:ch<'a'}); row[x]='.'}
     if('|K'.includes(ch)&&!locked)row[x]='.';
   }));
   // The other chests: kanji from the same sets or ones she has met first, never one that can be read either way.
@@ -2645,8 +2709,9 @@ function bMsg(t){const m=$('bMsg'); m.textContent=t; m.classList.toggle('on',!!t
 function bLayout(){
   if(!B||$('bouken').hidden||$('bPlay').hidden)return;
   const box=$('bBox'), below=matchMedia('(orientation:portrait)').matches?Math.max($('bPadL').offsetHeight,$('bPadR').offsetHeight)+14:0;
-  const T=Math.max(16,Math.floor(Math.min(box.clientWidth/BCOLS,(innerHeight-box.getBoundingClientRect().top-below-24)/BROWS)));
-  B.T=T; const st=$('bStage'); st.style.width=T*BCOLS+'px'; st.style.height=T*BROWS+'px';
+  const T=Math.max(16,Math.floor(Math.min(box.clientWidth/BVIEW,(innerHeight-box.getBoundingClientRect().top-below-24)/BROWS)));
+  B.T=T; const st=$('bStage'); st.style.width=T*BVIEW+'px'; st.style.height=T*BROWS+'px';
+  Object.assign($('bWorld').style,{width:T*BCOLS+'px',height:T*BROWS+'px'}); B.scr=-1;
   for(const ch of B.chests){const w=1.6*T,h=w*52/60; Object.assign(ch.el.style,{width:w+'px',height:h+'px',fontSize:.66*T+'px',
     transform:`translate(${Math.min(T*BCOLS-w,Math.max(0,(ch.x+.5)*T-w/2))}px,${(ch.y+1)*T-h}px)`})}
   for(const p of B.spikes)Object.assign(p.el.style,{width:T+'px',height:T+'px',transform:`translate(${(p.x-.5)*T}px,${(p.y-1)*T}px)`});
@@ -2708,13 +2773,21 @@ function bDraw(){
       g.fillStyle='#7be0b2'; g.beginPath(); g.roundRect(X+T*.08,Y-T*.02,T*.84,T*.16,T*.08); g.fill();
     }
   }));
-  // Trap doors: cracks while one trembles, and an open pit with its two flaps hanging down once it drops.
+  // Doorways through the middle wall: a faint arrow on each side pointing to the other screen.
+  g.fillStyle='rgba(255,236,170,.4)';
+  for(let y=1;y<BROWS-1;y++)if(bAt(y,19)==='.'&&bAt(y,20)==='.'&&bAt(y+1,19)==='#')
+    for(const [x,d] of [[19,1],[20,-1]]){const cx=(x+.5)*T, cy=(y-.35)*T; g.beginPath(); g.moveTo(cx+d*T*.3,cy); g.lineTo(cx-d*T*.2,cy-T*.3); g.lineTo(cx-d*T*.2,cy+T*.3); g.closePath(); g.fill()}
+  // Trap doors: a shade paler than the stone round them, with a hairline crack, so a sharp eye can spot one; and an open pit with its two flaps hanging down once it drops.
   for(const p of B.traps){
     const X=p.x*T, Y=p.y*T;
     if(p.state==='open'){
       g.fillStyle=sea; g.fillRect(X,Y,2*T,T+.5); g.fillStyle='rgba(0,0,0,.25)'; g.fillRect(X,Y,2*T,T+.5);
       g.fillStyle='#55667f'; g.strokeStyle='#2e394b'; g.lineWidth=1.5;
       for(const fx of [X,X+2*T-T*.18]){g.beginPath(); g.rect(fx,Y,T*.18,T*.95); g.fill(); g.stroke()}
+    }else if(p.state==='shut'){
+      g.fillStyle='rgba(190,205,225,.09)'; g.fillRect(X,Y+T*.12,2*T,T*.88);
+      g.strokeStyle='rgba(20,28,40,.55)'; g.lineWidth=1; g.beginPath();
+      g.moveTo(X+T*.95,Y+T*.14); g.lineTo(X+T*1.05,Y+T*.4); g.lineTo(X+T*.97,Y+T*.62); g.lineTo(X+T*1.04,Y+T*.86); g.stroke();
     }else if(p.state==='shake'){
       g.strokeStyle='#1d2533'; g.lineWidth=2; g.beginPath();
       g.moveTo(X+T*.3,Y+T*.1); g.lineTo(X+T*.6,Y+T*.45); g.lineTo(X+T*.45,Y+T*.8); g.moveTo(X+T,Y); g.lineTo(X+T,Y+T);
@@ -2724,6 +2797,9 @@ function bDraw(){
 }
 function bPlace(){
   const {T,c}=B, el=$('bCrab'), w=1.5*T, h=w*110/160;
+  // Which screen she is on: the view slides over once she is past the middle of the doorway (snaps on a new round).
+  const scr=c.x>=BVIEW?1:0;
+  if(scr!==B.scr){const wd=$('bWorld'); wd.classList.toggle('slide',B.scr>=0); wd.style.transform=`translateX(${-scr*BVIEW*T}px)`; B.scr=scr}
   el.style.transform=`translate(${(c.x*T-w/2).toFixed(1)}px,${((c.y-(c.ride?RIDE.lift:0))*T-h+.03*T).toFixed(1)}px)`;
   // The key bobs where it lies until she picks it up, then rides on her back.
   if(B.key){const kw=(c.key?.95:.75)*T, kx=c.key?c.x+.1:B.key.x+.5, ky=c.key?c.y-(c.ride?RIDE.lift:0)-1.12:B.key.y+.62;
